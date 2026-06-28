@@ -1,0 +1,15 @@
+{
+  "name": "opdebank",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Op de Bank — een gedeelde, mobile-first kijklijst voor series.",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix web install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:web": "npm --prefix web run dev",
+    "build": "npm --prefix web run build && npm --prefix server run build",
+    "icons": "node scripts/make-icons.mjs",
+    "docker:build": "docker build -t opdebank:local .",
+    "docker:run": "docker run --rm -p 8080:8080 --env-file .env -v opdebank-data:/data opdebank:local"
+  }
+}

@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/build
+.git
+data
+*.sqlite
+*.log
+.env
+.env.local
+scratchpad
