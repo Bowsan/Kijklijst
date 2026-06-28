@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Mobile-first frontend voor Op de Bank.",
   "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
