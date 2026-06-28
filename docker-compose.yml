@@ -1,0 +1,25 @@
+# Op de Bank — productie-opstelling voor op de server.
+# Gebruik: `docker compose up -d` (de GitHub Action doet dit automatisch).
+services:
+  app:
+    image: ${IMAGE:-ghcr.io/bowsan/kijklijst:latest}
+    container_name: opdebank
+    restart: unless-stopped
+    environment:
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TMDB_LANGUAGE: ${TMDB_LANGUAGE:-nl-NL}
+      TMDB_REGION: ${TMDB_REGION:-NL}
+      PORT: 8080
+      DATABASE_PATH: /data/opdebank.sqlite
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    volumes:
+      - opdebank-data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  opdebank-data:
