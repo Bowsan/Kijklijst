@@ -132,7 +132,7 @@ app.post('/api/rating', async (req, res) => {
 
     db.prepare(
       `INSERT INTO ratings (title_id, user_id, score, status, note, service, seasons, updated_at)
-       VALUES (@title_id, @user_id, @score, @status, @note, @service, @seasons, @updated_at)
+       VALUES (@title_id, @user_id, @score, @status, @note, @service, COALESCE(@seasons, '[]'), @updated_at)
        ON CONFLICT(title_id, user_id) DO UPDATE SET
          score=COALESCE(@score, score),
          status=COALESCE(@status, status),
