@@ -44,7 +44,7 @@ export default function App() {
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [genreFilter, setGenreFilter] = useState<string>('');
   const [friendFilter, setFriendFilter] = useState<string>(''); // '' = iedereen (alleen in "Alles")
-  const [finishedOnly, setFinishedOnly] = useState(false);
+  const [notSeenOnly, setNotSeenOnly] = useState(false);
   const [nameFilter, setNameFilter] = useState<string>('');
   const [sort, setSort] = useState<Sort>('recent');
 
@@ -70,8 +70,8 @@ export default function App() {
 
   // Pagina resetten bij filterwijziging
   useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter, nameFilter]);
-  // Vriend-filter en gezien-filter alleen relevant binnen "Alles".
-  useEffect(() => { if (statusFilter !== 'all') { setFriendFilter(''); setFinishedOnly(false); } }, [statusFilter]);
+  // Vriend-filter en niet-gezien-filter alleen relevant binnen "Alles".
+  useEffect(() => { if (statusFilter !== 'all') { setFriendFilter(''); setNotSeenOnly(false); } }, [statusFilter]);
 
   const addTitle = async (tmdbId: number) => {
     try {
@@ -128,8 +128,9 @@ export default function App() {
       if (friendFilter) {
         list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.user_id === friendFilter));
       }
-      if (finishedOnly) {
-        list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === 'finished' && visible.has(r.user_id)));
+      if (notSeenOnly) {
+        // Alleen series tonen die JIJ nog niet hebt afgezien.
+        list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status !== 'finished');
       }
     } else if (statusFilter === 'watching') {
       // Mee bezig = wat jij én je gevolgde vrienden kijken.
@@ -163,7 +164,7 @@ export default function App() {
       return sort === 'oldest' ? tsA - tsB : tsB - tsA;
     });
     return list;
-  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, finishedOnly, nameFilter, sort, userId, me]);
+  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, notSeenOnly, nameFilter, sort, userId, me]);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
@@ -232,11 +233,14 @@ export default function App() {
               </div>
               <div style={{ marginBottom: 8 }}>
                 <button
-                  className={`btn ghost${finishedOnly ? ' sel' : ''}`}
-                  style={{ fontSize: 13, padding: '5px 12px', borderRadius: 999 }}
-                  onClick={() => setFinishedOnly((v) => !v)}
+                  className="btn ghost"
+                  style={{
+                    fontSize: 13, padding: '5px 12px', borderRadius: 999,
+                    ...(notSeenOnly ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' } : {}),
+                  }}
+                  onClick={() => setNotSeenOnly((v) => !v)}
                 >
-                  ✅ Reeds gezien
+                  Nog niet gezien
                 </button>
               </div>
             </>
