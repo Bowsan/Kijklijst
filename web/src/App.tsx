@@ -17,6 +17,7 @@ import Dashboard from './components/Dashboard';
 import Friends from './components/Friends';
 import ProfileView from './components/ProfileView';
 import Profile from './components/Profile';
+import Avatar from './components/Avatar';
 import RecommendSheet from './components/RecommendSheet';
 import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
@@ -200,14 +201,20 @@ export default function App() {
             ))}
           </div>
 
-          {/* Binnen "Alles": uitlichten van één vriend (of jezelf). */}
+          {/* Binnen "Alles": uitlichten van één vriend (of jezelf), met foto. */}
           {statusFilter === 'all' && (
-            <div className="row" style={{ marginBottom: 8 }}>
-              <select value={friendFilter} onChange={(e) => setFriendFilter(e.target.value)} style={{ flex: 1 }}>
-                <option value="">Alle vrienden + jij</option>
-                <option value={userId}>Alleen jij</option>
-                {followingProfiles(snap, userId).map((p) => <option key={p.id} value={p.id}>Alleen {p.name}</option>)}
-              </select>
+            <div className="friend-filter">
+              <button className={friendFilter === '' ? 'sel' : ''} onClick={() => setFriendFilter('')}>
+                <span className="ff-icon">👥</span>Iedereen
+              </button>
+              <button className={friendFilter === userId ? 'sel' : ''} onClick={() => setFriendFilter(userId)}>
+                <Avatar profile={me} id={userId} size="sm" />Jij
+              </button>
+              {followingProfiles(snap, userId).map((p) => (
+                <button key={p.id} className={friendFilter === p.id ? 'sel' : ''} onClick={() => setFriendFilter(p.id)}>
+                  <Avatar profile={p} id={p.id} size="sm" />{p.name}
+                </button>
+              ))}
             </div>
           )}
 

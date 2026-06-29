@@ -72,7 +72,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
               <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
                 {title.poster_path
                   ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface2)', flexShrink: 0 }} />}
+                  : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                   <div className="title-sub">{title.year || '—'}</div>
@@ -97,7 +97,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
                 <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
                   {title.poster_path
                     ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface2)', flexShrink: 0 }} />}
+                    : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                     <div className="title-sub">{title.year || '—'}{title.providers[0] ? ` · ${title.providers[0]}` : ''}</div>

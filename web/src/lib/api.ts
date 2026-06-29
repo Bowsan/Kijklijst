@@ -56,6 +56,12 @@ export const dismissRecommendation = (id: string) => post(`/api/recommendation/$
 export const toggleReaction = (tmdb_id: number, emoji: string) => post('/api/reaction', { tmdb_id, emoji });
 export const createManualTitle = (name: string, service?: string): Promise<{ tmdb_id: number }> =>
   post('/api/title/manual', { name, service });
+export const addComment = (tmdb_id: number, text: string) => post('/api/comment', { tmdb_id, text });
+export async function removeComment(id: string): Promise<any> {
+  const res = await fetch(`/api/comment/${id}`, { method: 'DELETE', headers: headers() });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
 export const followUser = (followee: string) => post('/api/follow', { followee });
 export async function unfollowUser(followee: string): Promise<any> {
   const res = await fetch(`/api/follow/${followee}`, { method: 'DELETE', headers: headers() });

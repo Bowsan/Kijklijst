@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { canonicalProvider, canonicalProviders } from './providers.js';
@@ -82,6 +83,14 @@ db.exec(`
     created_at  INTEGER NOT NULL,
     PRIMARY KEY (follower, followee)
   );
+
+  CREATE TABLE IF NOT EXISTS comments (
+    id          TEXT PRIMARY KEY,
+    title_id    INTEGER NOT NULL,
+    user_id     TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
 `);
 
 // Bestaande titels en beoordelingen normaliseren naar samengevoegde dienstnamen
@@ -151,6 +160,22 @@ function mergeDuplicateProfiles(): void {
 }
 mergeDuplicateProfiles();
 
+// Bestaande korte indrukken (note bij een rating) omzetten naar berichten op
+// het prikbord en de note daarna leegmaken. Idempotent: na omzetten is note leeg.
+function migrateNotesToComments(): void {
+  const tx = db.transaction(() => {
+    const rows = db.prepare("SELECT title_id, user_id, note, updated_at FROM ratings WHERE note IS NOT NULL AND trim(note) <> ''").all() as any[];
+    const insert = db.prepare('INSERT INTO comments (id, title_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)');
+    const clear = db.prepare('UPDATE ratings SET note = NULL WHERE title_id = ? AND user_id = ?');
+    for (const r of rows) {
+      insert.run(randomUUID(), r.title_id, r.user_id, String(r.note).trim(), r.updated_at);
+      clear.run(r.title_id, r.user_id);
+    }
+  });
+  tx();
+}
+migrateNotesToComments();
+
 export interface Snapshot {
   profiles: any[];
   titles: any[];
@@ -159,6 +184,7 @@ export interface Snapshot {
   reactions: any[];
   activity: any[];
   follows: any[];
+  comments: any[];
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -203,7 +229,9 @@ export function getSnapshot(): Snapshot {
 
   const follows = db.prepare('SELECT * FROM follows').all();
 
-  return { profiles, titles, ratings, recommendations, reactions, activity, follows };
+  const comments = db.prepare('SELECT * FROM comments ORDER BY created_at ASC').all();
+
+  return { profiles, titles, ratings, recommendations, reactions, activity, follows, comments };
 }
 
 export { parseJson };
