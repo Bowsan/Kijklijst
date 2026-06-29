@@ -6,6 +6,20 @@ import { groupAverage, myRating, profileById, guessService, visibleUserIds } fro
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 
+function fmtDateTime(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  if (sameDay) return time;
+  const date = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
+  return `${date} ${time}`;
+}
+
+function fmtDate(ts: number): string {
+  return new Date(ts).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 interface Props {
   snap: Snapshot;
   title: Title;
@@ -209,12 +223,19 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
 
-          {/* Wie heeft de serie toegevoegd */}
-          {addedBy && (
-            <div className="muted" style={{ fontSize: 12 }}>
-              ➕ Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}
-            </div>
-          )}
+          {/* Wie heeft de serie toegevoegd + wanneer jij het toevoegde */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {addedBy && (
+              <span className="muted" style={{ fontSize: 12 }}>
+                ➕ Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}
+              </span>
+            )}
+            {mine && (
+              <span className="muted" style={{ fontSize: 12 }}>
+                📅 {fmtDate(mine.updated_at)}
+              </span>
+            )}
+          </div>
 
           {/* Aanraders die jij verstuurde */}
           {sentRecs.length > 0 && (
@@ -286,7 +307,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                 <div className="comment" key={c.id}>
                   <Avatar profile={p} id={c.user_id} size="sm" />
                   <div className="comment-body">
-                    <div className="comment-name">{c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}</div>
+                    <div className="comment-name">
+                      {c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}
+                      <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
+                    </div>
                     <div className="comment-text">{c.text}</div>
                   </div>
                   {c.user_id === userId && (

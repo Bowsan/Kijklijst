@@ -105,7 +105,7 @@ export interface SearchResult {
 export const STATUS_LABELS: Record<Status, string> = {
   watching: 'Mee bezig',
   finished: '✅',
-  want: '🔖',
+  want: 'Wishlist',
   dropped: 'Afgehaakt',
 };
 

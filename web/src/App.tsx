@@ -24,7 +24,7 @@ import ShareSheet from './components/ShareSheet';
 import ManualAddSheet from './components/ManualAddSheet';
 
 type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
-type Sort = 'recent' | 'avg' | 'name';
+type Sort = 'recent' | 'oldest' | 'avg' | 'avg_asc' | 'name';
 
 export default function App() {
   const userId = getUserId();
@@ -152,12 +152,11 @@ export default function App() {
     list.sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
       if (sort === 'avg') return (groupAverage(snap, b.tmdb_id) ?? 0) - (groupAverage(snap, a.tmdb_id) ?? 0);
-      // "Nieuwste" = voor persoonlijke lijsten sorteren op wanneer JIJ het toevoegde;
-      // voor "Alles" op wanneer de titel voor het eerst in het systeem verscheen.
-      if (statusFilter === 'all') return b.created_at - a.created_at;
-      const myA = myRating(snap, a.tmdb_id, userId)?.updated_at ?? a.created_at;
-      const myB = myRating(snap, b.tmdb_id, userId)?.updated_at ?? b.created_at;
-      return myB - myA;
+      if (sort === 'avg_asc') return (groupAverage(snap, a.tmdb_id) ?? 99) - (groupAverage(snap, b.tmdb_id) ?? 99);
+      const isAll = statusFilter === 'all';
+      const tsA = isAll ? a.created_at : (myRating(snap, a.tmdb_id, userId)?.updated_at ?? a.created_at);
+      const tsB = isAll ? b.created_at : (myRating(snap, b.tmdb_id, userId)?.updated_at ?? b.created_at);
+      return sort === 'oldest' ? tsA - tsB : tsB - tsA;
     });
     return list;
   }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, nameFilter, sort, userId, me]);
@@ -246,7 +245,9 @@ export default function App() {
             </select>
             <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
               <option value="recent">Nieuwste</option>
+              <option value="oldest">Oudste</option>
               <option value="avg">Hoogste cijfer</option>
+              <option value="avg_asc">Laagste cijfer</option>
               <option value="name">A–Z</option>
             </select>
           </div>
