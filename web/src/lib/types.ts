@@ -69,6 +69,12 @@ export interface Activity {
   created_at: number;
 }
 
+export interface Follow {
+  follower: string;
+  followee: string;
+  created_at: number;
+}
+
 export interface Snapshot {
   profiles: Profile[];
   titles: Title[];
@@ -76,6 +82,7 @@ export interface Snapshot {
   recommendations: Recommendation[];
   reactions: Reaction[];
   activity: Activity[];
+  follows: Follow[];
 }
 
 export interface SearchResult {

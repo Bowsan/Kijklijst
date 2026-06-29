@@ -2,6 +2,51 @@ import type { Snapshot, Title, Rating, Profile } from './types';
 
 export const MIN_RATINGS_FOR_PROFILE = 5;
 
+/** Id's van de mensen die deze gebruiker volgt. */
+export function followingIds(snap: Snapshot, userId: string): string[] {
+  return snap.follows.filter((f) => f.follower === userId).map((f) => f.followee);
+}
+
+/** Profielen van de vrienden die deze gebruiker volgt. */
+export function followingProfiles(snap: Snapshot, userId: string): Profile[] {
+  const ids = new Set(followingIds(snap, userId));
+  return snap.profiles.filter((p) => ids.has(p.id));
+}
+
+/** Volgt deze gebruiker het opgegeven profiel? */
+export function isFollowing(snap: Snapshot, userId: string, otherId: string): boolean {
+  return snap.follows.some((f) => f.follower === userId && f.followee === otherId);
+}
+
+/** Andere profielen die je nog niet volgt (om toe te voegen). */
+export function suggestedProfiles(snap: Snapshot, userId: string): Profile[] {
+  const following = new Set(followingIds(snap, userId));
+  return snap.profiles.filter((p) => p.id !== userId && !following.has(p.id));
+}
+
+/** Jij + de vrienden die je volgt — bepaalt wat er in "Alles" verschijnt. */
+export function visibleUserIds(snap: Snapshot, userId: string): string[] {
+  return [userId, ...followingIds(snap, userId)];
+}
+
+/** Series die een vriend (of jij) op dit moment kijkt. */
+export function watchingTitles(snap: Snapshot, userId: string): Title[] {
+  return snap.ratings
+    .filter((r) => r.user_id === userId && r.status === 'watching')
+    .map((r) => titleById(snap, r.title_id))
+    .filter((t): t is Title => t != null);
+}
+
+/** Favoriete series van een gebruiker (hoogst beoordeeld). */
+export function favoriteTitles(snap: Snapshot, userId: string, limit = 5): { title: Title; score: number }[] {
+  return snap.ratings
+    .filter((r) => r.user_id === userId && r.score != null)
+    .map((r) => ({ title: titleById(snap, r.title_id), score: r.score as number }))
+    .filter((x): x is { title: Title; score: number } => x.title != null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
+
 export function ratingsFor(snap: Snapshot, titleId: number): Rating[] {
   return snap.ratings.filter((r) => r.title_id === titleId && r.score != null);
 }
