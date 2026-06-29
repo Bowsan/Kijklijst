@@ -1,7 +1,11 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { POSTER_SMALL } from '../lib/types';
-import { followingProfiles, watchingTitles, myRating } from '../lib/compute';
+import {
+  followingProfiles, watchingTitles, myRating,
+  serviceStats, totalWatchHours, ratedCount,
+  visibleUserIds, titleById, profileById,
+} from '../lib/compute';
 import Avatar from './Avatar';
 
 interface Props {
@@ -27,12 +31,118 @@ function TitleRow({ title, right }: { title: Title; right?: ReactNode }) {
   );
 }
 
+function BarRow({ label, value, max, val, color }: { label: string; value: number; max: number; val: string; color?: string }) {
+  return (
+    <div className="bar-row">
+      <div className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+      <div className="bar-track">
+        <div className="bar-fill" style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, background: color || 'var(--accent)' }} />
+      </div>
+      <div className="val">{val}</div>
+    </div>
+  );
+}
+
 export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFriends }: Props) {
   const myWatching = watchingTitles(snap, userId);
   const friends = followingProfiles(snap, userId);
   const friendsWatching = friends
     .map((p) => ({ profile: p, titles: watchingTitles(snap, p.id) }))
     .filter((fw) => fw.titles.length > 0);
+
+  // --- Mijn statistieken ---
+  const myRatings = snap.ratings.filter((r) => r.user_id === userId);
+  const totalCount = myRatings.length;
+  const finishedCount = myRatings.filter((r) => r.status === 'finished').length;
+  const watchingCount = myRatings.filter((r) => r.status === 'watching').length;
+  const wantCount = myRatings.filter((r) => r.status === 'want').length;
+  const droppedCount = myRatings.filter((r) => r.status === 'dropped').length;
+  const scoredCount = ratedCount(snap, userId);
+  const scores = myRatings.filter((r) => r.score != null).map((r) => r.score as number);
+  const avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+  const hours = totalWatchHours(snap, userId);
+
+  // Genre stats: count per genre across all my listed titles
+  const myGenreCounts = useMemo(() => {
+    const counts = new Map<string, { count: number; scores: number[] }>();
+    for (const r of myRatings) {
+      const t = titleById(snap, r.title_id);
+      if (!t) continue;
+      for (const g of t.genres) {
+        if (!counts.has(g)) counts.set(g, { count: 0, scores: [] });
+        const entry = counts.get(g)!;
+        entry.count++;
+        if (r.score != null) entry.scores.push(r.score);
+      }
+    }
+    return [...counts.entries()]
+      .map(([genre, { count, scores: gs }]) => ({
+        genre,
+        count,
+        avg: gs.length ? gs.reduce((a, b) => a + b, 0) / gs.length : null,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }, [snap, userId]);
+
+  const myServices = useMemo(() => serviceStats(snap, userId).slice(0, 6), [snap, userId]);
+  const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
+  const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
+
+  // --- Groepsstatistieken ---
+  const visible = useMemo(() => new Set(visibleUserIds(snap, userId)), [snap, userId]);
+
+  const groupTitleStats = useMemo(() => {
+    return snap.titles
+      .map((t) => {
+        const raters = snap.ratings.filter((r) => r.title_id === t.tmdb_id && visible.has(r.user_id));
+        const groupScores = raters.filter((r) => r.score != null).map((r) => r.score as number);
+        return {
+          title: t,
+          count: raters.length,
+          avg: groupScores.length ? groupScores.reduce((a, b) => a + b, 0) / groupScores.length : null,
+        };
+      })
+      .filter((x) => x.count >= 2)
+      .sort((a, b) => b.count - a.count || (b.avg ?? 0) - (a.avg ?? 0))
+      .slice(0, 5);
+  }, [snap, userId, visible]);
+
+  const groupGenreCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of snap.ratings) {
+      if (!visible.has(r.user_id)) continue;
+      const t = titleById(snap, r.title_id);
+      if (!t) continue;
+      for (const g of t.genres) counts.set(g, (counts.get(g) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([genre, count]) => ({ genre, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  }, [snap, userId, visible]);
+
+  // Diensten in de groep
+  const groupServiceCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of snap.ratings) {
+      if (!visible.has(r.user_id) || r.score == null) continue;
+      const t = titleById(snap, r.title_id);
+      if (!t) continue;
+      const p = profileById(snap, r.user_id);
+      const svc = r.service || (t.providers.find((pv) => p?.services?.includes(pv)) ?? t.providers[0]);
+      if (svc) counts.set(svc, (counts.get(svc) || 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [snap, userId, visible]);
+
+  const maxGroupGenre = groupGenreCounts.length ? Math.max(...groupGenreCounts.map((g) => g.count)) : 1;
+  const maxGroupService = groupServiceCounts.length ? Math.max(...groupServiceCounts.map((s) => s.count)) : 1;
+
+  const hasGroupData = friends.length > 0;
 
   return (
     <div className="page">
@@ -75,6 +185,117 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             })}
           </div>
         ))
+      )}
+
+      {/* ---- Mijn statistieken ---- */}
+      {totalCount > 0 && (
+        <>
+          <h2 style={{ marginTop: 24 }}>Mijn statistieken</h2>
+
+          <div className="stat-grid" style={{ marginBottom: 12 }}>
+            <div className="stat-box">
+              <div className="v">{totalCount}</div>
+              <div className="k">Series op lijst</div>
+            </div>
+            <div className="stat-box">
+              <div className="v">{avgScore != null ? avgScore.toFixed(1) : '—'}</div>
+              <div className="k">Gemiddeld cijfer</div>
+            </div>
+            <div className="stat-box">
+              <div className="v">{finishedCount}</div>
+              <div className="k">✅ Afgezien</div>
+            </div>
+            <div className="stat-box">
+              <div className="v">{hours > 0 ? `${Math.round(hours)}u` : scoredCount > 0 ? '—' : '—'}</div>
+              <div className="k">Kijkuren (schat)</div>
+            </div>
+          </div>
+
+          {/* Status breakdown */}
+          <div className="card" style={{ marginBottom: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 10 }}>Verdeling lijst</div>
+            {[
+              { label: 'Mee bezig', count: watchingCount, color: 'var(--accent)' },
+              { label: '✅ Afgezien', count: finishedCount, color: 'var(--good)' },
+              { label: '🔖 Wil ik zien', count: wantCount, color: 'var(--warn)' },
+              { label: 'Afgehaakt', count: droppedCount, color: 'var(--muted)' },
+            ].filter((s) => s.count > 0).map((s) => (
+              <BarRow key={s.label} label={s.label} value={s.count} max={totalCount} val={`${s.count}`} color={s.color} />
+            ))}
+          </div>
+
+          {myGenreCounts.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Mijn genres</div>
+              {myGenreCounts.map((g) => (
+                <BarRow
+                  key={g.genre}
+                  label={g.genre}
+                  value={g.count}
+                  max={maxGenreCount}
+                  val={g.avg != null ? `${g.count}x · ${g.avg.toFixed(1)}` : `${g.count}x`}
+                  color="var(--accent)"
+                />
+              ))}
+            </div>
+          )}
+
+          {myServices.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Streamingdiensten</div>
+              {myServices.map((s) => (
+                <BarRow
+                  key={s.service}
+                  label={s.service}
+                  value={s.count}
+                  max={maxServiceCount}
+                  val={`${s.count} serie${s.count !== 1 ? 's' : ''}`}
+                  color="var(--good)"
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ---- Groepsstatistieken ---- */}
+      {hasGroupData && (groupTitleStats.length > 0 || groupGenreCounts.length > 0) && (
+        <>
+          <h2 style={{ marginTop: 24 }}>In de groep</h2>
+
+          {groupTitleStats.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Populairste series</div>
+              {groupTitleStats.map(({ title, count, avg }) => (
+                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 14, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{title.name}</span>
+                  <div className="row" style={{ gap: 6, flexShrink: 0 }}>
+                    {avg != null && <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}>{avg.toFixed(1)}</span>}
+                    <span className="chip">{count}x</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {groupGenreCounts.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Populaire genres</div>
+              {groupGenreCounts.map((g) => (
+                <BarRow key={g.genre} label={g.genre} value={g.count} max={maxGroupGenre} val={`${g.count}x`} color="var(--warn)" />
+              ))}
+            </div>
+          )}
+
+          {groupServiceCounts.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Populaire diensten</div>
+              {groupServiceCounts.map((s) => (
+                <BarRow key={s.service} label={s.service} value={s.count} max={maxGroupService} val={`${s.count}x`} color="var(--accent-2)" />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

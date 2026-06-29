@@ -83,11 +83,15 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
 
   const watchedSeasons = mine?.seasons || [];
   const toggleSeason = (n: number) => {
-    const isMax = watchedSeasons.includes(n);
-    const next = isMax && Math.max(...watchedSeasons) === n
-      ? Array.from({ length: n - 1 }, (_, i) => i + 1)
-      : Array.from({ length: n }, (_, i) => i + 1);
+    const next = watchedSeasons.includes(n)
+      ? watchedSeasons.filter((s) => s !== n)
+      : [...watchedSeasons, n].sort((a, b) => a - b);
     update({ seasons: next });
+  };
+  const toggleAllSeasons = () => {
+    const all = title.seasons.map((s) => s.season_number);
+    const allOn = all.every((n) => watchedSeasons.includes(n));
+    update({ seasons: allOn ? [] : all });
   };
 
   const currentService = guessService(title, me, mine?.service || null);
@@ -159,6 +163,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {/* Seizoenen */}
           {title.seasons.length > 0 && (
             <div className="seasons">
+              <button
+                className={title.seasons.every((s) => watchedSeasons.includes(s.season_number)) ? 'on' : ''}
+                onClick={toggleAllSeasons}
+                style={{ fontWeight: 700 }}
+              >
+                Alles
+              </button>
               {title.seasons.map((s) => (
                 <button
                   key={s.season_number}
