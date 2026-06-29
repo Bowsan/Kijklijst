@@ -152,7 +152,12 @@ export default function App() {
     list.sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
       if (sort === 'avg') return (groupAverage(snap, b.tmdb_id) ?? 0) - (groupAverage(snap, a.tmdb_id) ?? 0);
-      return b.created_at - a.created_at;
+      // "Nieuwste" = voor persoonlijke lijsten sorteren op wanneer JIJ het toevoegde;
+      // voor "Alles" op wanneer de titel voor het eerst in het systeem verscheen.
+      if (statusFilter === 'all') return b.created_at - a.created_at;
+      const myA = myRating(snap, a.tmdb_id, userId)?.updated_at ?? a.created_at;
+      const myB = myRating(snap, b.tmdb_id, userId)?.updated_at ?? b.created_at;
+      return myB - myA;
     });
     return list;
   }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, nameFilter, sort, userId, me]);
