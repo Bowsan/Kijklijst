@@ -26,6 +26,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const me = profileById(snap, userId);
   const addedBy = title.added_by ? profileById(snap, title.added_by) : undefined;
   const hideGroup = blind && mine?.score == null;
+  const sentRecs = snap.recommendations.filter((r) => r.from_user === userId && r.title_id === title.tmdb_id);
+  const totalRecCount = snap.recommendations.filter((r) => r.title_id === title.tmdb_id).length;
 
   const initService = mine?.service || '';
   const initIsCustom = !!initService && !title.providers.includes(initService);
@@ -133,6 +135,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {others.length > 0 && (
             <span className="muted" style={{ fontSize: 12 }}>👥 {others.length}</span>
           )}
+          {totalRecCount > 0 && (
+            <span className="muted" style={{ fontSize: 12 }}>💌 {totalRecCount}</span>
+          )}
         </div>
       </div>
 
@@ -208,6 +213,22 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {addedBy && (
             <div className="muted" style={{ fontSize: 12 }}>
               ➕ Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}
+            </div>
+          )}
+
+          {/* Aanraders die jij verstuurde */}
+          {sentRecs.length > 0 && (
+            <div className="muted" style={{ fontSize: 12 }}>
+              💌 Jij raadde dit aan{' '}
+              {sentRecs.map((r, i) => {
+                const p = profileById(snap, r.to_user);
+                return (
+                  <span key={r.id}>
+                    {i > 0 && ', '}
+                    {p?.name?.split(' ')[0] || '—'}
+                  </span>
+                );
+              })}
             </div>
           )}
 
