@@ -107,12 +107,14 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         const groupScores = raters.filter((r) => r.score != null).map((r) => r.score as number);
         return {
           title: t,
-          count: raters.length,
+          // Hoeveel mensen 'm op de lijst hebben + hoeveel daarvan een cijfer gaven.
+          listCount: raters.length,
+          scoreCount: groupScores.length,
           avg: groupScores.length ? groupScores.reduce((a, b) => a + b, 0) / groupScores.length : null,
         };
       })
-      .filter((x) => x.count >= 2)
-      .sort((a, b) => b.count - a.count || (b.avg ?? 0) - (a.avg ?? 0))
+      .filter((x) => x.listCount >= 2)
+      .sort((a, b) => b.listCount - a.listCount || (b.avg ?? 0) - (a.avg ?? 0))
       .slice(0, 5);
   }, [snap, userId, visible]);
 
@@ -302,12 +304,16 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           {groupTitleStats.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Populairste series</div>
-              {groupTitleStats.map(({ title, count, avg }) => (
+              {groupTitleStats.map(({ title, listCount, scoreCount, avg }) => (
                 <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => onNavigate({ status: 'all', titleId: title.tmdb_id })}>
                   <span style={{ fontSize: 14, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{title.name}</span>
                   <div className="row" style={{ gap: 6, flexShrink: 0 }}>
-                    {avg != null && <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}>{avg.toFixed(1)}</span>}
-                    <span className="chip">{count}x</span>
+                    {avg != null && (
+                      <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700 }} title={`${scoreCount} cijfer${scoreCount !== 1 ? 's' : ''}`}>
+                        {avg.toFixed(1)}
+                      </span>
+                    )}
+                    <span className="chip" title="Aantal personen met deze serie op de lijst">👥 {listCount}</span>
                   </div>
                 </div>
               ))}
