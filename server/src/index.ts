@@ -120,6 +120,20 @@ app.post('/api/title/manual', (req, res) => {
   res.json({ ok: true, tmdb_id: id });
 });
 
+// ---------- Identiteit: bestaand account zoeken op naam ----------
+// Zodat dezelfde persoon op een tweede apparaat hetzelfde account overneemt
+// in plaats van een dubbel profiel met dezelfde naam te maken.
+app.post('/api/identify', (req, res) => {
+  const { name } = req.body || {};
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'naam vereist' });
+  }
+  const row: any = db
+    .prepare('SELECT id FROM profiles WHERE lower(trim(name)) = lower(trim(?)) ORDER BY updated_at ASC LIMIT 1')
+    .get(name);
+  res.json({ id: row?.id ?? null });
+});
+
 // ---------- Profiel ----------
 app.post('/api/profile', (req, res) => {
   const uid = userId(req);

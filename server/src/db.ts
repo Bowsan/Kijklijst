@@ -105,6 +105,52 @@ function normalizeStoredProviders(): void {
 }
 normalizeStoredProviders();
 
+// Profielen met dezelfde naam (hoofdletterongevoelig) samenvoegen tot één account.
+// Idempotent: na samenvoegen bestaat er per naam nog maar één profiel.
+function mergeDuplicateProfiles(): void {
+  const profiles = db.prepare('SELECT id, name, updated_at FROM profiles').all() as any[];
+  const groups = new Map<string, any[]>();
+  for (const p of profiles) {
+    const key = (p.name || '').trim().toLowerCase();
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(p);
+  }
+
+  const ratingCount = db.prepare('SELECT COUNT(*) AS n FROM ratings WHERE user_id = ?');
+  const merge = db.transaction((keep: string, dup: string) => {
+    // Beoordelingen/reacties: bij botsing (dezelfde titel) blijft die van het hoofdaccount staan.
+    db.prepare('UPDATE OR IGNORE ratings SET user_id = ? WHERE user_id = ?').run(keep, dup);
+    db.prepare('DELETE FROM ratings WHERE user_id = ?').run(dup);
+    db.prepare('UPDATE OR IGNORE reactions SET user_id = ? WHERE user_id = ?').run(keep, dup);
+    db.prepare('DELETE FROM reactions WHERE user_id = ?').run(dup);
+    // Volg-relaties verleggen en eventuele zelf-volgrelaties opruimen.
+    db.prepare('UPDATE OR IGNORE follows SET follower = ? WHERE follower = ?').run(keep, dup);
+    db.prepare('UPDATE OR IGNORE follows SET followee = ? WHERE followee = ?').run(keep, dup);
+    db.prepare('DELETE FROM follows WHERE follower = ? OR followee = ?').run(dup, dup);
+    db.prepare('DELETE FROM follows WHERE follower = followee').run();
+    // Aanraders en activiteit verleggen.
+    db.prepare('UPDATE recommendations SET from_user = ? WHERE from_user = ?').run(keep, dup);
+    db.prepare('UPDATE recommendations SET to_user = ? WHERE to_user = ?').run(keep, dup);
+    db.prepare('DELETE FROM recommendations WHERE from_user = to_user').run();
+    db.prepare('UPDATE activity SET user_id = ? WHERE user_id = ?').run(keep, dup);
+    db.prepare('DELETE FROM profiles WHERE id = ?').run(dup);
+  });
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    // Houd het account met de meeste beoordelingen aan; bij gelijkspel de oudste.
+    group.sort((a, b) => {
+      const na = (ratingCount.get(a.id) as any).n;
+      const nb = (ratingCount.get(b.id) as any).n;
+      return nb - na || a.updated_at - b.updated_at;
+    });
+    const keep = group[0].id;
+    for (let i = 1; i < group.length; i++) merge(keep, group[i].id);
+  }
+}
+mergeDuplicateProfiles();
+
 export interface Snapshot {
   profiles: any[];
   titles: any[];

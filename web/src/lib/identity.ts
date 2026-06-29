@@ -12,6 +12,12 @@ export function getUserId(): string {
   return id;
 }
 
+// Het lokale account overschrijven met een bestaand account-id (bijv. bij
+// inloggen op een tweede apparaat met dezelfde naam).
+export function setUserId(id: string): void {
+  localStorage.setItem(ID_KEY, id);
+}
+
 export function getBlind(): boolean {
   return localStorage.getItem(BLIND_KEY) === '1';
 }
