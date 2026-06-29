@@ -47,6 +47,7 @@ export default function App() {
   const [notSeenOnly, setNotSeenOnly] = useState(false);
   const [nameFilter, setNameFilter] = useState<string>('');
   const [sort, setSort] = useState<Sort>('recent');
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Paginering
   const PAGE_SIZE = 20;
@@ -82,6 +83,7 @@ export default function App() {
     setFriendFilter('');
     setNotSeenOnly(false);
     setNameFilter('');
+    setSearchOpen(false);
     setSort('recent');
     setFocusTitleId(opts.titleId ?? null);
     setTab('list');
@@ -183,9 +185,9 @@ export default function App() {
         (t) => guessService(t, me, myRating(snap, t.tmdb_id, userId)?.service || null) === serviceFilter,
       );
     }
-    if (nameFilter.length >= 2) {
-      const q = nameFilter.toLowerCase();
-      list = list.filter((t) => t.name.toLowerCase().includes(q));
+    const nameQuery = nameFilter.trim().toLowerCase();
+    if (nameQuery) {
+      list = list.filter((t) => t.name.toLowerCase().includes(nameQuery));
     }
 
     // Cijfer waarop gesorteerd wordt: in "Alles" het groepsgemiddelde, anders je eigen cijfer.
@@ -308,13 +310,6 @@ export default function App() {
             </>
           )}
 
-          <input
-            placeholder="Zoek op naam…"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            style={{ marginBottom: 8 }}
-          />
-
           <div className="row" style={{ gap: 8, marginBottom: 12 }}>
             <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
               <option value="">Alle diensten</option>
@@ -368,6 +363,23 @@ export default function App() {
             </>
           )}
         </div>
+      )}
+
+      {/* Zweef-zoekknop: filter de huidige lijst live op naam. */}
+      {tab === 'list' && (
+        searchOpen ? (
+          <div className="fab-search-bar">
+            <input
+              autoFocus
+              placeholder="Filter op naam…"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+            />
+            <button className="close" aria-label="Sluiten" onClick={() => { setNameFilter(''); setSearchOpen(false); }}>✕</button>
+          </div>
+        ) : (
+          <button className="fab-search" aria-label="Zoek in lijst" onClick={() => setSearchOpen(true)}>🔍</button>
+        )
       )}
 
       {tab === 'dashboard' && (
