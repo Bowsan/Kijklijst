@@ -42,6 +42,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const hideGroup = blind && mine?.score == null;
   const sentRecs = snap.recommendations.filter((r) => r.from_user === userId && r.title_id === title.tmdb_id);
   const totalRecCount = snap.recommendations.filter((r) => r.title_id === title.tmdb_id).length;
+  // Alle aanraders die voor mij bestemd zijn (ook al weggedrukt), met een persoonlijk bericht.
+  const receivedNotes = snap.recommendations.filter(
+    (r) => r.to_user === userId && r.title_id === title.tmdb_id && r.note
+  );
 
   const initService = mine?.service || '';
   const initIsCustom = !!initService && !title.providers.includes(initService);
@@ -252,6 +256,19 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               })}
             </div>
           )}
+
+          {/* Persoonlijke berichten van aanraders — blijven zichtbaar ook na wegklikken */}
+          {receivedNotes.map((r) => {
+            const from = profileById(snap, r.from_user);
+            return (
+              <div key={r.id} style={{ background: 'rgba(255,92,124,0.08)', border: '1px solid rgba(255,92,124,0.25)', borderRadius: 10, padding: '8px 10px', fontSize: 13 }}>
+                <span className="muted" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
+                  💌 {from?.name || 'Iemand'} schreef:
+                </span>
+                "{r.note}"
+              </div>
+            );
+          })}
 
           {/* Streamingdienst */}
           <select
