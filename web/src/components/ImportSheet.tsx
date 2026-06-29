@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { parseImport } from '../lib/importList';
-import { searchTmdb, saveRating } from '../lib/api';
+import { searchTmdb, saveRating, fetchTitleDetails } from '../lib/api';
 import type { SearchResult } from '../lib/types';
 import { POSTER_SMALL } from '../lib/types';
 import Sheet from './Sheet';
@@ -41,10 +41,18 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
     let count = 0;
     for (const row of rows) {
       if (row.chosen == null) continue;
+      let seasons: number[] | undefined;
+      if (row.score != null) {
+        const details = await fetchTitleDetails(row.chosen).catch(() => null);
+        if (details?.seasons?.length) {
+          seasons = details.seasons.map((s) => s.season_number);
+        }
+      }
       await saveRating({
         tmdb_id: row.chosen,
         score: row.score ?? undefined,
         status: row.score != null ? 'finished' : 'want',
+        seasons,
       }).catch(() => {});
       count++;
     }

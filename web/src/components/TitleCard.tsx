@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
-import { saveRating, toggleReaction, type RatingUpdate } from '../lib/api';
+import { saveRating, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, ratingsFor, profileById, guessService } from '../lib/compute';
 import Avatar from './Avatar';
-
-const EMOJIS = ['😍', '😂', '😢', '🔥', '👀', '😴'];
 
 interface Props {
   snap: Snapshot;
@@ -25,6 +23,7 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
   const hideGroup = blind && mine?.score == null;
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState(mine?.note || '');
+  const [serviceInput, setServiceInput] = useState(mine?.service || '');
 
   const update = async (patch: Omit<RatingUpdate, 'tmdb_id'>) => {
     try {
@@ -46,11 +45,6 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
   };
 
   const currentService = guessService(title, me, mine?.service || null);
-  const myReactions = new Set(snap.reactions.filter((r) => r.title_id === title.tmdb_id && r.user_id === userId).map((r) => r.emoji));
-  const reactionCounts = snap.reactions
-    .filter((r) => r.title_id === title.tmdb_id)
-    .reduce<Record<string, number>>((acc, r) => ((acc[r.emoji] = (acc[r.emoji] || 0) + 1), acc), {});
-
   return (
     <div className="card title-card">
       <div className="title-head">
@@ -82,7 +76,7 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
           <button
             key={n}
             className={mine?.score === n ? 'sel' : ''}
-            onClick={() => update({ score: n, status: mine?.status || 'finished' })}
+            onClick={() => update({ score: n, status: 'finished' })}
           >
             {n}
           </button>
@@ -107,7 +101,7 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
               className={watchedSeasons.includes(s.season_number) ? 'on' : ''}
               onClick={() => toggleSeason(s.season_number)}
             >
-              S{s.season_number}
+              S{s.season_number}{s.air_year ? ` ${s.air_year}` : ''}
             </button>
           ))}
         </div>
@@ -130,23 +124,25 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
         </div>
       )}
 
-      {/* Reacties */}
-      <div className="reactions">
-        {EMOJIS.map((e) => {
-          const count = reactionCounts[e] || 0;
-          if (count === 0 && !expanded) return null;
-          return (
-            <button
-              key={e}
-              className={myReactions.has(e) ? 'on' : ''}
-              onClick={async () => { await toggleReaction(title.tmdb_id, e); onChange(); }}
-            >
-              {e}{count > 0 ? ` ${count}` : ''}
-            </button>
-          );
-        })}
-        {!expanded && <button onClick={() => setExpanded(true)}>＋</button>}
-      </div>
+      {/* Streamingdienst — altijd zichtbaar */}
+      {title.providers.length > 0 ? (
+        <select
+          value={mine?.service || ''}
+          onChange={(e) => update({ service: e.target.value })}
+          style={{ marginTop: 4 }}
+        >
+          <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
+          {title.providers.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      ) : (
+        <input
+          placeholder="Streamingdienst (optioneel)"
+          value={serviceInput}
+          onChange={(e) => setServiceInput(e.target.value)}
+          onBlur={() => serviceInput !== (mine?.service || '') && update({ service: serviceInput })}
+          style={{ marginTop: 4 }}
+        />
+      )}
 
       {/* Acties */}
       <div className="actions">
@@ -164,19 +160,6 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
             onChange={(e) => setNote(e.target.value)}
             onBlur={() => note !== (mine?.note || '') && update({ note })}
           />
-          {title.providers.length > 0 && (
-            <label className="muted" style={{ fontSize: 12 }}>
-              Waar je keek
-              <select
-                value={mine?.service || ''}
-                onChange={(e) => update({ service: e.target.value })}
-                style={{ marginTop: 4 }}
-              >
-                <option value="">{currentService ? `${currentService} (gok)` : 'Onbekend'}</option>
-                {title.providers.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </label>
-          )}
           {title.cast.length > 0 && <p className="title-sub">Met {title.cast.slice(0, 4).join(', ')}</p>}
         </div>
       )}

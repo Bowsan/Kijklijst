@@ -50,7 +50,7 @@ export interface TitleDetails {
   year: number | null;
   poster_path: string | null;
   genres: string[];
-  seasons: { season_number: number; episode_count: number; name: string }[];
+  seasons: { season_number: number; episode_count: number; name: string; air_year: number | null }[];
   episode_count: number;
   runtime: number | null;
   providers: string[];
@@ -69,6 +69,7 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
       season_number: s.season_number,
       episode_count: s.episode_count || 0,
       name: s.name,
+      air_year: s.air_date ? Number(s.air_date.slice(0, 4)) : null,
     }));
 
   const episode_count = data.number_of_episodes
