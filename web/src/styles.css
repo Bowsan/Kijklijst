@@ -407,3 +407,38 @@ input, textarea, select {
 }
 .divider { height: 1px; background: var(--border); margin: 16px 0; }
 .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+/* ---------- Zweef-zoekknop ---------- */
+.fab-search {
+  position: fixed;
+  right: 16px;
+  bottom: calc(78px + var(--safe-bottom));
+  z-index: 50;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 22px;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.fab-search:active { transform: scale(0.94); }
+.fab-search-bar {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(62px + var(--safe-bottom));
+  z-index: 50;
+  display: flex; gap: 8px; align-items: center;
+  padding: 10px 14px;
+  background: rgba(24, 27, 34, 0.98);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+}
+.fab-search-bar input { flex: 1; margin: 0; }
+.fab-search-bar .close {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
