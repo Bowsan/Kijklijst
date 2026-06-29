@@ -26,6 +26,19 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
   const following = isFollowing(snap, userId, profileId);
   const favorites = favoriteTitles(snap, profileId, 5);
   const fullList = listedTitles(snap, profileId);
+
+  // Series waar jij én deze vriend allebei een cijfer voor gaven, met het grootste verschil.
+  const biggestDiffs = isMe
+    ? []
+    : fullList
+        .map(({ title, rating }) => {
+          const mineScore = myRating(snap, title.tmdb_id, userId)?.score;
+          if (rating.score == null || mineScore == null) return null;
+          return { title, theirScore: rating.score, myScore: mineScore, diff: Math.abs(rating.score - mineScore) };
+        })
+        .filter((x): x is { title: typeof fullList[number]['title']; theirScore: number; myScore: number; diff: number } => x != null && x.diff > 0)
+        .sort((a, b) => b.diff - a.diff)
+        .slice(0, 5);
   const hours = Math.round(totalWatchHours(snap, profileId));
   const rated = ratedCount(snap, profileId);
   const services = serviceStats(snap, profileId).slice(0, 3);
@@ -85,6 +98,28 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             );
           })}
         </div>
+      )}
+
+      {biggestDiffs.length > 0 && (
+        <>
+          <h3 style={{ marginTop: 18 }}>Grootste verschil met jou</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {biggestDiffs.map(({ title, theirScore, myScore, diff }) => (
+              <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
+                {title.poster_path
+                  ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
+                  <div className="title-sub">
+                    Jij {myScore} · {profile?.name?.split(' ')[0] || 'vriend'} {theirScore}
+                  </div>
+                </div>
+                <span className="chip" style={{ flexShrink: 0, fontWeight: 700 }} title="Verschil in cijfer">Δ {diff}</span>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {fullList.length > 0 && (
