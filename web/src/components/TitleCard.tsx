@@ -3,6 +3,7 @@ import type { Snapshot, Title } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds } from '../lib/compute';
+import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 
 interface Props {
@@ -90,6 +91,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   };
 
   const currentService = guessService(title, me, mine?.service || null);
+  // De dienst-keuze toont altijd de bekende NL-diensten, plus wat TMDb voor deze serie kent.
+  const serviceOptions = Array.from(new Set([...title.providers, ...NL_SERVICES]));
 
   return (
     <div className="card title-card">
@@ -211,7 +214,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             style={{ marginTop: 4 }}
           >
             <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
-            {title.providers.map((p) => <option key={p} value={p}>{p}</option>)}
+            {serviceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
             <option value="__anders__">Anders…</option>
           </select>
           {serviceMode === 'custom' && (

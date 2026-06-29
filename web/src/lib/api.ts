@@ -54,8 +54,8 @@ export const sendRecommendation = (r: { to_user: string; tmdb_id: number; note?:
   post('/api/recommendation', r);
 export const dismissRecommendation = (id: string) => post(`/api/recommendation/${id}/dismiss`, {});
 export const toggleReaction = (tmdb_id: number, emoji: string) => post('/api/reaction', { tmdb_id, emoji });
-export const createManualTitle = (name: string, service?: string): Promise<{ tmdb_id: number }> =>
-  post('/api/title/manual', { name, service });
+export const createManualTitle = (name: string, service?: string, seasons?: number): Promise<{ tmdb_id: number }> =>
+  post('/api/title/manual', { name, service, seasons });
 export const addComment = (tmdb_id: number, text: string) => post('/api/comment', { tmdb_id, text });
 export async function removeComment(id: string): Promise<any> {
   const res = await fetch(`/api/comment/${id}`, { method: 'DELETE', headers: headers() });

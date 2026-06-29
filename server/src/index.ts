@@ -94,7 +94,7 @@ app.post('/api/title/manual', (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
 
-  const { name, service } = req.body || {};
+  const { name, service, seasons } = req.body || {};
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'naam vereist' });
   }
@@ -106,13 +106,22 @@ app.post('/api/title/manual', (req, res) => {
 
   const providers = service && typeof service === 'string' && service.trim() ? [service.trim()] : [];
 
+  // Aantal seizoenen dat de gebruiker opgeeft (1–100), zodat hij seizoenen kan aanvinken.
+  const seasonCount = Math.max(0, Math.min(100, Math.floor(Number(seasons) || 0)));
+  const seasonsArr = Array.from({ length: seasonCount }, (_, i) => ({
+    season_number: i + 1,
+    episode_count: 0,
+    name: `Seizoen ${i + 1}`,
+    air_year: null,
+  }));
+
   db.prepare(
     `INSERT INTO titles
       (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, added_by, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id, cleanName, null, null,
-    '[]', '[]', null, null,
+    '[]', JSON.stringify(seasonsArr), null, null,
     JSON.stringify(providers), null, '[]', uid, Date.now()
   );
 
