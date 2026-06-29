@@ -94,11 +94,12 @@ export default function App() {
 
   const addTitle = async (tmdbId: number) => {
     try {
-      await saveRating({ tmdb_id: tmdbId, status: 'watching' });
+      // Nieuw toegevoegde series gaan naar de wishlist; "Mee bezig" kies je zelf.
+      await saveRating({ tmdb_id: tmdbId, status: 'want' });
       await reload();
       setJustAddedId(tmdbId);
-      setStatusFilter('mine');
-      toast('Toegevoegd aan de lijst');
+      setStatusFilter('want');
+      toast('Op je wishlist gezet');
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
     }
@@ -107,13 +108,13 @@ export default function App() {
   const addManualTitle = async (name: string, service: string, seasons: number) => {
     try {
       const { tmdb_id } = await createManualTitle(name, service || undefined, seasons);
-      await saveRating({ tmdb_id, status: 'watching', ...(service ? { service } : {}) });
+      await saveRating({ tmdb_id, status: 'want', ...(service ? { service } : {}) });
       await reload();
       setJustAddedId(tmdb_id);
-      setStatusFilter('mine');
+      setStatusFilter('want');
       setManualAddQuery(null);
       setTab('list');
-      toast('Handmatig toegevoegd');
+      toast('Op je wishlist gezet');
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
     }
