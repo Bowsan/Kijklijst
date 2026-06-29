@@ -5,10 +5,11 @@ import { POSTER_SMALL } from '../lib/types';
 
 interface Props {
   onPick: (result: SearchResult) => void;
+  onManualAdd?: (query: string) => void;
   placeholder?: string;
 }
 
-export default function SearchBox({ onPick, placeholder }: Props) {
+export default function SearchBox({ onPick, onManualAdd, placeholder }: Props) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function SearchBox({ onPick, placeholder }: Props) {
   useEffect(() => {
     if (q.trim().length < 2) {
       setResults([]);
+      setOpen(false);
       return;
     }
     const t = setTimeout(async () => {
@@ -34,16 +36,18 @@ export default function SearchBox({ onPick, placeholder }: Props) {
     return () => clearTimeout(t);
   }, [q]);
 
+  const canManual = !!onManualAdd && q.trim().length >= 2;
+
   return (
     <div className="search-wrap">
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        onFocus={() => results.length && setOpen(true)}
+        onFocus={() => (results.length || canManual) && setOpen(true)}
         placeholder={placeholder || 'Zoek een serie…'}
         autoComplete="off"
       />
-      {open && results.length > 0 && (
+      {open && (results.length > 0 || canManual) && (
         <div className="suggestions">
           {results.map((r) => (
             <button
@@ -63,6 +67,23 @@ export default function SearchBox({ onPick, placeholder }: Props) {
               </div>
             </button>
           ))}
+          {canManual && (
+            <button
+              className="suggestion"
+              onClick={() => {
+                onManualAdd!(q.trim());
+                setQ('');
+                setResults([]);
+                setOpen(false);
+              }}
+            >
+              <div className="poster" style={{ width: 36, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>➕</div>
+              <div>
+                <div className="s-name">"{q.trim()}" handmatig toevoegen</div>
+                <div className="title-sub">Niet gevonden? Voeg de serie zelf toe.</div>
+              </div>
+            </button>
+          )}
         </div>
       )}
     </div>

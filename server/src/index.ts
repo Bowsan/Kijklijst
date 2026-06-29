@@ -89,6 +89,37 @@ async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any>
   return db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
 }
 
+// ---------- Serie handmatig toevoegen (niet in TMDb te vinden) ----------
+app.post('/api/title/manual', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+
+  const { name, service } = req.body || {};
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'naam vereist' });
+  }
+  const cleanName = name.trim().slice(0, 200);
+
+  // Negatief id, zodat een handmatige titel nooit botst met een echte TMDb-id (die positief is).
+  let id = -Date.now();
+  while (db.prepare('SELECT 1 FROM titles WHERE tmdb_id = ?').get(id)) id--;
+
+  const providers = service && typeof service === 'string' && service.trim() ? [service.trim()] : [];
+
+  db.prepare(
+    `INSERT INTO titles
+      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id, cleanName, null, null,
+    '[]', '[]', null, null,
+    JSON.stringify(providers), null, '[]', uid, Date.now()
+  );
+
+  broadcast('state', getSnapshot());
+  res.json({ ok: true, tmdb_id: id });
+});
+
 // ---------- Profiel ----------
 app.post('/api/profile', (req, res) => {
   const uid = userId(req);
