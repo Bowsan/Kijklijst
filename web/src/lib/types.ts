@@ -93,7 +93,7 @@ export const STATUS_LABELS: Record<Status, string> = {
   dropped: 'Afgehaakt',
 };
 
-export const STATUS_ORDER: Status[] = ['watching', 'finished', 'want', 'dropped'];
+export const STATUS_ORDER: Status[] = ['finished', 'watching', 'want', 'dropped'];
 
 export const POSTER_BASE = 'https://image.tmdb.org/t/p/w342';
 export const POSTER_SMALL = 'https://image.tmdb.org/t/p/w185';
