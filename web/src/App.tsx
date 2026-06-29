@@ -162,10 +162,11 @@ export default function App() {
     }
     if (genreFilter) list = list.filter((t) => t.genres.includes(genreFilter));
     if (serviceFilter) {
-      list = list.filter((t) => {
-        const svc = guessService(t, me, myRating(snap, t.tmdb_id, userId)?.service || null);
-        return t.providers.includes(serviceFilter) || svc === serviceFilter;
-      });
+      // Filter op de dienst die we voor jou tonen (jouw keuze of de gok), niet op
+      // élke dienst die TMDb voor de serie kent.
+      list = list.filter(
+        (t) => guessService(t, me, myRating(snap, t.tmdb_id, userId)?.service || null) === serviceFilter,
+      );
     }
     if (nameFilter.length >= 2) {
       const q = nameFilter.toLowerCase();
@@ -187,6 +188,30 @@ export default function App() {
     });
     return list;
   }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, notSeenOnly, nameFilter, sort, userId, me]);
+
+  // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
+  useEffect(() => {
+    if (tab !== 'list' || focusTitleId != null) return;
+    window.scrollTo({ top: 0 });
+  }, [tab, statusFilter, genreFilter, serviceFilter, focusTitleId]);
+
+  // Zorg dat een aangeklikte serie binnen de geladen pagina valt.
+  useEffect(() => {
+    if (focusTitleId == null) return;
+    const idx = visibleTitles.findIndex((t) => t.tmdb_id === focusTitleId);
+    if (idx >= 0) setListPage((p) => Math.max(p, Math.floor(idx / PAGE_SIZE) + 1));
+  }, [focusTitleId, visibleTitles]);
+
+  // En scroll die serie in beeld zodra ze gerenderd is; daarna de focus loslaten.
+  useEffect(() => {
+    if (tab !== 'list' || focusTitleId == null) return;
+    const el = document.getElementById(`title-${focusTitleId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const id = setTimeout(() => setFocusTitleId(null), 600);
+      return () => clearTimeout(id);
+    }
+  }, [tab, focusTitleId, listPage, visibleTitles]);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
@@ -302,18 +327,19 @@ export default function App() {
           ) : (
             <>
               {visibleTitles.slice(0, listPage * PAGE_SIZE).map((t) => (
-                <TitleCard
-                  key={t.tmdb_id}
-                  snap={snap}
-                  title={t}
-                  userId={userId}
-                  blind={blind}
-                  showGroupScore={statusFilter === 'all'}
-                  onRecommend={setRecommendTarget}
-                  onChange={reload}
-                  toast={toast}
-                  initialExpanded={t.tmdb_id === justAddedId || t.tmdb_id === focusTitleId}
-                />
+                <div key={t.tmdb_id} id={`title-${t.tmdb_id}`}>
+                  <TitleCard
+                    snap={snap}
+                    title={t}
+                    userId={userId}
+                    blind={blind}
+                    showGroupScore={statusFilter === 'all'}
+                    onRecommend={setRecommendTarget}
+                    onChange={reload}
+                    toast={toast}
+                    initialExpanded={t.tmdb_id === justAddedId || t.tmdb_id === focusTitleId}
+                  />
+                </div>
               ))}
               {visibleTitles.length > listPage * PAGE_SIZE && (
                 <button
