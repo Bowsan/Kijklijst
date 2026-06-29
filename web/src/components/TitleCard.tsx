@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
 import { saveRating, removeRating, type RatingUpdate } from '../lib/api';
-import { groupAverage, myRating, ratingsFor, profileById, guessService } from '../lib/compute';
+import { groupAverage, myRating, profileById, guessService } from '../lib/compute';
 import Avatar from './Avatar';
 
 interface Props {
@@ -20,8 +20,10 @@ interface Props {
 export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
-  const others = ratingsFor(snap, title.tmdb_id).filter((r) => r.user_id !== userId);
+  // Iedereen (behalve jij) die deze serie op zijn lijst heeft — ook zonder cijfer.
+  const others = snap.ratings.filter((r) => r.title_id === title.tmdb_id && r.user_id !== userId);
   const me = profileById(snap, userId);
+  const addedBy = title.added_by ? profileById(snap, title.added_by) : undefined;
   const hideGroup = blind && mine?.score == null;
 
   const initService = mine?.service || '';
@@ -139,20 +141,32 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
 
-          {/* Wie kijkt / vindt wat */}
+          {/* Wie heeft 'm op de lijst + cijfer per vriend */}
           {!hideGroup && others.length > 0 && (
             <div className="watchers">
               {others.map((r) => {
                 const p = profileById(snap, r.user_id);
                 const maxSeason = r.seasons?.length ? Math.max(...r.seasons) : 0;
                 return (
-                  <div className="watcher" key={r.user_id}>
+                  <div className="watcher" key={r.user_id} title={p?.name}>
                     <Avatar profile={p} id={r.user_id} size="sm" />
-                    {r.score != null && <span className="badge-score">{r.score}</span>}
+                    <span>{p?.name?.split(' ')[0] || '—'}</span>
+                    {r.score != null
+                      ? <span className="badge-score">{r.score}</span>
+                      : r.status
+                        ? <span className="chip" style={{ fontSize: 11 }}>{STATUS_LABELS[r.status]}</span>
+                        : null}
                     {maxSeason > 0 && <span>S{maxSeason}</span>}
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Wie heeft de serie toegevoegd */}
+          {addedBy && (
+            <div className="muted" style={{ fontSize: 12 }}>
+              ➕ Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}
             </div>
           )}
 
