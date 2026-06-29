@@ -1,10 +1,71 @@
 import { useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { saveProfile } from '../lib/api';
+import { saveProfile, saveRating } from '../lib/api';
 import { setBlind } from '../lib/identity';
 import { NL_SERVICES } from '../lib/services';
 import { profileById } from '../lib/compute';
 import Avatar from './Avatar';
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function downloadJson(data: unknown, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportMyList(snap: Snapshot, userId: string, myName: string) {
+  const data = snap.ratings
+    .filter((r) => r.user_id === userId)
+    .map((r) => {
+      const title = snap.titles.find((t) => t.tmdb_id === r.title_id);
+      return {
+        tmdb_id: r.title_id,
+        name: title?.name ?? null,
+        year: title?.year ?? null,
+        score: r.score,
+        status: r.status,
+        seasons: r.seasons,
+        service: r.service,
+        note: r.note,
+      };
+    });
+  downloadJson(data, `kijklijst-${(myName || 'mijn').replace(/\s+/g, '-').toLowerCase()}-${today()}.json`);
+}
+
+function exportGroupList(snap: Snapshot) {
+  const data = {
+    exported_at: new Date().toISOString(),
+    titles: snap.titles.map((t) => ({
+      tmdb_id: t.tmdb_id,
+      name: t.name,
+      year: t.year,
+      genres: t.genres,
+      season_count: t.seasons.length,
+    })),
+    ratings: snap.ratings.map((r) => {
+      const title = snap.titles.find((t) => t.tmdb_id === r.title_id);
+      const profile = snap.profiles.find((p) => p.id === r.user_id);
+      return {
+        tmdb_id: r.title_id,
+        name: title?.name ?? null,
+        user: profile?.name ?? r.user_id,
+        score: r.score,
+        status: r.status,
+        seasons: r.seasons,
+        service: r.service,
+        note: r.note,
+      };
+    }),
+  };
+  downloadJson(data, `kijklijst-groep-${today()}.json`);
+}
 
 interface Props {
   snap: Snapshot;
@@ -46,6 +107,40 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
   const [avatar, setAvatar] = useState<string | null>(me?.avatar || null);
   const [services, setServices] = useState<string[]>(me?.services || []);
   const fileRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const items: any[] = Array.isArray(data) ? data : [];
+      if (!items.length) { toast('Geen geldige items gevonden'); return; }
+      let ok = 0, fail = 0;
+      for (const item of items) {
+        if (!item.tmdb_id) { fail++; continue; }
+        try {
+          await saveRating({
+            tmdb_id: item.tmdb_id,
+            ...(item.score != null ? { score: item.score } : {}),
+            ...(item.status ? { status: item.status } : {}),
+            ...(Array.isArray(item.seasons) ? { seasons: item.seasons } : {}),
+            ...(item.service ? { service: item.service } : {}),
+            ...(item.note ? { note: item.note } : {}),
+          });
+          ok++;
+        } catch { fail++; }
+      }
+      onChange();
+      toast(`${ok} serie${ok !== 1 ? 's' : ''} geïmporteerd${fail ? `, ${fail} mislukt` : ''}`);
+    } catch {
+      toast('Ongeldig JSON-bestand');
+    } finally {
+      setImporting(false);
+      if (importRef.current) importRef.current.value = '';
+    }
+  };
 
   const save = async (patch?: { services?: string[]; avatar?: string | null; name?: string }) => {
     const next = {
@@ -120,6 +215,27 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
       </div>
 
       <button className="btn full" style={{ marginTop: 12 }} onClick={onShare}>🔗 Vrienden erbij halen</button>
+
+      <h2>Gegevens</h2>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Exporteren</div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Download een JSON-bestand als back-up of om handmatig te bewerken.</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn ghost" onClick={() => exportMyList(snap, userId, me?.name || '')}>⬇ Mijn lijst</button>
+            <button className="btn ghost" onClick={() => exportGroupList(snap)}>⬇ Volledige lijst</button>
+          </div>
+        </div>
+        <hr style={{ border: 'none', borderTop: '1px solid var(--surface2)', margin: 0 }} />
+        <div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Importeren</div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Upload een eerder geëxporteerde "Mijn lijst" JSON om je beoordelingen terug te zetten of samen te voegen.</div>
+          <button className="btn ghost" disabled={importing} onClick={() => importRef.current?.click()}>
+            {importing ? 'Bezig…' : '⬆ Bestand kiezen'}
+          </button>
+          <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && handleImport(e.target.files[0])} />
+        </div>
+      </div>
     </div>
   );
 }
