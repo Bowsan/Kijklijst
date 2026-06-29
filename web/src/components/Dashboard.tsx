@@ -156,8 +156,10 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     return [...counts.entries()]
       .map(([title_id, count]) => ({ title: titleById(snap, title_id), count }))
       .filter((x): x is { title: NonNullable<ReturnType<typeof titleById>>; count: number } => x.title != null)
+      // Alleen series die minstens 2x zijn aangeraden; maximaal 5 tonen.
+      .filter((x) => x.count >= 2)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+      .slice(0, 5);
   }, [snap]);
 
   const maxGroupGenre = groupGenreCounts.length ? Math.max(...groupGenreCounts.map((g) => g.count)) : 1;
