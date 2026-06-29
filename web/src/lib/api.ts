@@ -49,6 +49,7 @@ export async function removeRating(tmdbId: number): Promise<any> {
 }
 export const saveProfile = (p: { name: string; avatar?: string | null; color?: string | null; services?: string[] }) =>
   post('/api/profile', p);
+export const identify = (name: string): Promise<{ id: string | null }> => post('/api/identify', { name });
 export const sendRecommendation = (r: { to_user: string; tmdb_id: number; note?: string }) =>
   post('/api/recommendation', r);
 export const dismissRecommendation = (id: string) => post(`/api/recommendation/${id}/dismiss`, {});

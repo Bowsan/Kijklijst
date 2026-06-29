@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { saveProfile } from '../lib/api';
+import { saveProfile, identify } from '../lib/api';
+import { setUserId } from '../lib/identity';
 
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState('');
@@ -9,7 +10,14 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     if (!name.trim()) return;
     setBusy(true);
     try {
-      await saveProfile({ name: name.trim() });
+      // Bestaat er al iemand met deze naam? Dan dat account overnemen
+      // (bijv. dezelfde persoon op een tweede apparaat), anders een nieuw aanmaken.
+      const { id } = await identify(name.trim());
+      if (id) {
+        setUserId(id);
+      } else {
+        await saveProfile({ name: name.trim() });
+      }
       onDone();
     } catch {
       setBusy(false);
