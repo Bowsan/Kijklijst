@@ -93,6 +93,10 @@ export default function App() {
   useEffect(() => { if (statusFilter !== 'all') { setFriendFilter(''); setNotSeenOnly(false); } }, [statusFilter]);
 
   const addTitle = async (tmdbId: number) => {
+    if (snap && myRating(snap, tmdbId, userId)) {
+      toast('Staat al in je lijst!');
+      return;
+    }
     try {
       // Nieuw toegevoegde series gaan naar de wishlist; "Mee bezig" kies je zelf.
       await saveRating({ tmdb_id: tmdbId, status: 'want' });
@@ -126,6 +130,12 @@ export default function App() {
     snap.titles.forEach((t) => t.genres.forEach((g) => set.add(g)));
     return [...set].sort();
   }, [snap]);
+
+  // Welke series staan al op jouw lijst — om dat in de zoeksuggesties te tonen.
+  const myTitleIds = useMemo(
+    () => new Set(snap ? snap.ratings.filter((r) => r.user_id === userId).map((r) => r.title_id) : []),
+    [snap, userId],
+  );
 
   const allServices = useMemo(() => {
     if (!snap) return [];
@@ -251,7 +261,7 @@ export default function App() {
         <div className="page">
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} onManualAdd={(q) => setManualAddQuery(q)} placeholder="Voeg een serie toe…" />
+              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} onManualAdd={(q) => setManualAddQuery(q)} placeholder="Voeg een serie toe…" inList={myTitleIds} />
             </div>
             <button className="btn ghost" style={{ padding: '10px 12px', flexShrink: 0 }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
               📋
