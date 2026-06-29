@@ -44,6 +44,7 @@ export default function App() {
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [genreFilter, setGenreFilter] = useState<string>('');
   const [friendFilter, setFriendFilter] = useState<string>(''); // '' = iedereen (alleen in "Alles")
+  const [nameFilter, setNameFilter] = useState<string>('');
   const [sort, setSort] = useState<Sort>('recent');
 
   // Paginering
@@ -67,7 +68,7 @@ export default function App() {
   const me = snap ? profileById(snap, userId) : undefined;
 
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter]);
+  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter, nameFilter]);
   // Vriend-filter alleen relevant binnen "Alles".
   useEffect(() => { if (statusFilter !== 'all') setFriendFilter(''); }, [statusFilter]);
 
@@ -143,6 +144,10 @@ export default function App() {
         return t.providers.includes(serviceFilter) || svc === serviceFilter;
       });
     }
+    if (nameFilter.length >= 2) {
+      const q = nameFilter.toLowerCase();
+      list = list.filter((t) => t.name.toLowerCase().includes(q));
+    }
 
     list.sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
@@ -150,7 +155,7 @@ export default function App() {
       return b.created_at - a.created_at;
     });
     return list;
-  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, sort, userId, me]);
+  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, nameFilter, sort, userId, me]);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
@@ -217,6 +222,13 @@ export default function App() {
               ))}
             </div>
           )}
+
+          <input
+            placeholder="Zoek op naam…"
+            value={nameFilter}
+            onChange={(e) => setNameFilter(e.target.value)}
+            style={{ marginBottom: 8 }}
+          />
 
           <div className="row" style={{ gap: 8, marginBottom: 12 }}>
             <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>

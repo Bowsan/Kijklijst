@@ -44,7 +44,14 @@ export default function RecommendSheet({ snap, title, userId, onClose, onDone }:
               </button>
             ))}
           </div>
-          <input placeholder="Waarom past dit bij hem/haar? (optioneel)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <label className="muted" style={{ fontSize: 13, display: 'block', margin: '4px 0 4px' }}>Berichtje toevoegen (optioneel)</label>
+          <textarea
+            placeholder="Bijv. Deze vind je vast leuk, is met die gave acteur!"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            style={{ resize: 'none' }}
+          />
           <button className="btn primary full" style={{ marginTop: 12 }} disabled={!to} onClick={send}>
             Stuur aanrader
           </button>
