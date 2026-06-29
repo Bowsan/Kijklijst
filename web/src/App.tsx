@@ -5,7 +5,7 @@ import { getUserId, getBlind } from './lib/identity';
 import { fetchState, subscribe, saveRating, createManualTitle } from './lib/api';
 import {
   profileById, myRating, groupAverage, guessService, incomingRecommendations,
-  visibleUserIds,
+  visibleUserIds, followingProfiles,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -42,6 +42,7 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState<Status | 'all' | 'mine'>('mine');
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [genreFilter, setGenreFilter] = useState<string>('');
+  const [friendFilter, setFriendFilter] = useState<string>(''); // '' = iedereen (alleen in "Alles")
   const [sort, setSort] = useState<Sort>('recent');
 
   // Paginering
@@ -65,7 +66,9 @@ export default function App() {
   const me = snap ? profileById(snap, userId) : undefined;
 
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort]);
+  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter]);
+  // Vriend-filter alleen relevant binnen "Alles".
+  useEffect(() => { if (statusFilter !== 'all') setFriendFilter(''); }, [statusFilter]);
 
   const addTitle = async (tmdbId: number) => {
     try {
@@ -113,15 +116,24 @@ export default function App() {
     let list = [...snap.titles];
 
     if (statusFilter === 'mine') {
+      // Mijn lijst = alleen wat jij hebt toegevoegd.
       list = list.filter((t) => myRating(snap, t.tmdb_id, userId));
     } else if (statusFilter === 'all') {
-      // "Alles" = jouw series + die van de vrienden die je volgt.
+      // Alles = jouw series + die van de vrienden die je volgt; eventueel één vriend uitgelicht.
       const visible = new Set(visibleUserIds(snap, userId));
       list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && visible.has(r.user_id)));
-    } else {
+      if (friendFilter) {
+        list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.user_id === friendFilter));
+      }
+    } else if (statusFilter === 'watching') {
+      // Mee bezig = wat jij én je gevolgde vrienden kijken.
+      const visible = new Set(visibleUserIds(snap, userId));
       list = list.filter((t) =>
-        snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === statusFilter)
+        snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === 'watching' && visible.has(r.user_id))
       );
+    } else {
+      // Gekeken / Wil ik kijken / Afgehaakt = alleen jouw eigen lijst.
+      list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status === statusFilter);
     }
     if (genreFilter) list = list.filter((t) => t.genres.includes(genreFilter));
     if (serviceFilter) {
@@ -137,7 +149,7 @@ export default function App() {
       return b.created_at - a.created_at;
     });
     return list;
-  }, [snap, statusFilter, genreFilter, serviceFilter, sort, userId, me]);
+  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, sort, userId, me]);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
@@ -187,6 +199,17 @@ export default function App() {
               <button key={s} className={statusFilter === s ? 'sel' : ''} onClick={() => setStatusFilter(s)}>{STATUS_LABELS[s]}</button>
             ))}
           </div>
+
+          {/* Binnen "Alles": uitlichten van één vriend (of jezelf). */}
+          {statusFilter === 'all' && (
+            <div className="row" style={{ marginBottom: 8 }}>
+              <select value={friendFilter} onChange={(e) => setFriendFilter(e.target.value)} style={{ flex: 1 }}>
+                <option value="">Alle vrienden + jij</option>
+                <option value={userId}>Alleen jij</option>
+                {followingProfiles(snap, userId).map((p) => <option key={p.id} value={p.id}>Alleen {p.name}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="row" style={{ gap: 8, marginBottom: 12 }}>
             <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
