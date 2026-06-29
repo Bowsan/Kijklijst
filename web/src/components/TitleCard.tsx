@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
-import { saveRating, type RatingUpdate } from '../lib/api';
+import { saveRating, removeRating, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, ratingsFor, profileById, guessService } from '../lib/compute';
 import Avatar from './Avatar';
 
@@ -10,21 +10,28 @@ interface Props {
   title: Title;
   userId: string;
   blind: boolean;
+  showGroupScore?: boolean;
   onRecommend: (title: Title) => void;
   onChange: () => void;
   toast: (msg: string) => void;
   initialExpanded?: boolean;
 }
 
-export default function TitleCard({ snap, title, userId, blind, onRecommend, onChange, toast, initialExpanded = false }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   const others = ratingsFor(snap, title.tmdb_id).filter((r) => r.user_id !== userId);
   const me = profileById(snap, userId);
   const hideGroup = blind && mine?.score == null;
+
+  const initService = mine?.service || '';
+  const initIsCustom = !!initService && !title.providers.includes(initService);
+
   const [expanded, setExpanded] = useState(initialExpanded);
   const [note, setNote] = useState(mine?.note || '');
-  const [serviceInput, setServiceInput] = useState(mine?.service || '');
+  const [serviceMode, setServiceMode] = useState<'select' | 'custom'>(initIsCustom ? 'custom' : 'select');
+  const [serviceInput, setServiceInput] = useState(initService);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const update = async (patch: Omit<RatingUpdate, 'tmdb_id'>) => {
     try {
@@ -32,6 +39,15 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
       onChange();
     } catch (e: any) {
       toast(e.message || 'Opslaan mislukt');
+    }
+  };
+
+  const handleRemove = async () => {
+    try {
+      await removeRating(title.tmdb_id);
+      onChange();
+    } catch (e: any) {
+      toast(e.message || 'Verwijderen mislukt');
     }
   };
 
@@ -65,17 +81,19 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          {mine?.score != null
-            ? <span className="badge-score sel" style={{ minWidth: 28, textAlign: 'center' }}>{mine.score}</span>
-            : mine?.status
-              ? <span className="chip" style={{ fontSize: 12 }}>{STATUS_LABELS[mine.status]}</span>
-              : null}
-          {!hideGroup && avg != null && (
-            <div className="avg">
-              <span className="num">{avg.toFixed(1)}</span>
-              <span className="lbl">groep</span>
-            </div>
-          )}
+          {showGroupScore
+            ? (!hideGroup && avg != null && (
+                <div className="avg">
+                  <span className="num">{avg.toFixed(1)}</span>
+                  <span className="lbl">groep</span>
+                </div>
+              ))
+            : (mine?.score != null
+                ? <span className="badge-score sel" style={{ minWidth: 28, textAlign: 'center' }}>{mine.score}</span>
+                : mine?.status
+                  ? <span className="chip" style={{ fontSize: 12 }}>{STATUS_LABELS[mine.status]}</span>
+                  : null)
+          }
           {others.length > 0 && (
             <span className="muted" style={{ fontSize: 12 }}>👥 {others.length}</span>
           )}
@@ -139,18 +157,25 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
           )}
 
           {/* Streamingdienst */}
-          {title.providers.length > 0 ? (
-            <select
-              value={mine?.service || ''}
-              onChange={(e) => update({ service: e.target.value })}
-              style={{ marginTop: 4 }}
-            >
-              <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
-              {title.providers.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          ) : (
+          <select
+            value={serviceMode === 'custom' ? '__anders__' : (mine?.service || '')}
+            onChange={(e) => {
+              if (e.target.value === '__anders__') {
+                setServiceMode('custom');
+              } else {
+                setServiceMode('select');
+                update({ service: e.target.value });
+              }
+            }}
+            style={{ marginTop: 4 }}
+          >
+            <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
+            {title.providers.map((p) => <option key={p} value={p}>{p}</option>)}
+            <option value="__anders__">Anders…</option>
+          </select>
+          {serviceMode === 'custom' && (
             <input
-              placeholder="Streamingdienst (optioneel)"
+              placeholder="Naam van de dienst"
               value={serviceInput}
               onChange={(e) => setServiceInput(e.target.value)}
               onBlur={() => serviceInput !== (mine?.service || '') && update({ service: serviceInput })}
@@ -159,8 +184,16 @@ export default function TitleCard({ snap, title, userId, blind, onRecommend, onC
           )}
 
           {/* Acties */}
-          <div className="actions">
+          <div className="actions" style={{ justifyContent: 'space-between' }}>
             <button className="btn ghost" onClick={() => onRecommend(title)}>💌 Raad aan</button>
+            {confirmDelete ? (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="btn ghost" style={{ color: '#e55' }} onClick={handleRemove}>Verwijder</button>
+                <button className="btn ghost" onClick={() => setConfirmDelete(false)}>Annuleer</button>
+              </div>
+            ) : (
+              <button className="btn ghost" style={{ color: 'var(--muted)' }} title="Uit lijst verwijderen" onClick={() => setConfirmDelete(true)}>🗑️</button>
+            )}
           </div>
 
           {/* Notitie + overview + cast */}
