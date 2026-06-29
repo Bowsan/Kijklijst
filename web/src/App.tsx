@@ -33,10 +33,15 @@ export default function App() {
   const [showActivity, setShowActivity] = useState(false);
 
   // Filters
-  const [statusFilter, setStatusFilter] = useState<Status | 'all' | 'mine'>('all');
+  const [statusFilter, setStatusFilter] = useState<Status | 'all' | 'mine'>('mine');
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [genreFilter, setGenreFilter] = useState<string>('');
   const [sort, setSort] = useState<Sort>('recent');
+
+  // Paginering
+  const PAGE_SIZE = 20;
+  const [listPage, setListPage] = useState(1);
+  const [justAddedId, setJustAddedId] = useState<number | null>(null);
 
   const reload = () => fetchState().then(setSnap).catch(() => {});
 
@@ -53,10 +58,15 @@ export default function App() {
 
   const me = snap ? profileById(snap, userId) : undefined;
 
+  // Pagina resetten bij filterwijziging
+  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort]);
+
   const addTitle = async (tmdbId: number) => {
     try {
       await saveRating({ tmdb_id: tmdbId, status: 'watching' });
       await reload();
+      setJustAddedId(tmdbId);
+      setStatusFilter('mine');
       toast('Toegevoegd aan de lijst');
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
@@ -171,18 +181,30 @@ export default function App() {
               <p className="muted">Zoek hierboven een serie of importeer je hele lijst in één keer.</p>
             </div>
           ) : (
-            visibleTitles.map((t) => (
-              <TitleCard
-                key={t.tmdb_id}
-                snap={snap}
-                title={t}
-                userId={userId}
-                blind={blind}
-                onRecommend={setRecommendTarget}
-                onChange={reload}
-                toast={toast}
-              />
-            ))
+            <>
+              {visibleTitles.slice(0, listPage * PAGE_SIZE).map((t) => (
+                <TitleCard
+                  key={t.tmdb_id}
+                  snap={snap}
+                  title={t}
+                  userId={userId}
+                  blind={blind}
+                  onRecommend={setRecommendTarget}
+                  onChange={reload}
+                  toast={toast}
+                  initialExpanded={t.tmdb_id === justAddedId}
+                />
+              ))}
+              {visibleTitles.length > listPage * PAGE_SIZE && (
+                <button
+                  className="btn ghost full"
+                  style={{ marginTop: 8 }}
+                  onClick={() => setListPage((p) => p + 1)}
+                >
+                  Meer laden ({visibleTitles.length - listPage * PAGE_SIZE} resterend)
+                </button>
+              )}
+            </>
           )}
         </div>
       )}
