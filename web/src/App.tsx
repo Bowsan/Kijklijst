@@ -299,7 +299,7 @@ export default function App() {
           userId={userId}
           onClose={() => setProfileTarget(null)}
           onChange={reload}
-          onAdd={(id) => { addTitle(id); setProfileTarget(null); }}
+          onAdd={(id) => addTitle(id)}
           toast={toast}
         />
       )}

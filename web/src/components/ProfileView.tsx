@@ -1,7 +1,7 @@
 import type { Snapshot } from '../lib/types';
-import { POSTER_SMALL } from '../lib/types';
+import { POSTER_SMALL, STATUS_LABELS } from '../lib/types';
 import {
-  profileById, favoriteTitles, totalWatchHours, ratedCount, serviceStats,
+  profileById, favoriteTitles, listedTitles, totalWatchHours, ratedCount, serviceStats,
   isFollowing, myRating,
 } from '../lib/compute';
 import { followUser, unfollowUser } from '../lib/api';
@@ -24,7 +24,8 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
   const profile = profileById(snap, profileId);
   const isMe = profileId === userId;
   const following = isFollowing(snap, userId, profileId);
-  const favorites = favoriteTitles(snap, profileId, 6);
+  const favorites = favoriteTitles(snap, profileId, 5);
+  const fullList = listedTitles(snap, profileId);
   const hours = Math.round(totalWatchHours(snap, profileId));
   const rated = ratedCount(snap, profileId);
   const services = serviceStats(snap, profileId).slice(0, 3);
@@ -84,6 +85,36 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             );
           })}
         </div>
+      )}
+
+      {fullList.length > 0 && (
+        <>
+          <h3 style={{ marginTop: 18 }}>Hele kijklijst ({fullList.length})</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {fullList.map(({ title, rating }) => {
+              const haveIt = !!myRating(snap, title.tmdb_id, userId);
+              return (
+                <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
+                  {title.poster_path
+                    ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface2)', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
+                    <div className="title-sub">{title.year || '—'}{title.providers[0] ? ` · ${title.providers[0]}` : ''}</div>
+                  </div>
+                  {rating.score != null
+                    ? <span className="badge-score sel" style={{ flexShrink: 0 }}>{rating.score}</span>
+                    : rating.status
+                      ? <span className="chip" style={{ flexShrink: 0, fontSize: 12 }}>{STATUS_LABELS[rating.status]}</span>
+                      : null}
+                  {!isMe && !haveIt && (
+                    <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={() => onAdd(title.tmdb_id)} title="Aan mijn lijst toevoegen">+</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </Sheet>
   );

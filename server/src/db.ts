@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { canonicalProvider, canonicalProviders } from './providers.js';
 
 const DATABASE_PATH = process.env.DATABASE_PATH || './data/opdebank.sqlite';
 
@@ -82,6 +83,27 @@ db.exec(`
     PRIMARY KEY (follower, followee)
   );
 `);
+
+// Bestaande titels en beoordelingen normaliseren naar samengevoegde dienstnamen
+// (idempotent: al-genormaliseerde namen blijven gelijk).
+function normalizeStoredProviders(): void {
+  const tx = db.transaction(() => {
+    const titles = db.prepare('SELECT tmdb_id, providers FROM titles').all() as any[];
+    const updTitle = db.prepare('UPDATE titles SET providers = ? WHERE tmdb_id = ?');
+    for (const t of titles) {
+      const next = JSON.stringify(canonicalProviders(parseJson<string[]>(t.providers, [])));
+      if (next !== t.providers) updTitle.run(next, t.tmdb_id);
+    }
+    const ratings = db.prepare('SELECT rowid, service FROM ratings WHERE service IS NOT NULL').all() as any[];
+    const updRating = db.prepare('UPDATE ratings SET service = ? WHERE rowid = ?');
+    for (const r of ratings) {
+      const c = canonicalProvider(r.service);
+      if (c !== r.service) updRating.run(c, r.rowid);
+    }
+  });
+  tx();
+}
+normalizeStoredProviders();
 
 export interface Snapshot {
   profiles: any[];

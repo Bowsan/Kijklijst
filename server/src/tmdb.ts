@@ -1,3 +1,5 @@
+import { canonicalProviders } from './providers.js';
+
 const API = 'https://api.themoviedb.org/3';
 const LANGUAGE = process.env.TMDB_LANGUAGE || 'nl-NL';
 const REGION = process.env.TMDB_REGION || 'NL';
@@ -86,7 +88,7 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
   for (const kind of ['flatrate', 'free', 'ads'] as const) {
     for (const p of nlProviders?.[kind] || []) providerSet.set(p.provider_id, p.provider_name);
   }
-  const providers = [...providerSet.values()];
+  const providers = canonicalProviders([...providerSet.values()]);
 
   const cast = (data.aggregate_credits?.cast || [])
     .slice(0, 8)

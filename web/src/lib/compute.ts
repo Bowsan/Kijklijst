@@ -37,6 +37,17 @@ export function watchingTitles(snap: Snapshot, userId: string): Title[] {
     .filter((t): t is Title => t != null);
 }
 
+/** De volledige kijklijst van een gebruiker (alles wat hij toevoegde of beoordeelde). */
+export function listedTitles(snap: Snapshot, userId: string): { title: Title; rating: Rating }[] {
+  return snap.ratings
+    .filter((r) => r.user_id === userId)
+    .map((r) => ({ title: titleById(snap, r.title_id), rating: r }))
+    .filter((x): x is { title: Title; rating: Rating } => x.title != null)
+    .sort((a, b) =>
+      (b.rating.score ?? -1) - (a.rating.score ?? -1) ||
+      b.rating.updated_at - a.rating.updated_at);
+}
+
 /** Favoriete series van een gebruiker (hoogst beoordeeld). */
 export function favoriteTitles(snap: Snapshot, userId: string, limit = 5): { title: Title; score: number }[] {
   return snap.ratings

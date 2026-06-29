@@ -5,7 +5,7 @@ export const NL_SERVICES = [
   'Disney Plus',
   'Max',
   'Amazon Prime Video',
-  'Apple TV+',
+  'Apple TV',
   'SkyShowtime',
   'NPO Plus',
   'Ziggo',
