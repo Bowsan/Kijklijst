@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { sendRecommendation } from '../lib/api';
+import { followingProfiles } from '../lib/compute';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
 
@@ -15,7 +16,7 @@ interface Props {
 export default function RecommendSheet({ snap, title, userId, onClose, onDone }: Props) {
   const [to, setTo] = useState<string>('');
   const [note, setNote] = useState('');
-  const friends = snap.profiles.filter((p) => p.id !== userId);
+  const friends = followingProfiles(snap, userId);
 
   const send = async () => {
     if (!to) return;
@@ -32,7 +33,7 @@ export default function RecommendSheet({ snap, title, userId, onClose, onDone }:
   return (
     <Sheet title={`"${title.name}" aanraden`} onClose={onClose}>
       {friends.length === 0 ? (
-        <p className="muted">Er zijn nog geen vrienden om aan aan te raden. Deel de link en haal er iemand bij.</p>
+        <p className="muted">Je volgt nog geen vrienden. Voeg vrienden toe via de Vrienden-pagina om ze aan te raden.</p>
       ) : (
         <>
           <p className="muted" style={{ fontSize: 13 }}>Aan wie raad je dit persoonlijk aan?</p>

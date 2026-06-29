@@ -139,6 +139,17 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
       .slice(0, 5);
   }, [snap, userId, visible]);
 
+  // Meest aangeraden series in de groep
+  const mostRecommended = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const r of snap.recommendations) counts.set(r.title_id, (counts.get(r.title_id) || 0) + 1);
+    return [...counts.entries()]
+      .map(([title_id, count]) => ({ title: titleById(snap, title_id), count }))
+      .filter((x): x is { title: NonNullable<ReturnType<typeof titleById>>; count: number } => x.title != null)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  }, [snap]);
+
   const maxGroupGenre = groupGenreCounts.length ? Math.max(...groupGenreCounts.map((g) => g.count)) : 1;
   const maxGroupService = groupServiceCounts.length ? Math.max(...groupServiceCounts.map((s) => s.count)) : 1;
 
@@ -259,9 +270,21 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
       )}
 
       {/* ---- Groepsstatistieken ---- */}
-      {hasGroupData && (groupTitleStats.length > 0 || groupGenreCounts.length > 0) && (
+      {hasGroupData && (groupTitleStats.length > 0 || groupGenreCounts.length > 0 || mostRecommended.length > 0) && (
         <>
           <h2 style={{ marginTop: 24 }}>In de groep</h2>
+
+          {mostRecommended.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>Meest aangeraden</div>
+              {mostRecommended.map(({ title, count }, i) => (
+                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: i < mostRecommended.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <span style={{ fontSize: 14, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{title.name}</span>
+                  <span className="chip" style={{ flexShrink: 0 }}>💌 {count}x</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {groupTitleStats.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
