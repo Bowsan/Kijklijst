@@ -26,6 +26,11 @@ export function setBlind(value: boolean): void {
   localStorage.setItem(BLIND_KEY, value ? '1' : '0');
 }
 
+export function logout(): void {
+  localStorage.removeItem(ID_KEY);
+  localStorage.removeItem(BLIND_KEY);
+}
+
 // Stabiele kleur per gebruiker, afgeleid van zijn code (voor de initiaal-avatar).
 export function colorFor(id: string): string {
   let h = 0;
