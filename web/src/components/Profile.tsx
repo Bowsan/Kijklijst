@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { saveProfile, saveRating } from '../lib/api';
-import { setBlind } from '../lib/identity';
+import { setBlind, logout } from '../lib/identity';
 import { NL_SERVICES } from '../lib/services';
 import { profileById } from '../lib/compute';
 import Avatar from './Avatar';
@@ -109,6 +109,7 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
   const fileRef = useRef<HTMLInputElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const handleImport = async (file: File) => {
     setImporting(true);
@@ -235,6 +236,20 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
           </button>
           <input ref={importRef} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && handleImport(e.target.files[0])} />
         </div>
+      </div>
+
+      <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--surface-2)' }}>
+        {confirmLogout ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <p className="muted" style={{ fontSize: 13, margin: 0 }}>Weet je het zeker? Je wordt uitgelogd en moet opnieuw inloggen met je naam.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn" style={{ color: '#e55', flex: 1 }} onClick={() => { logout(); window.location.reload(); }}>Uitloggen</button>
+              <button className="btn ghost" style={{ flex: 1 }} onClick={() => setConfirmLogout(false)}>Annuleer</button>
+            </div>
+          </div>
+        ) : (
+          <button className="btn ghost full" style={{ color: 'var(--muted)' }} onClick={() => setConfirmLogout(true)}>Uitloggen</button>
+        )}
       </div>
     </div>
   );
