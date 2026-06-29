@@ -189,6 +189,7 @@ export default function App() {
                   title={t}
                   userId={userId}
                   blind={blind}
+                  showGroupScore={statusFilter === 'all'}
                   onRecommend={setRecommendTarget}
                   onChange={reload}
                   toast={toast}

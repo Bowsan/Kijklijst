@@ -1,4 +1,5 @@
 import type { Snapshot } from '../lib/types';
+import { POSTER_SMALL } from '../lib/types';
 import { totalWatchHours, ratedCount, serviceStats, myRating, watchHours } from '../lib/compute';
 
 export default function Stats({ snap, userId }: { snap: Snapshot; userId: string }) {
@@ -7,13 +8,23 @@ export default function Stats({ snap, userId }: { snap: Snapshot; userId: string
   const services = serviceStats(snap, userId);
   const maxCount = Math.max(1, ...services.map((s) => s.count));
 
-  // Kijkuren per serie (top 5).
   const perTitle = snap.titles
     .map((t) => ({ title: t, hours: watchHours(t, myRating(snap, t.tmdb_id, userId)) }))
     .filter((x) => x.hours > 0)
     .sort((a, b) => b.hours - a.hours)
     .slice(0, 5);
   const maxHours = Math.max(1, ...perTitle.map((x) => x.hours));
+
+  const friendsWatching = snap.profiles
+    .filter((p) => p.id !== userId)
+    .map((p) => {
+      const titles = snap.ratings
+        .filter((r) => r.user_id === p.id && r.status === 'watching')
+        .map((r) => snap.titles.find((t) => t.tmdb_id === r.title_id))
+        .filter((t): t is NonNullable<typeof t> => t != null);
+      return { profile: p, titles };
+    })
+    .filter((fw) => fw.titles.length > 0);
 
   return (
     <div className="page">
@@ -65,7 +76,29 @@ export default function Stats({ snap, userId }: { snap: Snapshot; userId: string
         </>
       )}
 
-      {perTitle.length === 0 && services.length === 0 && (
+      {friendsWatching.length > 0 && (
+        <>
+          <h2>Wat kijken mijn vrienden?</h2>
+          {friendsWatching.map(({ profile, titles }) => (
+            <div key={profile.id} className="card" style={{ marginBottom: 8 }}>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>{profile.name}</div>
+              {titles.map((t) => (
+                <div key={t.tmdb_id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 0' }}>
+                  {t.poster_path
+                    ? <img src={POSTER_SMALL + t.poster_path} alt="" style={{ width: 32, height: 48, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 32, height: 48, borderRadius: 4, background: 'var(--surface2)', flexShrink: 0 }} />}
+                  <div>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{t.name}</div>
+                    <div className="title-sub">{t.year || '—'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </>
+      )}
+
+      {perTitle.length === 0 && services.length === 0 && friendsWatching.length === 0 && (
         <div className="empty">
           <div className="big">📊</div>
           <p>Vink seizoenen aan bij je series om je kijkuren en diensten te zien.</p>

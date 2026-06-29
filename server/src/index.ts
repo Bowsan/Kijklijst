@@ -190,6 +190,15 @@ app.post('/api/recommendation', async (req, res) => {
   }
 });
 
+// Rating verwijderen (alleen voor de eigen gebruiker).
+app.delete('/api/rating/:tmdb_id', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  db.prepare('DELETE FROM ratings WHERE title_id = ? AND user_id = ?').run(Number(req.params.tmdb_id), uid);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
 // Aanrader wegklikken (privé bij de ontvanger).
 app.post('/api/recommendation/:id/dismiss', (req, res) => {
   const uid = userId(req);

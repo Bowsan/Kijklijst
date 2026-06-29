@@ -42,6 +42,11 @@ export interface RatingUpdate {
 }
 
 export const saveRating = (u: RatingUpdate) => post('/api/rating', u);
+export async function removeRating(tmdbId: number): Promise<any> {
+  const res = await fetch(`/api/rating/${tmdbId}`, { method: 'DELETE', headers: headers() });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
 export const saveProfile = (p: { name: string; avatar?: string | null; color?: string | null; services?: string[] }) =>
   post('/api/profile', p);
 export const sendRecommendation = (r: { to_user: string; tmdb_id: number; note?: string }) =>
