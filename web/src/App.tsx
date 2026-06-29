@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Snapshot, Title, Status } from './lib/types';
 import { STATUS_LABELS, STATUS_ORDER } from './lib/types';
 import { getUserId, getBlind } from './lib/identity';
-import { fetchState, subscribe, saveRating } from './lib/api';
+import { fetchState, subscribe, saveRating, createManualTitle } from './lib/api';
 import {
   profileById, myRating, groupAverage, guessService, incomingRecommendations,
   visibleUserIds,
@@ -20,6 +20,7 @@ import Profile from './components/Profile';
 import RecommendSheet from './components/RecommendSheet';
 import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
+import ManualAddSheet from './components/ManualAddSheet';
 
 type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 type Sort = 'recent' | 'avg' | 'name';
@@ -33,6 +34,7 @@ export default function App() {
   const [profileTarget, setProfileTarget] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [manualAddQuery, setManualAddQuery] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState('');
   const [showActivity, setShowActivity] = useState(false);
 
@@ -72,6 +74,21 @@ export default function App() {
       setJustAddedId(tmdbId);
       setStatusFilter('mine');
       toast('Toegevoegd aan de lijst');
+    } catch (e: any) {
+      toast(e.message || 'Toevoegen mislukt');
+    }
+  };
+
+  const addManualTitle = async (name: string, service: string) => {
+    try {
+      const { tmdb_id } = await createManualTitle(name, service || undefined);
+      await saveRating({ tmdb_id, status: 'watching', ...(service ? { service } : {}) });
+      await reload();
+      setJustAddedId(tmdb_id);
+      setStatusFilter('mine');
+      setManualAddQuery(null);
+      setTab('list');
+      toast('Handmatig toegevoegd');
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
     }
@@ -155,7 +172,7 @@ export default function App() {
         <div className="page">
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
-              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} placeholder="Voeg een serie toe…" />
+              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} onManualAdd={(q) => setManualAddQuery(q)} placeholder="Voeg een serie toe…" />
             </div>
             <button className="btn ghost" style={{ padding: '10px 12px', flexShrink: 0 }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
               📋
@@ -268,6 +285,13 @@ export default function App() {
       )}
       {showImport && <ImportSheet onClose={() => setShowImport(false)} onDone={(m) => { toast(m); reload(); }} />}
       {showShare && <ShareSheet onClose={() => setShowShare(false)} onToast={toast} />}
+      {manualAddQuery !== null && (
+        <ManualAddSheet
+          initialName={manualAddQuery}
+          onClose={() => setManualAddQuery(null)}
+          onConfirm={addManualTitle}
+        />
+      )}
       {profileTarget && (
         <ProfileView
           snap={snap}
