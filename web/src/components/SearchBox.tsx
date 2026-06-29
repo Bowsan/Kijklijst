@@ -7,9 +7,11 @@ interface Props {
   onPick: (result: SearchResult) => void;
   onManualAdd?: (query: string) => void;
   placeholder?: string;
+  /** tmdb_id's die al op de lijst van de gebruiker staan. */
+  inList?: Set<number>;
 }
 
-export default function SearchBox({ onPick, onManualAdd, placeholder }: Props) {
+export default function SearchBox({ onPick, onManualAdd, placeholder, inList }: Props) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
@@ -49,24 +51,30 @@ export default function SearchBox({ onPick, onManualAdd, placeholder }: Props) {
       />
       {open && (results.length > 0 || canManual) && (
         <div className="suggestions">
-          {results.map((r) => (
-            <button
-              key={r.tmdb_id}
-              className="suggestion"
-              onClick={() => {
-                onPick(r);
-                setQ('');
-                setResults([]);
-                setOpen(false);
-              }}
-            >
-              {r.poster_path ? <img src={POSTER_SMALL + r.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
-              <div>
-                <div className="s-name">{r.name}</div>
-                <div className="title-sub">{r.year || '—'}</div>
-              </div>
-            </button>
-          ))}
+          {results.map((r) => {
+            const already = inList?.has(r.tmdb_id);
+            return (
+              <button
+                key={r.tmdb_id}
+                className="suggestion"
+                onClick={() => {
+                  onPick(r);
+                  setQ('');
+                  setResults([]);
+                  setOpen(false);
+                }}
+              >
+                {r.poster_path ? <img src={POSTER_SMALL + r.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="s-name">{r.name}</div>
+                  <div className="title-sub">{r.year || '—'}</div>
+                </div>
+                {already && (
+                  <span className="chip" style={{ flexShrink: 0, color: 'var(--good)', borderColor: 'var(--good)' }}>✓ Op je lijst</span>
+                )}
+              </button>
+            );
+          })}
           {canManual && (
             <button
               className="suggestion"
