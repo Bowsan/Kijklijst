@@ -83,9 +83,9 @@ export default function App() {
     }
   };
 
-  const addManualTitle = async (name: string, service: string) => {
+  const addManualTitle = async (name: string, service: string, seasons: number) => {
     try {
-      const { tmdb_id } = await createManualTitle(name, service || undefined);
+      const { tmdb_id } = await createManualTitle(name, service || undefined, seasons);
       await saveRating({ tmdb_id, status: 'watching', ...(service ? { service } : {}) });
       await reload();
       setJustAddedId(tmdb_id);

@@ -5,19 +5,21 @@ import { NL_SERVICES } from '../lib/services';
 interface Props {
   initialName: string;
   onClose: () => void;
-  onConfirm: (name: string, service: string) => void;
+  onConfirm: (name: string, service: string, seasons: number) => void;
 }
 
 export default function ManualAddSheet({ initialName, onClose, onConfirm }: Props) {
   const [name, setName] = useState(initialName);
   const [service, setService] = useState('');
   const [custom, setCustom] = useState('');
+  const [seasons, setSeasons] = useState('1');
 
   const submit = () => {
     const finalName = name.trim();
     if (!finalName) return;
     const finalService = service === '__anders__' ? custom.trim() : service;
-    onConfirm(finalName, finalService);
+    const n = Math.max(0, Math.min(100, Math.floor(Number(seasons) || 0)));
+    onConfirm(finalName, finalService, n);
   };
 
   return (
@@ -43,6 +45,16 @@ export default function ManualAddSheet({ initialName, onClose, onConfirm }: Prop
           style={{ marginTop: 8 }}
         />
       )}
+
+      <label className="muted" style={{ fontSize: 13, display: 'block', margin: '12px 0 4px' }}>Aantal seizoenen</label>
+      <input
+        type="number"
+        min={0}
+        max={100}
+        value={seasons}
+        onChange={(e) => setSeasons(e.target.value)}
+        placeholder="Bijv. 10"
+      />
 
       <button className="btn primary full" style={{ marginTop: 16 }} disabled={!name.trim()} onClick={submit}>
         Toevoegen aan mijn lijst
