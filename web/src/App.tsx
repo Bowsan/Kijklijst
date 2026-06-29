@@ -138,8 +138,12 @@ export default function App() {
     let list = [...snap.titles];
 
     if (statusFilter === 'mine') {
-      // Mijn lijst = alleen wat jij hebt toegevoegd.
-      list = list.filter((t) => myRating(snap, t.tmdb_id, userId));
+      // Mijn lijst = alleen series die je echt kijkt of zag (Mee bezig, ✅, Afgehaakt).
+      // De wishlist hoort hier niet bij.
+      list = list.filter((t) => {
+        const st = myRating(snap, t.tmdb_id, userId)?.status;
+        return st === 'watching' || st === 'finished' || st === 'dropped';
+      });
     } else if (statusFilter === 'all') {
       // Alles = jouw series + die van de vrienden die je volgt; eventueel één vriend uitgelicht.
       const visible = new Set(visibleUserIds(snap, userId));
