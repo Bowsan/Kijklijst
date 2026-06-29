@@ -13,6 +13,7 @@ export interface Season {
   season_number: number;
   episode_count: number;
   name: string;
+  air_year?: number | null;
 }
 
 export interface Title {
@@ -86,8 +87,8 @@ export interface SearchResult {
 }
 
 export const STATUS_LABELS: Record<Status, string> = {
-  watching: 'Aan het kijken',
-  finished: 'Uitgekeken',
+  watching: 'Mee bezig',
+  finished: '✅',
   want: 'Wil ik kijken',
   dropped: 'Afgehaakt',
 };

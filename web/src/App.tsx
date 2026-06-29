@@ -130,10 +130,14 @@ export default function App() {
 
       {tab === 'list' && (
         <div className="page">
-          <SearchBox onPick={(r) => addTitle(r.tmdb_id)} placeholder="Voeg een serie toe…" />
-          <button className="btn ghost full" style={{ marginTop: 8 }} onClick={() => setShowImport(true)}>
-            📋 Hele lijst importeren
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} placeholder="Voeg een serie toe…" />
+            </div>
+            <button className="btn ghost" style={{ padding: '10px 12px', flexShrink: 0 }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
+              📋
+            </button>
+          </div>
 
           {/* Filters */}
           <div className="filters" style={{ marginTop: 12 }}>
