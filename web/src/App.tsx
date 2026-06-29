@@ -155,11 +155,7 @@ export default function App() {
         });
       }
     } else if (statusFilter === 'watching') {
-      // Mee bezig = wat jij én je gevolgde vrienden kijken.
-      const visible = new Set(visibleUserIds(snap, userId));
-      list = list.filter((t) =>
-        snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === 'watching' && visible.has(r.user_id))
-      );
+      list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status === 'watching');
     } else {
       // Gekeken / Wil ik kijken / Afgehaakt = alleen jouw eigen lijst.
       list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status === statusFilter);
