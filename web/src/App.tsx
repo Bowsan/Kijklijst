@@ -52,6 +52,7 @@ export default function App() {
   const PAGE_SIZE = 20;
   const [listPage, setListPage] = useState(1);
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
+  const [focusTitleId, setFocusTitleId] = useState<number | null>(null);
 
   const reload = () => fetchState().then(setSnap).catch(() => {});
 
@@ -67,6 +68,24 @@ export default function App() {
   };
 
   const me = snap ? profileById(snap, userId) : undefined;
+
+  // Vanuit het dashboard naar de lijst springen met een passend filter.
+  const navigateToList = (opts: {
+    status?: Status | 'all' | 'mine';
+    genre?: string;
+    service?: string;
+    titleId?: number;
+  }) => {
+    setStatusFilter(opts.status ?? 'mine');
+    setGenreFilter(opts.genre ?? '');
+    setServiceFilter(opts.service ?? '');
+    setFriendFilter('');
+    setNotSeenOnly(false);
+    setNameFilter('');
+    setSort('recent');
+    setFocusTitleId(opts.titleId ?? null);
+    setTab('list');
+  };
 
   // Pagina resetten bij filterwijziging
   useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter, nameFilter]);
@@ -129,8 +148,11 @@ export default function App() {
         list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.user_id === friendFilter));
       }
       if (notSeenOnly) {
-        // Alleen series tonen die JIJ nog niet hebt afgezien.
-        list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status !== 'finished');
+        // Alleen series tonen die JIJ nog niet hebt afgezien én niet hebt afgehaakt.
+        list = list.filter((t) => {
+          const st = myRating(snap, t.tmdb_id, userId)?.status;
+          return st !== 'finished' && st !== 'dropped';
+        });
       }
     } else if (statusFilter === 'watching') {
       // Mee bezig = wat jij én je gevolgde vrienden kijken.
@@ -154,10 +176,14 @@ export default function App() {
       list = list.filter((t) => t.name.toLowerCase().includes(q));
     }
 
+    // Cijfer waarop gesorteerd wordt: in "Alles" het groepsgemiddelde, anders je eigen cijfer.
+    const scoreOf = (tmdbId: number): number | null =>
+      statusFilter === 'all' ? groupAverage(snap, tmdbId) : (myRating(snap, tmdbId, userId)?.score ?? null);
+
     list.sort((a, b) => {
       if (sort === 'name') return a.name.localeCompare(b.name);
-      if (sort === 'avg') return (groupAverage(snap, b.tmdb_id) ?? 0) - (groupAverage(snap, a.tmdb_id) ?? 0);
-      if (sort === 'avg_asc') return (groupAverage(snap, a.tmdb_id) ?? 99) - (groupAverage(snap, b.tmdb_id) ?? 99);
+      if (sort === 'avg') return (scoreOf(b.tmdb_id) ?? 0) - (scoreOf(a.tmdb_id) ?? 0);
+      if (sort === 'avg_asc') return (scoreOf(a.tmdb_id) ?? 99) - (scoreOf(b.tmdb_id) ?? 99);
       const isAll = statusFilter === 'all';
       const tsA = isAll ? a.created_at : (myRating(snap, a.tmdb_id, userId)?.updated_at ?? a.created_at);
       const tsB = isAll ? b.created_at : (myRating(snap, b.tmdb_id, userId)?.updated_at ?? b.created_at);
@@ -290,7 +316,7 @@ export default function App() {
                   onRecommend={setRecommendTarget}
                   onChange={reload}
                   toast={toast}
-                  initialExpanded={t.tmdb_id === justAddedId}
+                  initialExpanded={t.tmdb_id === justAddedId || t.tmdb_id === focusTitleId}
                 />
               ))}
               {visibleTitles.length > listPage * PAGE_SIZE && (
@@ -314,6 +340,7 @@ export default function App() {
           onOpenProfile={setProfileTarget}
           onAdd={addTitle}
           onGoFriends={() => setTab('friends')}
+          onNavigate={navigateToList}
         />
       )}
 

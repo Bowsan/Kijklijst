@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import type { Snapshot, Title } from '../lib/types';
+import type { Snapshot, Title, Status } from '../lib/types';
 import { POSTER_SMALL } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
@@ -8,21 +8,29 @@ import {
 } from '../lib/compute';
 import Avatar from './Avatar';
 
+interface NavOpts {
+  status?: Status | 'all' | 'mine';
+  genre?: string;
+  service?: string;
+  titleId?: number;
+}
+
 interface Props {
   snap: Snapshot;
   userId: string;
   onOpenProfile: (id: string) => void;
   onAdd: (tmdbId: number) => void;
   onGoFriends: () => void;
+  onNavigate: (opts: NavOpts) => void;
 }
 
-function TitleRow({ title, right }: { title: Title; right?: ReactNode }) {
+function TitleRow({ title, right, onClick }: { title: Title; right?: ReactNode; onClick?: () => void }) {
   return (
     <div className="row" style={{ gap: 10, alignItems: 'center', padding: '4px 0' }}>
       {title.poster_path
         ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
         : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ flex: 1, minWidth: 0, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
         <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
         <div className="title-sub">{title.year || '—'}</div>
       </div>
@@ -31,9 +39,9 @@ function TitleRow({ title, right }: { title: Title; right?: ReactNode }) {
   );
 }
 
-function BarRow({ label, value, max, val, color }: { label: string; value: number; max: number; val: string; color?: string }) {
+function BarRow({ label, value, max, val, color, onClick }: { label: string; value: number; max: number; val: string; color?: string; onClick?: () => void }) {
   return (
-    <div className="bar-row">
+    <div className="bar-row" onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
       <div className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
       <div className="bar-track">
         <div className="bar-fill" style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, background: color || 'var(--accent)' }} />
@@ -43,7 +51,7 @@ function BarRow({ label, value, max, val, color }: { label: string; value: numbe
   );
 }
 
-export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFriends }: Props) {
+export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFriends, onNavigate }: Props) {
   const myWatching = watchingTitles(snap, userId);
   const friends = followingProfiles(snap, userId);
   const friendsWatching = friends
@@ -162,7 +170,9 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         <p className="muted" style={{ margin: '0 4px 8px' }}>Je hebt nog niets als "Mee bezig" gemarkeerd.</p>
       ) : (
         <div className="card">
-          {myWatching.map((t) => <TitleRow key={t.tmdb_id} title={t} />)}
+          {myWatching.map((t) => (
+            <TitleRow key={t.tmdb_id} title={t} onClick={() => onNavigate({ status: 'mine', titleId: t.tmdb_id })} />
+          ))}
         </div>
       )}
 
@@ -188,6 +198,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 <TitleRow
                   key={t.tmdb_id}
                   title={t}
+                  onClick={() => onNavigate({ status: 'all', titleId: t.tmdb_id })}
                   right={haveIt
                     ? <span className="muted" style={{ fontSize: 12, flexShrink: 0 }}>op je lijst</span>
                     : <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={() => onAdd(t.tmdb_id)} title="Aan mijn lijst toevoegen">+</button>}
@@ -204,7 +215,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           <h2 style={{ marginTop: 24 }}>Mijn statistieken</h2>
 
           <div className="stat-grid" style={{ marginBottom: 12 }}>
-            <div className="stat-box">
+            <div className="stat-box" style={{ cursor: 'pointer' }} onClick={() => onNavigate({ status: 'mine' })}>
               <div className="v">{totalCount}</div>
               <div className="k">Series op lijst</div>
             </div>
@@ -212,7 +223,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               <div className="v">{avgScore != null ? avgScore.toFixed(1) : '—'}</div>
               <div className="k">Gemiddeld cijfer</div>
             </div>
-            <div className="stat-box">
+            <div className="stat-box" style={{ cursor: 'pointer' }} onClick={() => onNavigate({ status: 'finished' })}>
               <div className="v">{finishedCount}</div>
               <div className="k">✅ Afgezien</div>
             </div>
@@ -225,13 +236,13 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           {/* Status breakdown */}
           <div className="card" style={{ marginBottom: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 10 }}>Verdeling lijst</div>
-            {[
-              { label: 'Mee bezig', count: watchingCount, color: 'var(--accent)' },
-              { label: '✅ Afgezien', count: finishedCount, color: 'var(--good)' },
-              { label: '🔖 Wil ik zien', count: wantCount, color: 'var(--warn)' },
-              { label: 'Afgehaakt', count: droppedCount, color: 'var(--muted)' },
-            ].filter((s) => s.count > 0).map((s) => (
-              <BarRow key={s.label} label={s.label} value={s.count} max={totalCount} val={`${s.count}`} color={s.color} />
+            {([
+              { label: 'Mee bezig', count: watchingCount, color: 'var(--accent)', status: 'watching' as Status },
+              { label: '✅ Afgezien', count: finishedCount, color: 'var(--good)', status: 'finished' as Status },
+              { label: 'Wishlist', count: wantCount, color: 'var(--warn)', status: 'want' as Status },
+              { label: 'Afgehaakt', count: droppedCount, color: 'var(--muted)', status: 'dropped' as Status },
+            ]).filter((s) => s.count > 0).map((s) => (
+              <BarRow key={s.label} label={s.label} value={s.count} max={totalCount} val={`${s.count}`} color={s.color} onClick={() => onNavigate({ status: s.status })} />
             ))}
           </div>
 
@@ -246,6 +257,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   max={maxGenreCount}
                   val={g.avg != null ? `${g.count}x · ${g.avg.toFixed(1)}` : `${g.count}x`}
                   color="var(--accent)"
+                  onClick={() => onNavigate({ status: 'mine', genre: g.genre })}
                 />
               ))}
             </div>
@@ -262,6 +274,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   max={maxServiceCount}
                   val={`${s.count} serie${s.count !== 1 ? 's' : ''}`}
                   color="var(--good)"
+                  onClick={() => onNavigate({ status: 'mine', service: s.service })}
                 />
               ))}
             </div>
@@ -278,7 +291,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Meest aangeraden</div>
               {mostRecommended.map(({ title, count }, i) => (
-                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: i < mostRecommended.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: i < mostRecommended.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }} onClick={() => onNavigate({ status: 'all', titleId: title.tmdb_id })}>
                   <span style={{ fontSize: 14, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{title.name}</span>
                   <span className="chip" style={{ flexShrink: 0 }}>💌 {count}x</span>
                 </div>
@@ -290,7 +303,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Populairste series</div>
               {groupTitleStats.map(({ title, count, avg }) => (
-                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
+                <div className="row spread" key={title.tmdb_id} style={{ padding: '5px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => onNavigate({ status: 'all', titleId: title.tmdb_id })}>
                   <span style={{ fontSize: 14, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{title.name}</span>
                   <div className="row" style={{ gap: 6, flexShrink: 0 }}>
                     {avg != null && <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 700 }}>{avg.toFixed(1)}</span>}
@@ -305,7 +318,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Populaire genres</div>
               {groupGenreCounts.map((g) => (
-                <BarRow key={g.genre} label={g.genre} value={g.count} max={maxGroupGenre} val={`${g.count}x`} color="var(--warn)" />
+                <BarRow key={g.genre} label={g.genre} value={g.count} max={maxGroupGenre} val={`${g.count}x`} color="var(--warn)" onClick={() => onNavigate({ status: 'all', genre: g.genre })} />
               ))}
             </div>
           )}
@@ -314,7 +327,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Populaire diensten</div>
               {groupServiceCounts.map((s) => (
-                <BarRow key={s.service} label={s.service} value={s.count} max={maxGroupService} val={`${s.count}x`} color="var(--accent-2)" />
+                <BarRow key={s.service} label={s.service} value={s.count} max={maxGroupService} val={`${s.count}x`} color="var(--accent-2)" onClick={() => onNavigate({ status: 'all', service: s.service })} />
               ))}
             </div>
           )}
