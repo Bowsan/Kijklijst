@@ -44,6 +44,7 @@ export default function App() {
   const [serviceFilter, setServiceFilter] = useState<string>('');
   const [genreFilter, setGenreFilter] = useState<string>('');
   const [friendFilter, setFriendFilter] = useState<string>(''); // '' = iedereen (alleen in "Alles")
+  const [finishedOnly, setFinishedOnly] = useState(false);
   const [nameFilter, setNameFilter] = useState<string>('');
   const [sort, setSort] = useState<Sort>('recent');
 
@@ -69,8 +70,8 @@ export default function App() {
 
   // Pagina resetten bij filterwijziging
   useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter, nameFilter]);
-  // Vriend-filter alleen relevant binnen "Alles".
-  useEffect(() => { if (statusFilter !== 'all') setFriendFilter(''); }, [statusFilter]);
+  // Vriend-filter en gezien-filter alleen relevant binnen "Alles".
+  useEffect(() => { if (statusFilter !== 'all') { setFriendFilter(''); setFinishedOnly(false); } }, [statusFilter]);
 
   const addTitle = async (tmdbId: number) => {
     try {
@@ -127,6 +128,9 @@ export default function App() {
       if (friendFilter) {
         list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.user_id === friendFilter));
       }
+      if (finishedOnly) {
+        list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === 'finished' && visible.has(r.user_id)));
+      }
     } else if (statusFilter === 'watching') {
       // Mee bezig = wat jij én je gevolgde vrienden kijken.
       const visible = new Set(visibleUserIds(snap, userId));
@@ -159,7 +163,7 @@ export default function App() {
       return sort === 'oldest' ? tsA - tsB : tsB - tsA;
     });
     return list;
-  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, nameFilter, sort, userId, me]);
+  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, finishedOnly, nameFilter, sort, userId, me]);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
@@ -210,21 +214,32 @@ export default function App() {
             ))}
           </div>
 
-          {/* Binnen "Alles": uitlichten van één vriend (of jezelf), met foto. */}
+          {/* Binnen "Alles": uitlichten van één vriend (of jezelf), met foto + gezien-filter. */}
           {statusFilter === 'all' && (
-            <div className="friend-filter">
-              <button className={friendFilter === '' ? 'sel' : ''} onClick={() => setFriendFilter('')}>
-                <span className="ff-icon">👥</span>Iedereen
-              </button>
-              <button className={friendFilter === userId ? 'sel' : ''} onClick={() => setFriendFilter(userId)}>
-                <Avatar profile={me} id={userId} size="sm" />Jij
-              </button>
-              {followingProfiles(snap, userId).map((p) => (
-                <button key={p.id} className={friendFilter === p.id ? 'sel' : ''} onClick={() => setFriendFilter(p.id)}>
-                  <Avatar profile={p} id={p.id} size="sm" />{p.name}
+            <>
+              <div className="friend-filter">
+                <button className={friendFilter === '' ? 'sel' : ''} onClick={() => setFriendFilter('')}>
+                  <span className="ff-icon">👥</span>Iedereen
                 </button>
-              ))}
-            </div>
+                <button className={friendFilter === userId ? 'sel' : ''} onClick={() => setFriendFilter(userId)}>
+                  <Avatar profile={me} id={userId} size="sm" />Jij
+                </button>
+                {followingProfiles(snap, userId).map((p) => (
+                  <button key={p.id} className={friendFilter === p.id ? 'sel' : ''} onClick={() => setFriendFilter(p.id)}>
+                    <Avatar profile={p} id={p.id} size="sm" />{p.name}
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <button
+                  className={`btn ghost${finishedOnly ? ' sel' : ''}`}
+                  style={{ fontSize: 13, padding: '5px 12px', borderRadius: 999 }}
+                  onClick={() => setFinishedOnly((v) => !v)}
+                >
+                  ✅ Reeds gezien
+                </button>
+              </div>
+            </>
           )}
 
           <input
