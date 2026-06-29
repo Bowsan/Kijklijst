@@ -199,6 +199,33 @@ app.delete('/api/rating/:tmdb_id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Vrienden volgen ----------
+app.post('/api/follow', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+
+  const { followee } = req.body || {};
+  if (!followee || typeof followee !== 'string' || followee === uid) {
+    return res.status(400).json({ error: 'ongeldige vriend' });
+  }
+  // Alleen bestaande profielen kunnen gevolgd worden.
+  const exists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(followee);
+  if (!exists) return res.status(404).json({ error: 'profiel niet gevonden' });
+
+  db.prepare('INSERT OR IGNORE INTO follows (follower, followee, created_at) VALUES (?, ?, ?)')
+    .run(uid, followee, Date.now());
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
+app.delete('/api/follow/:followee', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  db.prepare('DELETE FROM follows WHERE follower = ? AND followee = ?').run(uid, req.params.followee);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
 // Aanrader wegklikken (privé bij de ontvanger).
 app.post('/api/recommendation/:id/dismiss', (req, res) => {
   const uid = userId(req);

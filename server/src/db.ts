@@ -74,6 +74,13 @@ db.exec(`
     meta        TEXT NOT NULL DEFAULT '{}',
     created_at  INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS follows (
+    follower    TEXT NOT NULL,
+    followee    TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    PRIMARY KEY (follower, followee)
+  );
 `);
 
 export interface Snapshot {
@@ -83,6 +90,7 @@ export interface Snapshot {
   recommendations: any[];
   reactions: any[];
   activity: any[];
+  follows: any[];
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -125,7 +133,9 @@ export function getSnapshot(): Snapshot {
     .all()
     .map((a: any) => ({ ...a, meta: parseJson(a.meta, {}) }));
 
-  return { profiles, titles, ratings, recommendations, reactions, activity };
+  const follows = db.prepare('SELECT * FROM follows').all();
+
+  return { profiles, titles, ratings, recommendations, reactions, activity, follows };
 }
 
 export { parseJson };

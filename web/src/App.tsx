@@ -5,6 +5,7 @@ import { getUserId, getBlind } from './lib/identity';
 import { fetchState, subscribe, saveRating } from './lib/api';
 import {
   profileById, myRating, groupAverage, guessService, incomingRecommendations,
+  visibleUserIds,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -12,21 +13,24 @@ import SearchBox from './components/SearchBox';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import ForYou from './components/ForYou';
-import Stats from './components/Stats';
+import Dashboard from './components/Dashboard';
+import Friends from './components/Friends';
+import ProfileView from './components/ProfileView';
 import Profile from './components/Profile';
 import RecommendSheet from './components/RecommendSheet';
 import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
 
-type Tab = 'list' | 'foryou' | 'stats' | 'profile';
+type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 type Sort = 'recent' | 'avg' | 'name';
 
 export default function App() {
   const userId = getUserId();
   const [snap, setSnap] = useState<Snapshot | null>(null);
-  const [tab, setTab] = useState<Tab>('list');
+  const [tab, setTab] = useState<Tab>('dashboard');
   const [blind, setBlindState] = useState(getBlind());
   const [recommendTarget, setRecommendTarget] = useState<Title | null>(null);
+  const [profileTarget, setProfileTarget] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -93,7 +97,11 @@ export default function App() {
 
     if (statusFilter === 'mine') {
       list = list.filter((t) => myRating(snap, t.tmdb_id, userId));
-    } else if (statusFilter !== 'all') {
+    } else if (statusFilter === 'all') {
+      // "Alles" = jouw series + die van de vrienden die je volgt.
+      const visible = new Set(visibleUserIds(snap, userId));
+      list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && visible.has(r.user_id)));
+    } else {
       list = list.filter((t) =>
         snap.ratings.some((r) => r.title_id === t.tmdb_id && r.status === statusFilter)
       );
@@ -126,9 +134,14 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <h1><span className="logo">🛋️</span> Op de Bank</h1>
-        <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowActivity((v) => !v)}>
-          🔔
-        </button>
+        <div className="row" style={{ gap: 4 }}>
+          <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden">
+            👥
+          </button>
+          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowActivity((v) => !v)} title="Activiteit">
+            🔔
+          </button>
+        </div>
       </header>
 
       {/* Activiteit */}
@@ -210,11 +223,23 @@ export default function App() {
         </div>
       )}
 
+      {tab === 'dashboard' && (
+        <Dashboard
+          snap={snap}
+          userId={userId}
+          onOpenProfile={setProfileTarget}
+          onAdd={addTitle}
+          onGoFriends={() => setTab('friends')}
+        />
+      )}
+
       {tab === 'foryou' && (
         <ForYou snap={snap} userId={userId} blind={blind} onRecommend={setRecommendTarget} onChange={reload} toast={toast} />
       )}
 
-      {tab === 'stats' && <Stats snap={snap} userId={userId} />}
+      {tab === 'friends' && (
+        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+      )}
 
       {tab === 'profile' && (
         <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
@@ -222,15 +247,15 @@ export default function App() {
 
       {/* Onderste navigatie */}
       <nav className="nav">
+        <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
+          <span className="ico">🏠</span>Dashboard
+        </button>
         <button className={tab === 'list' ? 'active' : ''} onClick={() => setTab('list')}>
           <span className="ico">🛋️</span>Lijst
         </button>
         <button className={tab === 'foryou' ? 'active' : ''} onClick={() => setTab('foryou')}>
           <span className="ico">✨</span>Voor jou
           {forYouCount > 0 && <span className="badge">{forYouCount}</span>}
-        </button>
-        <button className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}>
-          <span className="ico">📊</span>Statistieken
         </button>
         <button className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
           <span className="ico">👤</span>Profiel
@@ -243,6 +268,17 @@ export default function App() {
       )}
       {showImport && <ImportSheet onClose={() => setShowImport(false)} onDone={(m) => { toast(m); reload(); }} />}
       {showShare && <ShareSheet onClose={() => setShowShare(false)} onToast={toast} />}
+      {profileTarget && (
+        <ProfileView
+          snap={snap}
+          profileId={profileTarget}
+          userId={userId}
+          onClose={() => setProfileTarget(null)}
+          onChange={reload}
+          onAdd={(id) => { addTitle(id); setProfileTarget(null); }}
+          toast={toast}
+        />
+      )}
 
       {toastMsg && <div className="toast">{toastMsg}</div>}
     </div>
