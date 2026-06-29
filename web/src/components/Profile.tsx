@@ -226,7 +226,7 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
             <button className="btn ghost" onClick={() => exportGroupList(snap)}>⬇ Volledige lijst</button>
           </div>
         </div>
-        <hr style={{ border: 'none', borderTop: '1px solid var(--surface2)', margin: 0 }} />
+        <hr style={{ border: 'none', borderTop: '1px solid var(--surface-2)', margin: 0 }} />
         <div>
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Importeren</div>
           <div className="muted" style={{ fontSize: 13, marginBottom: 8 }}>Upload een eerder geëxporteerde "Mijn lijst" JSON om je beoordelingen terug te zetten of samen te voegen.</div>

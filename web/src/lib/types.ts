@@ -75,6 +75,14 @@ export interface Follow {
   created_at: number;
 }
 
+export interface Comment {
+  id: string;
+  title_id: number;
+  user_id: string;
+  text: string;
+  created_at: number;
+}
+
 export interface Snapshot {
   profiles: Profile[];
   titles: Title[];
@@ -83,6 +91,7 @@ export interface Snapshot {
   reactions: Reaction[];
   activity: Activity[];
   follows: Follow[];
+  comments: Comment[];
 }
 
 export interface SearchResult {

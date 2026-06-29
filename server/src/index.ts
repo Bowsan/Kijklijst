@@ -244,6 +244,31 @@ app.delete('/api/rating/:tmdb_id', (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Prikbord per serie ----------
+app.post('/api/comment', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+
+  const { tmdb_id, text } = req.body || {};
+  if (!tmdb_id || !text || typeof text !== 'string' || !text.trim()) {
+    return res.status(400).json({ error: 'tmdb_id en tekst vereist' });
+  }
+  const id = randomUUID();
+  db.prepare('INSERT INTO comments (id, title_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(id, Number(tmdb_id), uid, text.trim().slice(0, 1000), Date.now());
+  broadcast('state', getSnapshot());
+  res.json({ ok: true, id });
+});
+
+app.delete('/api/comment/:id', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  // Alleen je eigen bericht mag je weghalen.
+  db.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?').run(req.params.id, uid);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
 // ---------- Vrienden volgen ----------
 app.post('/api/follow', (req, res) => {
   const uid = userId(req);

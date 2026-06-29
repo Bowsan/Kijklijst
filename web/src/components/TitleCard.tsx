@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Snapshot, Title } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
-import { saveRating, removeRating, type RatingUpdate } from '../lib/api';
-import { groupAverage, myRating, profileById, guessService } from '../lib/compute';
+import { saveRating, removeRating, addComment, removeComment, type RatingUpdate } from '../lib/api';
+import { groupAverage, myRating, profileById, guessService, visibleUserIds } from '../lib/compute';
 import Avatar from './Avatar';
 
 interface Props {
@@ -30,10 +30,16 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const initIsCustom = !!initService && !title.providers.includes(initService);
 
   const [expanded, setExpanded] = useState(initialExpanded);
-  const [note, setNote] = useState(mine?.note || '');
   const [serviceMode, setServiceMode] = useState<'select' | 'custom'>(initIsCustom ? 'custom' : 'select');
   const [serviceInput, setServiceInput] = useState(initService);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [commentText, setCommentText] = useState('');
+
+  // Berichten op het prikbord: alleen van jou + de vrienden die je volgt.
+  const visible = new Set(visibleUserIds(snap, userId));
+  const comments = snap.comments
+    .filter((c) => c.title_id === title.tmdb_id && visible.has(c.user_id))
+    .sort((a, b) => a.created_at - b.created_at);
 
   const update = async (patch: Omit<RatingUpdate, 'tmdb_id'>) => {
     try {
@@ -47,6 +53,27 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const handleRemove = async () => {
     try {
       await removeRating(title.tmdb_id);
+      onChange();
+    } catch (e: any) {
+      toast(e.message || 'Verwijderen mislukt');
+    }
+  };
+
+  const postComment = async () => {
+    const text = commentText.trim();
+    if (!text) return;
+    try {
+      await addComment(title.tmdb_id, text);
+      setCommentText('');
+      onChange();
+    } catch (e: any) {
+      toast(e.message || 'Plaatsen mislukt');
+    }
+  };
+
+  const deleteComment = async (id: string) => {
+    try {
+      await removeComment(id);
       onChange();
     } catch (e: any) {
       toast(e.message || 'Verwijderen mislukt');
@@ -210,16 +237,38 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </div>
 
-          {/* Notitie + overview + cast */}
+          {/* Overview + cast */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             {title.overview && <p className="note">{title.overview}</p>}
-            <input
-              placeholder="Korte indruk in één zin (optioneel)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onBlur={() => note !== (mine?.note || '') && update({ note })}
-            />
             {title.cast.length > 0 && <p className="title-sub">Met {title.cast.slice(0, 4).join(', ')}</p>}
+          </div>
+
+          {/* Prikbord: berichten van jou en je vrienden */}
+          <div className="comments">
+            {comments.map((c) => {
+              const p = profileById(snap, c.user_id);
+              return (
+                <div className="comment" key={c.id}>
+                  <Avatar profile={p} id={c.user_id} size="sm" />
+                  <div className="comment-body">
+                    <div className="comment-name">{c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}</div>
+                    <div className="comment-text">{c.text}</div>
+                  </div>
+                  {c.user_id === userId && (
+                    <button className="btn ghost comment-del" title="Bericht verwijderen" onClick={() => deleteComment(c.id)}>🗑️</button>
+                  )}
+                </div>
+              );
+            })}
+            <div className="comment-form">
+              <input
+                placeholder="Schrijf een bericht…"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && postComment()}
+              />
+              <button className="btn" disabled={!commentText.trim()} onClick={postComment}>Plaats</button>
+            </div>
           </div>
         </>
       )}
