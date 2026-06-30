@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { Snapshot, Title, Status } from './lib/types';
-import { STATUS_LABELS, STATUS_ORDER } from './lib/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Snapshot, Title, Status, SearchResult } from './lib/types';
+import { STATUS_LABELS, STATUS_ORDER, POSTER_SMALL } from './lib/types';
 import { getUserId, getBlind } from './lib/identity';
-import { fetchState, subscribe, saveRating, createManualTitle } from './lib/api';
+import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
   profileById, myRating, groupAverage, guessService, incomingRecommendations,
   visibleUserIds, followingProfiles,
@@ -10,6 +10,7 @@ import {
 
 import Onboarding from './components/Onboarding';
 import ListSearchBar from './components/ListSearchBar';
+import StatusBadge from './components/StatusBadge';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import ForYou from './components/ForYou';
@@ -146,6 +147,51 @@ export default function App() {
     return [...set].sort();
   }, [snap]);
 
+  // --- Zoeken/toevoegen via de + knop ---
+  const searchQuery = nameFilter.trim();
+  const searchActive = searchOpen && searchQuery.length >= 2;
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const searchAbort = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!searchActive) { setSearchResults([]); return; }
+    const t = setTimeout(async () => {
+      searchAbort.current?.abort();
+      const ctrl = new AbortController();
+      searchAbort.current = ctrl;
+      try {
+        setSearchResults(await searchTmdb(searchQuery, ctrl.signal));
+      } catch {
+        /* afgebroken of mislukt */
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchActive, searchQuery]);
+
+  // Series uit JOUW lijst die op de zoekterm passen — om dubbel toevoegen te voorkomen.
+  const myMatches = useMemo(() => {
+    if (!snap || !searchActive) return [];
+    const q = searchQuery.toLowerCase();
+    return snap.titles
+      .filter((t) => myTitleIds.has(t.tmdb_id) && t.name.toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [snap, searchActive, searchQuery, myTitleIds]);
+
+  // TMDb-suggesties die nog niet op je lijst staan.
+  const addableResults = useMemo(
+    () => searchResults.filter((r) => !myTitleIds.has(r.tmdb_id)),
+    [searchResults, myTitleIds],
+  );
+
+  // Een serie openen die al op je lijst staat: naar het juiste filter + uitklappen.
+  const openExisting = (tmdbId: number) => {
+    const st = snap ? myRating(snap, tmdbId, userId)?.status : null;
+    setStatusFilter(st ?? 'mine');
+    setNameFilter('');
+    setSearchOpen(false);
+    setFocusTitleId(tmdbId);
+  };
+
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
     let list = [...snap.titles];
@@ -243,6 +289,9 @@ export default function App() {
       <header className="topbar">
         <h1><span className="logo">🛋️</span> Op de Bank</h1>
         <div className="row" style={{ gap: 4 }}>
+          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
+            📋
+          </button>
           <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden">
             👥
           </button>
@@ -259,15 +308,55 @@ export default function App() {
         </div>
       )}
 
-      {tab === 'list' && (
-        <div className="page">
-          {/* Zoeken + toevoegen zit in de + knop rechtsonder; hier alleen nog importeren. */}
-          <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 4 }}>
-            <button className="btn ghost" style={{ padding: '6px 12px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
-              📋 Importeren
-            </button>
-          </div>
+      {tab === 'list' && searchActive && (
+        <div className="page" style={{ paddingBottom: 88 }}>
+          {/* Al op je lijst — zodat je dubbel toevoegen voorkomt */}
+          {myMatches.length > 0 && (
+            <>
+              <div className="lsp-label" style={{ marginTop: 4 }}>Al op je lijst:</div>
+              {myMatches.map((t) => {
+                const r = myRating(snap, t.tmdb_id, userId);
+                const badge: Status | null = r?.status ?? (r?.score != null ? 'finished' : null);
+                return (
+                  <button key={t.tmdb_id} className="suggestion" onClick={() => openExisting(t.tmdb_id)}>
+                    {t.poster_path ? <img src={POSTER_SMALL + t.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="s-name">{t.name}</div>
+                      <div className="title-sub">{t.year || '—'}</div>
+                    </div>
+                    {badge && <StatusBadge status={badge} score={r?.score ?? null} />}
+                  </button>
+                );
+              })}
+            </>
+          )}
 
+          {/* Toevoegen — TMDb-suggesties die nog niet op je lijst staan */}
+          <div className="lsp-label" style={{ marginTop: myMatches.length > 0 ? 16 : 4 }}>
+            {myMatches.length > 0 ? 'Andere series toevoegen:' : 'Toevoegen:'}
+          </div>
+          {addableResults.map((r) => (
+            <button key={r.tmdb_id} className="suggestion" onClick={() => addTitle(r.tmdb_id)}>
+              {r.poster_path ? <img src={POSTER_SMALL + r.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="s-name">{r.name}</div>
+                <div className="title-sub">{r.year || '—'}</div>
+              </div>
+              <span className="chip" style={{ flexShrink: 0, color: 'var(--accent)', borderColor: 'var(--accent)' }}>+ Toevoegen</span>
+            </button>
+          ))}
+          <button className="suggestion" onClick={() => { setManualAddQuery(searchQuery); setSearchOpen(false); }}>
+            <div className="poster" style={{ width: 36, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>➕</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="s-name">"{searchQuery}" handmatig toevoegen</div>
+              <div className="title-sub">Niet gevonden? Voeg de serie zelf toe.</div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {tab === 'list' && !searchActive && (
+        <div className="page" style={searchOpen ? { paddingBottom: 88 } : undefined}>
           {/* Filters */}
           <div className="filters">
             <button className={statusFilter === 'all' ? 'sel' : ''} onClick={() => setStatusFilter('all')}>Alles</button>
@@ -330,7 +419,7 @@ export default function App() {
             <div className="empty">
               <div className="big">🛋️</div>
               <p>Nog niets op de lijst.</p>
-              <p className="muted">Zoek hierboven een serie of importeer je hele lijst in één keer.</p>
+              <p className="muted">Voeg een serie toe met de <b>+</b> knop rechtsonder, of importeer je hele lijst in één keer.</p>
             </div>
           ) : (
             <>
@@ -363,16 +452,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Zweef-knop: zoeken, live filteren én toevoegen in één. */}
+      {/* Zweef-knop: zoeken, filteren én toevoegen in één. */}
       {tab === 'list' && (
         searchOpen ? (
           <ListSearchBar
             value={nameFilter}
             onChange={setNameFilter}
             onClose={() => { setNameFilter(''); setSearchOpen(false); }}
-            onAdd={(r) => addTitle(r.tmdb_id)}
-            onManualAdd={(q) => { setManualAddQuery(q); setSearchOpen(false); }}
-            inList={myTitleIds}
           />
         ) : (
           <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => setSearchOpen(true)}>+</button>
