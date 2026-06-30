@@ -9,7 +9,7 @@ import {
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
-import SearchBox from './components/SearchBox';
+import ListSearchBar from './components/ListSearchBar';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import ForYou from './components/ForYou';
@@ -261,17 +261,15 @@ export default function App() {
 
       {tab === 'list' && (
         <div className="page">
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <div style={{ flex: 1 }}>
-              <SearchBox onPick={(r) => addTitle(r.tmdb_id)} onManualAdd={(q) => setManualAddQuery(q)} placeholder="Voeg een serie toe…" inList={myTitleIds} />
-            </div>
-            <button className="btn ghost" style={{ padding: '10px 12px', flexShrink: 0 }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
-              📋
+          {/* Zoeken + toevoegen zit in de + knop rechtsonder; hier alleen nog importeren. */}
+          <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 4 }}>
+            <button className="btn ghost" style={{ padding: '6px 12px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
+              📋 Importeren
             </button>
           </div>
 
           {/* Filters */}
-          <div className="filters" style={{ marginTop: 12 }}>
+          <div className="filters">
             <button className={statusFilter === 'all' ? 'sel' : ''} onClick={() => setStatusFilter('all')}>Alles</button>
             <button className={statusFilter === 'mine' ? 'sel' : ''} onClick={() => setStatusFilter('mine')}>Mijn lijst</button>
             {STATUS_ORDER.map((s) => (
@@ -365,20 +363,19 @@ export default function App() {
         </div>
       )}
 
-      {/* Zweef-zoekknop: filter de huidige lijst live op naam. */}
+      {/* Zweef-knop: zoeken, live filteren én toevoegen in één. */}
       {tab === 'list' && (
         searchOpen ? (
-          <div className="fab-search-bar">
-            <input
-              autoFocus
-              placeholder="Filter op naam…"
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-            />
-            <button className="close" aria-label="Sluiten" onClick={() => { setNameFilter(''); setSearchOpen(false); }}>✕</button>
-          </div>
+          <ListSearchBar
+            value={nameFilter}
+            onChange={setNameFilter}
+            onClose={() => { setNameFilter(''); setSearchOpen(false); }}
+            onAdd={(r) => addTitle(r.tmdb_id)}
+            onManualAdd={(q) => { setManualAddQuery(q); setSearchOpen(false); }}
+            inList={myTitleIds}
+          />
         ) : (
-          <button className="fab-search" aria-label="Zoek in lijst" onClick={() => setSearchOpen(true)}>🔍</button>
+          <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => setSearchOpen(true)}>+</button>
         )
       )}
 

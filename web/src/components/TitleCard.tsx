@@ -1,10 +1,34 @@
 import { useState } from 'react';
-import type { Snapshot, Title } from '../lib/types';
+import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
+
+// Kleuren per status — gelijk aan de "Verdeling lijst" op het dashboard.
+const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
+  watching: { bg: 'rgba(255,92,124,0.16)', fg: 'var(--accent)' },
+  finished: { bg: 'rgba(76,205,141,0.16)', fg: 'var(--good)' },
+  want: { bg: 'rgba(255,209,102,0.18)', fg: 'var(--warn)' },
+  dropped: { bg: 'rgba(154,163,178,0.16)', fg: 'var(--muted)' },
+};
+
+/** Gekleurd statuslabel zodat je in één oogopslag ziet hoe een serie op jouw lijst staat. */
+function StatusBadge({ status, score }: { status: Status; score?: number | null }) {
+  const c = STATUS_COLORS[status];
+  const label = status === 'finished' && score != null ? `✅ ${score}` : STATUS_LABELS[status];
+  return (
+    <span
+      style={{
+        background: c.bg, color: c.fg, fontWeight: 700, fontSize: 12,
+        padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </span>
+  );
+}
 
 function fmtDateTime(ts: number): string {
   const d = new Date(ts);
@@ -35,8 +59,11 @@ interface Props {
 export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
-  // Iedereen (behalve jij) die deze serie op zijn lijst heeft — ook zonder cijfer.
-  const others = snap.ratings.filter((r) => r.title_id === title.tmdb_id && r.user_id !== userId);
+  // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
+  const visible = new Set(visibleUserIds(snap, userId));
+  const others = snap.ratings.filter(
+    (r) => r.title_id === title.tmdb_id && r.user_id !== userId && visible.has(r.user_id),
+  );
   const me = profileById(snap, userId);
   const addedBy = title.added_by ? profileById(snap, title.added_by) : undefined;
   const hideGroup = blind && mine?.score == null;
@@ -46,6 +73,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const receivedNotes = snap.recommendations.filter(
     (r) => r.to_user === userId && r.title_id === title.tmdb_id && r.note
   );
+
+  // Welke gekleurde statusbadge hoort bij jouw beoordeling (cijfer impliceert 'gezien').
+  const myBadge: Status | null = mine?.status ?? (mine?.score != null ? 'finished' : null);
 
   const initService = mine?.service || '';
   const initIsCustom = !!initService && !title.providers.includes(initService);
@@ -57,7 +87,6 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const [commentText, setCommentText] = useState('');
 
   // Berichten op het prikbord: alleen van jou + de vrienden die je volgt.
-  const visible = new Set(visibleUserIds(snap, userId));
   const comments = snap.comments
     .filter((c) => c.title_id === title.tmdb_id && visible.has(c.user_id))
     .sort((a, b) => a.created_at - b.created_at);
@@ -137,19 +166,14 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          {showGroupScore
-            ? (!hideGroup && avg != null && (
-                <div className="avg">
-                  <span className="num">{avg.toFixed(1)}</span>
-                  <span className="lbl">groep</span>
-                </div>
-              ))
-            : (mine?.score != null
-                ? <span className="badge-score sel" style={{ minWidth: 28, textAlign: 'center' }}>{mine.score}</span>
-                : mine?.status
-                  ? <span className="chip" style={{ fontSize: 12 }}>{STATUS_LABELS[mine.status]}</span>
-                  : null)
-          }
+          {showGroupScore && !hideGroup && avg != null && (
+            <div className="avg">
+              <span className="num">{avg.toFixed(1)}</span>
+              <span className="lbl">groep</span>
+            </div>
+          )}
+          {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
+          {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}
           {others.length > 0 && (
             <span className="muted" style={{ fontSize: 12 }}>👥 {others.length}</span>
           )}
@@ -205,10 +229,12 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
 
-          {/* Wie heeft 'm op de lijst + cijfer per vriend */}
+          {/* Wat je vrienden ervan vinden: cijfer of status per vriend */}
           {!hideGroup && others.length > 0 && (
-            <div className="watchers">
-              {others.map((r) => {
+            <>
+              <div className="muted" style={{ fontSize: 12, fontWeight: 600 }}>Wat je vrienden ervan vinden</div>
+              <div className="watchers">
+                {others.map((r) => {
                 const p = profileById(snap, r.user_id);
                 const maxSeason = r.seasons?.length ? Math.max(...r.seasons) : 0;
                 return (
@@ -224,7 +250,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
 
           {/* Wie heeft de serie toegevoegd + wanneer jij het toevoegde */}
