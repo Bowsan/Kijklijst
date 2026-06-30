@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
-import { STATUS_LABELS, STATUS_ORDER, POSTER_SMALL } from './lib/types';
+import { POSTER_SMALL } from './lib/types';
 import { getUserId, getBlind } from './lib/identity';
+import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
-  profileById, myRating, groupAverage, guessService, incomingRecommendations,
-  visibleUserIds, followingProfiles,
+  profileById, myRating, groupAverage, incomingRecommendations, selectTitles,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
 import ListSearchBar from './components/ListSearchBar';
 import StatusBadge from './components/StatusBadge';
+import FilterSheet from './components/FilterSheet';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import ForYou from './components/ForYou';
@@ -18,17 +19,39 @@ import Dashboard from './components/Dashboard';
 import Friends from './components/Friends';
 import ProfileView from './components/ProfileView';
 import Profile from './components/Profile';
-import Avatar from './components/Avatar';
 import RecommendSheet from './components/RecommendSheet';
 import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
 import ManualAddSheet from './components/ManualAddSheet';
 
 type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
-type Sort = 'recent' | 'oldest' | 'avg' | 'avg_asc' | 'name';
+type StatusTab = 'all' | 'want' | 'watching' | 'finished';
+type StatusValue = StatusTab | 'dropped';
+
+// De statustabs bovenaan (kijkstatus). Afgehaakt zit in het filterpaneel.
+const STATUS_TABS: { key: StatusTab; label: string }[] = [
+  { key: 'all', label: 'Alles' },
+  { key: 'want', label: 'Wishlist' },
+  { key: 'watching', label: 'Mee bezig' },
+  { key: 'finished', label: 'Gezien' },
+];
+
+const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
+  { key: 'date', label: 'Nieuwste', dir: 'desc' },
+  { key: 'date', label: 'Oudste', dir: 'asc' },
+  { key: 'name', label: 'Alfabetisch (A–Z)', dir: 'asc' },
+  { key: 'rating', label: 'Hoogste rating', dir: 'desc' },
+];
+
+function sortLabel(key: SortKey, dir: SortDir): string {
+  if (key === 'name') return dir === 'asc' ? 'A–Z' : 'Z–A';
+  if (key === 'rating') return dir === 'desc' ? 'Hoogste' : 'Laagste';
+  return dir === 'desc' ? 'Nieuwste' : 'Oudste';
+}
 
 export default function App() {
   const userId = getUserId();
+  const saved = useMemo(() => loadPrefs(), []);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [tab, setTab] = useState<Tab>('dashboard');
   const [blind, setBlindState] = useState(getBlind());
@@ -40,15 +63,17 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
   const [showActivity, setShowActivity] = useState(false);
 
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<Status | 'all' | 'mine'>('mine');
-  const [serviceFilter, setServiceFilter] = useState<string>('');
-  const [genreFilter, setGenreFilter] = useState<string>('');
-  const [friendFilter, setFriendFilter] = useState<string>(''); // '' = iedereen (alleen in "Alles")
-  const [notSeenOnly, setNotSeenOnly] = useState(false);
+  // Filters — statustab springt bij openen terug naar "Alles"; de rest is onthouden.
+  const [status, setStatus] = useState<StatusValue>('all');
+  const [friend, setFriend] = useState<string>(saved.friend);
+  const [services, setServices] = useState<string[]>(saved.services);
+  const [genres, setGenres] = useState<string[]>(saved.genres);
   const [nameFilter, setNameFilter] = useState<string>('');
-  const [sort, setSort] = useState<Sort>('recent');
+  const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
+  const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Paginering
   const PAGE_SIZE = 20;
@@ -64,6 +89,11 @@ export default function App() {
     return unsub;
   }, []);
 
+  // Filterkeuzes onthouden tussen bezoeken (status bewust niet).
+  useEffect(() => {
+    savePrefs({ friend, services, genres, sortKey, sortDir });
+  }, [friend, services, genres, sortKey, sortDir]);
+
   const toast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 2200);
@@ -78,22 +108,37 @@ export default function App() {
     service?: string;
     titleId?: number;
   }) => {
-    setStatusFilter(opts.status ?? 'mine');
-    setGenreFilter(opts.genre ?? '');
-    setServiceFilter(opts.service ?? '');
-    setFriendFilter('');
-    setNotSeenOnly(false);
+    const s = opts.status;
+    if (s === 'all' || s == null) { setFriend(''); setStatus('all'); }
+    else if (s === 'mine') { setFriend(userId); setStatus('all'); }
+    else { setFriend(userId); setStatus(s); }
+    setGenres(opts.genre ? [opts.genre] : []);
+    setServices(opts.service ? [opts.service] : []);
     setNameFilter('');
     setSearchOpen(false);
-    setSort('recent');
+    setSortKey('date');
+    setSortDir('desc');
     setFocusTitleId(opts.titleId ?? null);
     setTab('list');
   };
 
+  const activeFilterCount =
+    (friend ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
+
+  const pickSort = (key: SortKey, dir: SortDir) => {
+    if (sortKey === key && sortDir === dir) {
+      // Zelfde optie opnieuw → richting omdraaien.
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(dir);
+    }
+    setShowSortMenu(false);
+  };
+
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [statusFilter, genreFilter, serviceFilter, sort, friendFilter, nameFilter]);
-  // Vriend-filter en niet-gezien-filter alleen relevant binnen "Alles".
-  useEffect(() => { if (statusFilter !== 'all') { setFriendFilter(''); setNotSeenOnly(false); } }, [statusFilter]);
+  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter]);
+  // (geen koppeling meer tussen status en vriend — die assen staan los van elkaar)
 
   const addTitle = async (tmdbId: number) => {
     if (snap && myRating(snap, tmdbId, userId)) {
@@ -105,7 +150,8 @@ export default function App() {
       await saveRating({ tmdb_id: tmdbId, status: 'want' });
       await reload();
       setJustAddedId(tmdbId);
-      setStatusFilter('want');
+      setFriend(userId);
+      setStatus('want');
       toast('Op je wishlist gezet');
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
@@ -118,7 +164,8 @@ export default function App() {
       await saveRating({ tmdb_id, status: 'want', ...(service ? { service } : {}) });
       await reload();
       setJustAddedId(tmdb_id);
-      setStatusFilter('want');
+      setFriend(userId);
+      setStatus('want');
       setManualAddQuery(null);
       setTab('list');
       toast('Op je wishlist gezet');
@@ -186,77 +233,48 @@ export default function App() {
   // Een serie openen die al op je lijst staat: naar het juiste filter + uitklappen.
   const openExisting = (tmdbId: number) => {
     const st = snap ? myRating(snap, tmdbId, userId)?.status : null;
-    setStatusFilter(st ?? 'mine');
+    setFriend(userId);
+    setStatus(st ?? 'all');
     setNameFilter('');
     setSearchOpen(false);
     setFocusTitleId(tmdbId);
   };
 
+  // Bij een specifieke persoon tonen we diens eigen cijfer; bij "Iedereen" het groepsgemiddelde.
+  const personScore = (tmdbId: number): number | null => {
+    if (!snap) return null;
+    if (friend) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === friend)?.score ?? null;
+    return groupAverage(snap, tmdbId);
+  };
+  const personDate = (t: Title): number => {
+    if (!snap || !friend) return t.created_at;
+    return snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === friend)?.updated_at ?? t.created_at;
+  };
+
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
-    let list = [...snap.titles];
-
-    if (statusFilter === 'mine') {
-      // Mijn lijst = alleen series die je echt kijkt of zag (Mee bezig, ✅, Afgehaakt).
-      // De wishlist hoort hier niet bij.
-      list = list.filter((t) => {
-        const st = myRating(snap, t.tmdb_id, userId)?.status;
-        return st === 'watching' || st === 'finished' || st === 'dropped';
-      });
-    } else if (statusFilter === 'all') {
-      // Alles = jouw series + die van de vrienden die je volgt; eventueel één vriend uitgelicht.
-      const visible = new Set(visibleUserIds(snap, userId));
-      list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && visible.has(r.user_id)));
-      if (friendFilter) {
-        list = list.filter((t) => snap.ratings.some((r) => r.title_id === t.tmdb_id && r.user_id === friendFilter));
-      }
-      if (notSeenOnly) {
-        // Alleen series tonen die JIJ nog niet hebt afgezien én niet hebt afgehaakt.
-        list = list.filter((t) => {
-          const st = myRating(snap, t.tmdb_id, userId)?.status;
-          return st !== 'finished' && st !== 'dropped';
-        });
-      }
-    } else if (statusFilter === 'watching') {
-      list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status === 'watching');
-    } else {
-      // Gekeken / Wil ik kijken / Afgehaakt = alleen jouw eigen lijst.
-      list = list.filter((t) => myRating(snap, t.tmdb_id, userId)?.status === statusFilter);
-    }
-    if (genreFilter) list = list.filter((t) => t.genres.includes(genreFilter));
-    if (serviceFilter) {
-      // Filter op de dienst die we voor jou tonen (jouw keuze of de gok), niet op
-      // élke dienst die TMDb voor de serie kent.
-      list = list.filter(
-        (t) => guessService(t, me, myRating(snap, t.tmdb_id, userId)?.service || null) === serviceFilter,
-      );
-    }
-    const nameQuery = nameFilter.trim().toLowerCase();
-    if (nameQuery) {
-      list = list.filter((t) => t.name.toLowerCase().includes(nameQuery));
-    }
-
-    // Cijfer waarop gesorteerd wordt: in "Alles" het groepsgemiddelde, anders je eigen cijfer.
-    const scoreOf = (tmdbId: number): number | null =>
-      statusFilter === 'all' ? groupAverage(snap, tmdbId) : (myRating(snap, tmdbId, userId)?.score ?? null);
+    const list = selectTitles(snap, userId, { status, friend, services, genres, name: nameFilter });
 
     list.sort((a, b) => {
-      if (sort === 'name') return a.name.localeCompare(b.name);
-      if (sort === 'avg') return (scoreOf(b.tmdb_id) ?? 0) - (scoreOf(a.tmdb_id) ?? 0);
-      if (sort === 'avg_asc') return (scoreOf(a.tmdb_id) ?? 99) - (scoreOf(b.tmdb_id) ?? 99);
-      const isAll = statusFilter === 'all';
-      const tsA = isAll ? a.created_at : (myRating(snap, a.tmdb_id, userId)?.updated_at ?? a.created_at);
-      const tsB = isAll ? b.created_at : (myRating(snap, b.tmdb_id, userId)?.updated_at ?? b.created_at);
-      return sort === 'oldest' ? tsA - tsB : tsB - tsA;
+      let cmp: number;
+      if (sortKey === 'name') {
+        cmp = a.name.localeCompare(b.name);
+      } else if (sortKey === 'rating') {
+        cmp = (personScore(a.tmdb_id) ?? -1) - (personScore(b.tmdb_id) ?? -1);
+      } else {
+        cmp = personDate(a) - personDate(b);
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
     });
     return list;
-  }, [snap, statusFilter, genreFilter, serviceFilter, friendFilter, notSeenOnly, nameFilter, sort, userId, me]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap, status, friend, services, genres, nameFilter, sortKey, sortDir, userId]);
 
   // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
   useEffect(() => {
     if (tab !== 'list' || focusTitleId != null) return;
     window.scrollTo({ top: 0 });
-  }, [tab, statusFilter, genreFilter, serviceFilter, focusTitleId]);
+  }, [tab, status, genres, services, friend, focusTitleId]);
 
   // Zorg dat een aangeklikte serie binnen de geladen pagina valt.
   useEffect(() => {
@@ -357,70 +375,90 @@ export default function App() {
 
       {tab === 'list' && !searchActive && (
         <div className="page" style={searchOpen ? { paddingBottom: 88 } : undefined}>
-          {/* Filters */}
-          <div className="filters">
-            <button className={statusFilter === 'all' ? 'sel' : ''} onClick={() => setStatusFilter('all')}>Alles</button>
-            <button className={statusFilter === 'mine' ? 'sel' : ''} onClick={() => setStatusFilter('mine')}>Mijn lijst</button>
-            {STATUS_ORDER.map((s) => (
-              <button key={s} className={statusFilter === s ? 'sel' : ''} onClick={() => setStatusFilter(s)}>{STATUS_LABELS[s]}</button>
+          {/* Zone 1 — statusbalk (kijkstatus), de hoofdnavigatie */}
+          <div className="status-bar">
+            {STATUS_TABS.map((s) => (
+              <button
+                key={s.key}
+                className={status === s.key ? 'sel' : ''}
+                onClick={() => setStatus(s.key)}
+              >
+                {s.label}
+              </button>
             ))}
           </div>
 
-          {/* Binnen "Alles": uitlichten van één vriend (of jezelf), met foto + gezien-filter. */}
-          {statusFilter === 'all' && (
-            <>
-              <div className="friend-filter">
-                <button className={friendFilter === '' ? 'sel' : ''} onClick={() => setFriendFilter('')}>
-                  <span className="ff-icon">👥</span>Iedereen
-                </button>
-                <button className={friendFilter === userId ? 'sel' : ''} onClick={() => setFriendFilter(userId)}>
-                  <Avatar profile={me} id={userId} size="sm" />Jij
-                </button>
-                {followingProfiles(snap, userId).map((p) => (
-                  <button key={p.id} className={friendFilter === p.id ? 'sel' : ''} onClick={() => setFriendFilter(p.id)}>
-                    <Avatar profile={p} id={p.id} size="sm" />{p.name}
-                  </button>
-                ))}
-              </div>
-              <div style={{ marginBottom: 8 }}>
-                <button
-                  className="btn ghost"
-                  style={{
-                    fontSize: 13, padding: '5px 12px', borderRadius: 999,
-                    ...(notSeenOnly ? { background: 'var(--accent)', color: '#fff', borderColor: 'var(--accent)' } : {}),
-                  }}
-                  onClick={() => setNotSeenOnly((v) => !v)}
-                >
-                  Nog niet gezien
-                </button>
-              </div>
-            </>
-          )}
-
-          <div className="row" style={{ gap: 8, marginBottom: 12 }}>
-            <select value={serviceFilter} onChange={(e) => setServiceFilter(e.target.value)}>
-              <option value="">Alle diensten</option>
-              {allServices.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={genreFilter} onChange={(e) => setGenreFilter(e.target.value)}>
-              <option value="">Alle genres</option>
-              {allGenres.map((g) => <option key={g} value={g}>{g}</option>)}
-            </select>
-            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-              <option value="recent">Nieuwste</option>
-              <option value="oldest">Oudste</option>
-              <option value="avg">Hoogste cijfer</option>
-              <option value="avg_asc">Laagste cijfer</option>
-              <option value="name">A–Z</option>
-            </select>
+          {/* Zone 2 — actiebalk: links filters, rechts sorteren */}
+          <div className="action-bar">
+            <button className={`filter-btn ${activeFilterCount > 0 ? 'on' : ''}`} onClick={() => setShowFilterSheet(true)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+              </svg>
+              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
+            <div style={{ position: 'relative' }}>
+              <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)}>
+                {sortLabel(sortKey, sortDir)} {sortDir === 'desc' ? '↓' : '↑'}
+              </button>
+              {showSortMenu && (
+                <>
+                  <div className="popover-backdrop" onClick={() => setShowSortMenu(false)} />
+                  <div className="sort-menu">
+                    {SORT_OPTIONS.map((o) => {
+                      const active = o.key === 'date' ? (sortKey === 'date' && sortDir === o.dir) : sortKey === o.key;
+                      return (
+                        <button key={o.label} className={active ? 'active' : ''} onClick={() => pickSort(o.key, o.dir)}>
+                          {o.label}
+                          {active && <span style={{ float: 'right' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {visibleTitles.length === 0 ? (
-            <div className="empty">
-              <div className="big">🛋️</div>
-              <p>Nog niets op de lijst.</p>
-              <p className="muted">Voeg een serie toe met de <b>+</b> knop rechtsonder, of importeer je hele lijst in één keer.</p>
+          {/* Actieve filter-chips — alleen als er filters aanstaan */}
+          {activeFilterCount > 0 && (
+            <div className="active-chips">
+              {friend && (
+                <button className="active-chip" onClick={() => setFriend('')}>
+                  {friend === userId ? 'Jij' : (profileById(snap, friend)?.name || 'Vriend')} ✕
+                </button>
+              )}
+              {services.map((s) => (
+                <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
+              ))}
+              {genres.map((g) => (
+                <button key={g} className="active-chip" onClick={() => setGenres((arr) => arr.filter((x) => x !== g))}>{g} ✕</button>
+              ))}
+              {status === 'dropped' && (
+                <button className="active-chip" onClick={() => setStatus('all')}>Afgehaakt ✕</button>
+              )}
             </div>
+          )}
+
+          {visibleTitles.length === 0 ? (
+            activeFilterCount > 0 || status !== 'all' ? (
+              <div className="empty">
+                <div className="big">🔍</div>
+                <p>Geen series met deze filters.</p>
+                <button
+                  className="btn"
+                  style={{ marginTop: 10 }}
+                  onClick={() => { setStatus('all'); setFriend(''); setServices([]); setGenres([]); }}
+                >
+                  Wis filters
+                </button>
+              </div>
+            ) : (
+              <div className="empty">
+                <div className="big">🛋️</div>
+                <p>Nog niets op de lijst.</p>
+                <p className="muted">Voeg een serie toe met de <b>+</b> knop rechtsonder, of importeer je hele lijst in één keer.</p>
+              </div>
+            )
           ) : (
             <>
               {visibleTitles.slice(0, listPage * PAGE_SIZE).map((t) => (
@@ -430,7 +468,7 @@ export default function App() {
                     title={t}
                     userId={userId}
                     blind={blind}
-                    showGroupScore={statusFilter === 'all'}
+                    showGroupScore={!friend}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -506,6 +544,24 @@ export default function App() {
       </nav>
 
       {/* Sheets */}
+      {showFilterSheet && (
+        <FilterSheet
+          snap={snap}
+          userId={userId}
+          allServices={allServices}
+          allGenres={allGenres}
+          baseStatus={status === 'dropped' ? 'all' : status}
+          initial={{ friend, services, genres, dropped: status === 'dropped' }}
+          onApply={(v) => {
+            setFriend(v.friend);
+            setServices(v.services);
+            setGenres(v.genres);
+            if (v.dropped) setStatus('dropped');
+            else if (status === 'dropped') setStatus('all');
+          }}
+          onClose={() => setShowFilterSheet(false)}
+        />
+      )}
       {recommendTarget && (
         <RecommendSheet snap={snap} title={recommendTarget} userId={userId} onClose={() => setRecommendTarget(null)} onDone={toast} />
       )}

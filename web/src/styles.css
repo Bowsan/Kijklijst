@@ -336,6 +336,106 @@ input, textarea, select {
 }
 .filters button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+/* ---------- Zone 1: statusbalk (segmented control) ---------- */
+.status-bar {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 8px;
+}
+.status-bar button {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.status-bar button.sel { background: var(--accent); color: #fff; }
+
+/* ---------- Zone 2: actiebalk ---------- */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.filter-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+.filter-btn.on { border-color: var(--accent); color: var(--accent); }
+.sort-btn {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 4px;
+}
+.popover-backdrop { position: fixed; inset: 0; z-index: 40; }
+.sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 41;
+  min-width: 190px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+.sort-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+.sort-menu button.active { color: var(--accent); font-weight: 600; }
+.sort-menu button:active { background: var(--surface); }
+
+/* ---------- Actieve filter-chips ---------- */
+.active-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.active-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* ---------- Filterpaneel ---------- */
+.filter-section { margin-bottom: 16px; }
+.fs-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.03em; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-toggle {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  white-space: nowrap;
+}
+.chip-toggle.on {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* ---------- Activiteit ---------- */
 .activity-item { display: flex; gap: 10px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--border); }
 .activity-item:last-child { border-bottom: none; }
