@@ -1,7 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { applyTheme, getTheme } from './lib/identity';
 import './styles.css';
+
+// Thema meteen toepassen, vóór de eerste render, om een flits te voorkomen.
+applyTheme(getTheme());
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

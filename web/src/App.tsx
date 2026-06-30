@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
 import { POSTER_SMALL } from './lib/types';
-import { getUserId, getBlind } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
@@ -55,6 +55,9 @@ export default function App() {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [tab, setTab] = useState<Tab>('dashboard');
   const [blind, setBlindState] = useState(getBlind());
+  const [theme, setThemeState] = useState<Theme>(getTheme());
+
+  const changeTheme = (t: Theme) => { setTheme(t); setThemeState(t); };
   const [recommendTarget, setRecommendTarget] = useState<Title | null>(null);
   const [profileTarget, setProfileTarget] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -399,6 +402,10 @@ export default function App() {
                 Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
               <button
+                className={`jij-btn ${friend === userId ? 'on' : ''}`}
+                onClick={() => setFriend(friend === userId ? '' : userId)}
+              >Jij</button>
+              <button
                 className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
                 aria-label="Zoek in deze lijst"
                 onClick={() => { setSearchOpen(false); setQuickFilterOpen((v) => { const next = !v; if (!next) setNameFilter(''); return next; }); }}
@@ -544,7 +551,7 @@ export default function App() {
       )}
 
       {tab === 'profile' && (
-        <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} theme={theme} setTheme={changeTheme} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
       {/* Onderste navigatie */}

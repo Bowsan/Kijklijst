@@ -9,9 +9,25 @@
   --accent-2: #ff8aa0;
   --good: #4ccd8d;
   --warn: #ffd166;
+  --bar-bg: rgba(24, 27, 34, 0.96);
   --radius: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Light mode — kiesbaar per gebruiker in het profiel. */
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eceef2;
+  --border: #d8dce3;
+  --text: #1a1d23;
+  --muted: #616a78;
+  --accent: #e23a5e;
+  --accent-2: #ff7d97;
+  --good: #1f9d63;
+  --warn: #c98a00;
+  --bar-bg: rgba(255, 255, 255, 0.96);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -58,7 +74,7 @@ input, textarea, select {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(15, 17, 21, 0.92);
+  background: var(--bar-bg);
   backdrop-filter: blur(10px);
   padding: calc(10px + var(--safe-top)) 16px 10px;
   border-bottom: 1px solid var(--border);
@@ -76,7 +92,7 @@ input, textarea, select {
   bottom: 0; left: 0; right: 0;
   z-index: 30;
   display: flex;
-  background: rgba(24, 27, 34, 0.96);
+  background: var(--bar-bg);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
   padding-bottom: var(--safe-bottom);
@@ -391,6 +407,16 @@ input, textarea, select {
   font-size: 13px;
 }
 .filter-btn.on { border-color: var(--accent); color: var(--accent); }
+.jij-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.jij-btn.on { border-color: var(--accent); background: var(--accent); color: #fff; }
 .quick-search-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px;
@@ -537,6 +563,9 @@ input, textarea, select {
 .switch.on { background: var(--accent); border-color: var(--accent); }
 .switch .knob { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
 .switch.on .knob { transform: translateX(18px); }
+.theme-switch { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; flex-shrink: 0; }
+.theme-switch button { padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.theme-switch button.sel { background: var(--accent); color: #fff; font-weight: 600; }
 .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .service-grid button { padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }
 .service-grid button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -578,7 +607,7 @@ input, textarea, select {
   z-index: 50;
   display: flex; gap: 8px; align-items: center;
   padding: 10px 14px;
-  background: rgba(24, 27, 34, 0.98);
+  background: var(--bar-bg);
   backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
 }
