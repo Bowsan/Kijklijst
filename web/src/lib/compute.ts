@@ -29,6 +29,48 @@ export function visibleUserIds(snap: Snapshot, userId: string): string[] {
   return [userId, ...followingIds(snap, userId)];
 }
 
+export type StatusValue = 'all' | 'want' | 'watching' | 'finished' | 'dropped';
+
+export interface ListFilters {
+  status: StatusValue;
+  friend: string; // '' = Iedereen (jij + gevolgde vrienden)
+  services: string[];
+  genres: string[];
+  name: string;
+}
+
+/**
+ * De serie-selectie voor het lijstscherm: status × wiens-lijst × dienst × genre × naam.
+ * Puur (geen sortering), zodat we 'm ook voor de live "Toon N series"-teller kunnen hergebruiken.
+ */
+export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Title[] {
+  const personIds = f.friend ? [f.friend] : visibleUserIds(snap, userId);
+  const personSet = new Set(personIds);
+
+  let list = snap.titles.filter((t) =>
+    snap.ratings.some((r) =>
+      r.title_id === t.tmdb_id &&
+      personSet.has(r.user_id) &&
+      (f.status === 'all' ? true : r.status === f.status),
+    ),
+  );
+
+  if (f.genres.length) list = list.filter((t) => f.genres.some((g) => t.genres.includes(g)));
+
+  if (f.services.length) {
+    const me = profileById(snap, userId);
+    list = list.filter((t) => {
+      const svc = guessService(t, me, myRating(snap, t.tmdb_id, userId)?.service || null);
+      return svc != null && f.services.includes(svc);
+    });
+  }
+
+  const q = f.name.trim().toLowerCase();
+  if (q) list = list.filter((t) => t.name.toLowerCase().includes(q));
+
+  return list;
+}
+
 /** Series die een vriend (of jij) op dit moment kijkt. */
 export function watchingTitles(snap: Snapshot, userId: string): Title[] {
   return snap.ratings
