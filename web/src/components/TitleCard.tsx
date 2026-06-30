@@ -2,10 +2,18 @@ import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, type RatingUpdate } from '../lib/api';
-import { groupAverage, myRating, profileById, guessService, visibleUserIds } from '../lib/compute';
+import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
-import StatusBadge from './StatusBadge';
+import StatusBadge, { STATUS_COLORS } from './StatusBadge';
+
+// Leesbare statuswoorden voor de vrienden-status-lijst.
+const FRIEND_STATUS_TEXT: Record<Status, string> = {
+  watching: 'Mee bezig',
+  finished: 'Afgekeken',
+  want: 'Wishlist',
+  dropped: 'Afgehaakt',
+};
 
 function fmtDateTime(ts: number): string {
   const d = new Date(ts);
@@ -36,6 +44,8 @@ interface Props {
 export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
+  // Alle vrienden die je volgt — ook wie de serie (nog) niet op de lijst heeft.
+  const friends = followingProfiles(snap, userId);
   // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
   const visible = new Set(visibleUserIds(snap, userId));
   const others = snap.ratings.filter(
@@ -206,27 +216,32 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
 
-          {/* Wat je vrienden ervan vinden: cijfer of status per vriend */}
-          {!hideGroup && others.length > 0 && (
+          {/* Wat je vrienden ervan vinden: status + cijfer per gevolgde vriend (ook zonder) */}
+          {!hideGroup && friends.length > 0 && (
             <>
               <div className="muted" style={{ fontSize: 12, fontWeight: 600 }}>Wat je vrienden ervan vinden</div>
-              <div className="watchers">
-                {others.map((r) => {
-                const p = profileById(snap, r.user_id);
-                const maxSeason = r.seasons?.length ? Math.max(...r.seasons) : 0;
-                return (
-                  <div className="watcher" key={r.user_id} title={p?.name}>
-                    <Avatar profile={p} id={r.user_id} size="sm" />
-                    <span>{p?.name?.split(' ')[0] || '—'}</span>
-                    {r.score != null
-                      ? <span className="badge-score">{r.score}</span>
-                      : r.status
-                        ? <span className="chip" style={{ fontSize: 11 }}>{STATUS_LABELS[r.status]}</span>
-                        : null}
-                    {maxSeason > 0 && <span>S{maxSeason}</span>}
-                  </div>
-                );
-              })}
+              <div className="friend-status-list">
+                {friends.map((p) => {
+                  const r = snap.ratings.find((x) => x.title_id === title.tmdb_id && x.user_id === p.id);
+                  const maxSeason = r?.seasons?.length ? Math.max(...r.seasons) : 0;
+                  return (
+                    <div className="friend-status-row" key={p.id}>
+                      <Avatar profile={p} id={p.id} size="sm" />
+                      <span className="fsr-name">{p.name?.split(' ')[0] || '—'}</span>
+                      <span className="fsr-val">
+                        {r?.status && (
+                          <span style={{ color: STATUS_COLORS[r.status].fg, fontWeight: 600 }}>
+                            {FRIEND_STATUS_TEXT[r.status]}
+                          </span>
+                        )}
+                        {maxSeason > 0 && r?.status === 'watching' && (
+                          <span className="muted" style={{ fontSize: 12 }}>S{maxSeason}</span>
+                        )}
+                        <span className={r?.score != null ? '' : 'muted'}>{r?.score != null ? r.score : '–'}</span>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
