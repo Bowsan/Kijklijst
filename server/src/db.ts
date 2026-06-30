@@ -34,6 +34,7 @@ db.exec(`
     providers      TEXT NOT NULL DEFAULT '[]',
     overview       TEXT,
     cast           TEXT NOT NULL DEFAULT '[]',
+    imdb_id        TEXT,
     added_by       TEXT,
     created_at     INTEGER NOT NULL
   );
@@ -92,6 +93,15 @@ db.exec(`
     created_at  INTEGER NOT NULL
   );
 `);
+
+// imdb_id-kolom toevoegen aan bestaande databases (idempotent).
+function addImdbColumn(): void {
+  const cols = db.prepare('PRAGMA table_info(titles)').all() as any[];
+  if (!cols.some((c) => c.name === 'imdb_id')) {
+    db.exec('ALTER TABLE titles ADD COLUMN imdb_id TEXT');
+  }
+}
+addImdbColumn();
 
 // Bestaande titels en beoordelingen normaliseren naar samengevoegde dienstnamen
 // (idempotent: al-genormaliseerde namen blijven gelijk).

@@ -79,12 +79,12 @@ async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any>
   const d = await getTvDetails(tmdbId);
   db.prepare(
     `INSERT INTO titles
-      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, imdb_id, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     d.tmdb_id, d.name, d.year, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
-    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), addedBy, Date.now()
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, addedBy, Date.now()
   );
   return db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
 }
