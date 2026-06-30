@@ -72,6 +72,7 @@ export default function App() {
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quickFilterOpen, setQuickFilterOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -388,14 +389,21 @@ export default function App() {
             ))}
           </div>
 
-          {/* Zone 2 — actiebalk: links filters, rechts sorteren */}
+          {/* Zone 2 — actiebalk: links filters + zoeken, rechts sorteren */}
           <div className="action-bar">
-            <button className={`filter-btn ${activeFilterCount > 0 ? 'on' : ''}`} onClick={() => setShowFilterSheet(true)}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-              </svg>
-              Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-            </button>
+            <div className="row" style={{ gap: 8 }}>
+              <button className={`filter-btn ${activeFilterCount > 0 ? 'on' : ''}`} onClick={() => setShowFilterSheet(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                </svg>
+                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
+              <button
+                className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
+                aria-label="Zoek in deze lijst"
+                onClick={() => { setSearchOpen(false); setQuickFilterOpen((v) => { const next = !v; if (!next) setNameFilter(''); return next; }); }}
+              >🔍</button>
+            </div>
             <div style={{ position: 'relative' }}>
               <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)}>
                 {sortLabel(sortKey, sortDir)} {sortDir === 'desc' ? '↓' : '↑'}
@@ -419,6 +427,19 @@ export default function App() {
             </div>
           </div>
 
+          {/* Snel zoeken/filteren binnen de huidige lijst (puur filteren, geen toevoegen) */}
+          {quickFilterOpen && (
+            <div className="quick-search">
+              <input
+                autoFocus
+                placeholder="Filter in deze lijst…"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+              <button className="close" aria-label="Sluiten" onClick={() => { setNameFilter(''); setQuickFilterOpen(false); }}>✕</button>
+            </div>
+          )}
+
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
@@ -440,14 +461,14 @@ export default function App() {
           )}
 
           {visibleTitles.length === 0 ? (
-            activeFilterCount > 0 || status !== 'all' ? (
+            activeFilterCount > 0 || status !== 'all' || nameFilter.trim() ? (
               <div className="empty">
                 <div className="big">🔍</div>
                 <p>Geen series met deze filters.</p>
                 <button
                   className="btn"
                   style={{ marginTop: 10 }}
-                  onClick={() => { setStatus('all'); setFriend(''); setServices([]); setGenres([]); }}
+                  onClick={() => { setStatus('all'); setFriend(''); setServices([]); setGenres([]); setNameFilter(''); setQuickFilterOpen(false); }}
                 >
                   Wis filters
                 </button>
@@ -499,7 +520,7 @@ export default function App() {
             onClose={() => { setNameFilter(''); setSearchOpen(false); }}
           />
         ) : (
-          <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => setSearchOpen(true)}>+</button>
+          <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
         )
       )}
 
