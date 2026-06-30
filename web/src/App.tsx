@@ -79,9 +79,10 @@ export default function App() {
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Paginering
-  const PAGE_SIZE = 20;
+  // Paginering: in stappen laden tijdens scrollen (geen harde limiet meer).
+  const PAGE_SIZE = 30;
   const [listPage, setListPage] = useState(1);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
   const [focusTitleId, setFocusTitleId] = useState<number | null>(null);
 
@@ -126,8 +127,9 @@ export default function App() {
     setTab('list');
   };
 
+  // "Jij" heeft een eigen knop, dus die telt hier niet mee als paneelfilter.
   const activeFilterCount =
-    (friend ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
+    (friend && friend !== userId ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
     if (sortKey === key && sortDir === dir) {
@@ -301,6 +303,18 @@ export default function App() {
     }
   }, [tab, focusTitleId, listPage, visibleTitles]);
 
+  // Oneindig scrollen: laad de volgende stap zodra de sentinel in beeld komt.
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setListPage((p) => p + 1); },
+      { rootMargin: '600px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [tab, visibleTitles, listPage]);
+
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
   // Laden
@@ -453,9 +467,9 @@ export default function App() {
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
-              {friend && (
+              {friend && friend !== userId && (
                 <button className="active-chip" onClick={() => setFriend('')}>
-                  {friend === userId ? 'Jij' : (profileById(snap, friend)?.name || 'Vriend')} ✕
+                  {profileById(snap, friend)?.name || 'Vriend'} ✕
                 </button>
               )}
               {services.map((s) => (
@@ -508,13 +522,9 @@ export default function App() {
                 </div>
               ))}
               {visibleTitles.length > listPage * PAGE_SIZE && (
-                <button
-                  className="btn ghost full"
-                  style={{ marginTop: 8 }}
-                  onClick={() => setListPage((p) => p + 1)}
-                >
-                  Meer laden ({visibleTitles.length - listPage * PAGE_SIZE} resterend)
-                </button>
+                <div ref={loadMoreRef} className="load-more">
+                  Nog {visibleTitles.length - listPage * PAGE_SIZE} series — scroll om te laden…
+                </div>
               )}
             </>
           )}
