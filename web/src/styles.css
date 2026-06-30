@@ -228,6 +228,12 @@ input, textarea, select {
 .watcher { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 .watcher .badge-score { color: var(--accent); font-weight: 700; }
 
+/* Status + cijfer per gevolgde vriend, één regel per vriend */
+.friend-status-list { display: flex; flex-direction: column; gap: 6px; }
+.friend-status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.friend-status-row .fsr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-status-row .fsr-val { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-weight: 600; }
+
 /* ---------- Vriend-filter (Alles) ---------- */
 .friend-filter {
   display: flex;
