@@ -228,6 +228,17 @@ input, textarea, select {
 .watcher { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
 .watcher .badge-score { color: var(--accent); font-weight: 700; }
 
+/* IMDb-link onder de omschrijving */
+.imdb-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  align-self: flex-start;
+  font-size: 13px; color: var(--muted); text-decoration: none;
+}
+.imdb-badge {
+  background: #f5c518; color: #000; font-weight: 800; font-size: 11px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em;
+}
+
 /* Status + cijfer per gevolgde vriend, één regel per vriend */
 .friend-status-list { display: flex; flex-direction: column; gap: 6px; }
 .friend-status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
@@ -380,6 +391,22 @@ input, textarea, select {
   font-size: 13px;
 }
 .filter-btn.on { border-color: var(--accent); color: var(--accent); }
+.quick-search-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 15px;
+}
+.quick-search-btn.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.quick-search { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.quick-search input { flex: 1; margin: 0; }
+.quick-search .close {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
 .sort-btn {
   font-size: 13px;
   color: var(--muted);

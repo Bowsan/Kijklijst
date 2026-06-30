@@ -44,8 +44,12 @@ interface Props {
 export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
-  // Alle vrienden die je volgt — ook wie de serie (nog) niet op de lijst heeft.
-  const friends = followingProfiles(snap, userId);
+  // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
+  const friends = followingProfiles(snap, userId).filter((p) =>
+    snap.ratings.some((r) => r.title_id === title.tmdb_id && r.user_id === p.id),
+  );
+  // Directe link naar IMDb (zoekresultaat op naam + jaar; werkt ook voor handmatige titels).
+  const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${title.name} ${title.year || ''}`.trim())}&s=tt&ttype=tv`;
   // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
   const visible = new Set(visibleUserIds(snap, userId));
   const others = snap.ratings.filter(
@@ -91,6 +95,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     try {
       await removeRating(title.tmdb_id);
       onChange();
+      toast('Uit je lijst gehaald');
     } catch (e: any) {
       toast(e.message || 'Verwijderen mislukt');
     }
@@ -329,10 +334,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </div>
 
-          {/* Overview + cast */}
+          {/* Overview + cast + IMDb */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
             {title.overview && <p className="note">{title.overview}</p>}
             {title.cast.length > 0 && <p className="title-sub">Met {title.cast.slice(0, 4).join(', ')}</p>}
+            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
+              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+            </a>
           </div>
 
           {/* Prikbord: berichten van jou en je vrienden */}
