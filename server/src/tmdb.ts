@@ -63,6 +63,12 @@ export interface TitleDetails {
   imdb_id: string | null;
 }
 
+// Alleen het IMDb-id ophalen (lichte call, voor het bijwerken van bestaande titels).
+export async function getImdbId(id: number): Promise<string | null> {
+  const data = await tmdb(`/tv/${id}/external_ids`);
+  return data.imdb_id || null;
+}
+
 export async function getTvDetails(id: number): Promise<TitleDetails> {
   const data = await tmdb(`/tv/${id}`, {
     append_to_response: 'watch/providers,aggregate_credits,external_ids',

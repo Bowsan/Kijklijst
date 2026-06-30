@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { db, getSnapshot } from './db.js';
-import { searchTv, getTvDetails } from './tmdb.js';
+import { searchTv, getTvDetails, getImdbId } from './tmdb.js';
 import { addClient, broadcast } from './events.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -342,9 +342,41 @@ if (existsSync(webDist)) {
   });
 }
 
+// Eenmalig de IMDb-id's bijwerken voor bestaande TMDb-titels die er nog geen hebben.
+// Draait op de achtergrond, met een rustige pauze tussen de TMDb-aanroepen.
+async function backfillImdbIds(): Promise<void> {
+  if (!process.env.TMDB_API_KEY) return;
+  const rows = db
+    .prepare('SELECT tmdb_id FROM titles WHERE imdb_id IS NULL AND tmdb_id > 0')
+    .all() as { tmdb_id: number }[];
+  if (!rows.length) return;
+
+  console.log(`IMDb-backfill gestart voor ${rows.length} titel(s)…`);
+  const upd = db.prepare('UPDATE titles SET imdb_id = ? WHERE tmdb_id = ?');
+  let filled = 0;
+  for (const r of rows) {
+    try {
+      const imdb = await getImdbId(r.tmdb_id);
+      if (imdb) {
+        upd.run(imdb, r.tmdb_id);
+        filled++;
+        // Tussentijds de clients bijwerken zodat links geleidelijk verschijnen.
+        if (filled % 25 === 0) broadcast('state', getSnapshot());
+      }
+    } catch {
+      /* titel overslaan bij een fout */
+    }
+    await new Promise((res) => setTimeout(res, 250));
+  }
+  if (filled) broadcast('state', getSnapshot());
+  console.log(`IMDb-backfill klaar: ${filled} van ${rows.length} bijgewerkt.`);
+}
+
 app.listen(PORT, () => {
   console.log(`Op de Bank server luistert op poort ${PORT}`);
   if (!process.env.TMDB_API_KEY) {
     console.warn('LET OP: TMDB_API_KEY ontbreekt — zoeken en details werken pas met een sleutel.');
   }
+  // Niet awaiten: de backfill mag rustig op de achtergrond lopen.
+  backfillImdbIds().catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e));
 });
