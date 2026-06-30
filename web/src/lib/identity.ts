@@ -2,6 +2,23 @@
 
 const ID_KEY = 'opdebank.userId';
 const BLIND_KEY = 'opdebank.blind';
+const THEME_KEY = 'opdebank.theme';
+
+export type Theme = 'dark' | 'light';
+
+export function getTheme(): Theme {
+  return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
+}
+
+export function setTheme(theme: Theme): void {
+  localStorage.setItem(THEME_KEY, theme);
+  applyTheme(theme);
+}
+
+// Pas het thema toe op het document (CSS leest dit via [data-theme]).
+export function applyTheme(theme: Theme): void {
+  document.documentElement.dataset.theme = theme;
+}
 
 export function getUserId(): string {
   let id = localStorage.getItem(ID_KEY);

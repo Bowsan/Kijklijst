@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { saveProfile, saveRating } from '../lib/api';
-import { setBlind, logout } from '../lib/identity';
+import { setBlind, logout, type Theme } from '../lib/identity';
 import { NL_SERVICES } from '../lib/services';
 import { profileById } from '../lib/compute';
 import Avatar from './Avatar';
@@ -72,6 +72,8 @@ interface Props {
   userId: string;
   blind: boolean;
   setBlindState: (v: boolean) => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
   onChange: () => void;
   onShare: () => void;
   toast: (m: string) => void;
@@ -101,7 +103,7 @@ function resizeImage(file: File): Promise<string> {
   });
 }
 
-export default function Profile({ snap, userId, blind, setBlindState, onChange, onShare, toast }: Props) {
+export default function Profile({ snap, userId, blind, setBlindState, theme, setTheme, onChange, onShare, toast }: Props) {
   const me = profileById(snap, userId);
   const [name, setName] = useState(me?.name || '');
   const [avatar, setAvatar] = useState<string | null>(me?.avatar || null);
@@ -202,6 +204,16 @@ export default function Profile({ snap, userId, blind, setBlindState, onChange, 
       <h2>Instellingen</h2>
       <div className="card">
         <div className="toggle">
+          <div>
+            <div>Weergave</div>
+            <div className="muted" style={{ fontSize: 12 }}>Kies tussen donker en licht.</div>
+          </div>
+          <div className="theme-switch">
+            <button className={theme === 'dark' ? 'sel' : ''} onClick={() => setTheme('dark')}>🌙 Donker</button>
+            <button className={theme === 'light' ? 'sel' : ''} onClick={() => setTheme('light')}>☀️ Licht</button>
+          </div>
+        </div>
+        <div className="toggle" style={{ marginTop: 6 }}>
           <div>
             <div>Blind cijferen</div>
             <div className="muted" style={{ fontSize: 12 }}>Zie de cijfers van de groep pas nadat je zelf een cijfer gaf.</div>
