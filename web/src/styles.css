@@ -407,16 +407,22 @@ input, textarea, select {
   font-size: 13px;
 }
 .filter-btn.on { border-color: var(--accent); color: var(--accent); }
-.jij-btn {
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+.scope-toggle {
+  display: inline-flex;
   background: var(--surface);
-  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+}
+.scope-toggle button {
+  padding: 5px 12px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
 }
-.jij-btn.on { border-color: var(--accent); background: var(--accent); color: #fff; }
+.scope-toggle button.sel { background: var(--accent); color: #fff; }
 .quick-search-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px;

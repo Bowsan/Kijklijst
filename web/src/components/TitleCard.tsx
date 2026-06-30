@@ -48,8 +48,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const friends = followingProfiles(snap, userId).filter((p) =>
     snap.ratings.some((r) => r.title_id === title.tmdb_id && r.user_id === p.id),
   );
-  // Directe link naar IMDb (zoekresultaat op naam + jaar; werkt ook voor handmatige titels).
-  const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${title.name} ${title.year || ''}`.trim())}&s=tt&ttype=tv`;
+  // Directe IMDb-link als we het imdb_id kennen, anders een zoekresultaat op naam + jaar.
+  const imdbUrl = title.imdb_id
+    ? `https://www.imdb.com/title/${title.imdb_id}/`
+    : `https://www.imdb.com/find/?q=${encodeURIComponent(`${title.name} ${title.year || ''}`.trim())}&s=tt&ttype=tv`;
   // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
   const visible = new Set(visibleUserIds(snap, userId));
   const others = snap.ratings.filter(

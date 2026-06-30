@@ -28,6 +28,7 @@ export interface Title {
   providers: string[];
   overview: string | null;
   cast: string[];
+  imdb_id?: string | null;
   added_by: string | null;
   created_at: number;
 }

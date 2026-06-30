@@ -68,7 +68,8 @@ export default function App() {
 
   // Filters — statustab springt bij openen terug naar "Alles"; de rest is onthouden.
   const [status, setStatus] = useState<StatusValue>('all');
-  const [friend, setFriend] = useState<string>(saved.friend);
+  // Standaard zie je je eigen lijst (Jij); de statustabs gaan dan over jouw series.
+  const [friend, setFriend] = useState<string>(saved.friend ?? userId);
   const [services, setServices] = useState<string[]>(saved.services);
   const [genres, setGenres] = useState<string[]>(saved.genres);
   const [nameFilter, setNameFilter] = useState<string>('');
@@ -418,10 +419,11 @@ export default function App() {
                 </svg>
                 Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
-              <button
-                className={`jij-btn ${friend === userId ? 'on' : ''}`}
-                onClick={() => setFriend(friend === userId ? '' : userId)}
-              >Jij</button>
+              {/* Scope: standaard je eigen lijst (Jij); tik Iedereen voor de groep. */}
+              <div className="scope-toggle">
+                <button className={friend === userId ? 'sel' : ''} onClick={() => setFriend(userId)}>Jij</button>
+                <button className={friend === '' ? 'sel' : ''} onClick={() => setFriend('')}>Iedereen</button>
+              </div>
               <button
                 className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
                 aria-label="Zoek in deze lijst"

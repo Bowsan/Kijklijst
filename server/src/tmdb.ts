@@ -60,11 +60,12 @@ export interface TitleDetails {
   providers: string[];
   overview: string;
   cast: string[];
+  imdb_id: string | null;
 }
 
 export async function getTvDetails(id: number): Promise<TitleDetails> {
   const data = await tmdb(`/tv/${id}`, {
-    append_to_response: 'watch/providers,aggregate_credits',
+    append_to_response: 'watch/providers,aggregate_credits,external_ids',
   });
 
   const seasons = (data.seasons || [])
@@ -106,5 +107,6 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
     providers,
     overview: data.overview || '',
     cast,
+    imdb_id: data.external_ids?.imdb_id || null,
   };
 }

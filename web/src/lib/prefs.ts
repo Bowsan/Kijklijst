@@ -5,17 +5,19 @@ export type SortKey = 'date' | 'name' | 'rating';
 export type SortDir = 'asc' | 'desc';
 
 export interface ListPrefs {
-  friend: string;       // '' = Iedereen
+  friend: string | null; // '' = Iedereen, userId = Jij, null = nog niet gekozen (standaard = Jij)
   services: string[];
   genres: string[];
   sortKey: SortKey;
   sortDir: SortDir;
 }
 
-const KEY = 'opdebank.listPrefs';
+// v2: standaard-scope is nu "Jij" (persoonlijk). Oude v1-voorkeuren bewust niet
+// meenemen, zodat iedereen de nieuwe, duidelijkere standaard krijgt.
+const KEY = 'opdebank.listPrefs.v2';
 
 export const DEFAULT_PREFS: ListPrefs = {
-  friend: '',
+  friend: null,
   services: [],
   genres: [],
   sortKey: 'date',
@@ -28,7 +30,7 @@ export function loadPrefs(): ListPrefs {
     if (!raw) return { ...DEFAULT_PREFS };
     const p = JSON.parse(raw);
     return {
-      friend: typeof p.friend === 'string' ? p.friend : '',
+      friend: typeof p.friend === 'string' ? p.friend : null,
       services: Array.isArray(p.services) ? p.services : [],
       genres: Array.isArray(p.genres) ? p.genres : [],
       sortKey: p.sortKey === 'name' || p.sortKey === 'rating' ? p.sortKey : 'date',
