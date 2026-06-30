@@ -275,10 +275,13 @@ export default function App() {
   }, [snap, status, friend, services, genres, nameFilter, sortKey, sortDir, userId]);
 
   // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
+  // focusTitleId bewust NIET in de deps: anders springt het na het wissen van de
+  // focus alsnog naar boven, terwijl we juist bij de gekozen serie willen blijven.
   useEffect(() => {
     if (tab !== 'list' || focusTitleId != null) return;
     window.scrollTo({ top: 0 });
-  }, [tab, status, genres, services, friend, focusTitleId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, status, genres, services, friend]);
 
   // Zorg dat een aangeklikte serie binnen de geladen pagina valt.
   useEffect(() => {
@@ -579,14 +582,15 @@ export default function App() {
           allServices={allServices}
           allGenres={allGenres}
           baseStatus={status === 'dropped' ? 'all' : status}
-          initial={{ friend, services, genres, dropped: status === 'dropped' }}
-          onApply={(v) => {
-            setFriend(v.friend);
-            setServices(v.services);
-            setGenres(v.genres);
-            if (v.dropped) setStatus('dropped');
-            else if (status === 'dropped') setStatus('all');
-          }}
+          friend={friend}
+          services={services}
+          genres={genres}
+          dropped={status === 'dropped'}
+          onFriend={setFriend}
+          onToggleService={(s) => setServices((arr) => (arr.includes(s) ? arr.filter((x) => x !== s) : [...arr, s]))}
+          onToggleGenre={(g) => setGenres((arr) => (arr.includes(g) ? arr.filter((x) => x !== g) : [...arr, g]))}
+          onToggleDropped={() => setStatus((st) => (st === 'dropped' ? 'all' : 'dropped'))}
+          onClear={() => { setFriend(''); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' ? 'all' : st)); }}
           onClose={() => setShowFilterSheet(false)}
         />
       )}

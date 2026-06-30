@@ -58,8 +58,15 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const me = profileById(snap, userId);
   const addedBy = title.added_by ? profileById(snap, title.added_by) : undefined;
   const hideGroup = blind && mine?.score == null;
-  const sentRecs = snap.recommendations.filter((r) => r.from_user === userId && r.title_id === title.tmdb_id);
   const totalRecCount = snap.recommendations.filter((r) => r.title_id === title.tmdb_id).length;
+  // Aanraders binnen je netwerk: per afzender (jij of een gevolgde vriend) aan wie ze het aanraadden.
+  const recGroups = new Map<string, string[]>();
+  for (const r of snap.recommendations) {
+    if (r.title_id !== title.tmdb_id || !visible.has(r.from_user)) continue;
+    const tos = recGroups.get(r.from_user) || [];
+    if (!tos.includes(r.to_user)) tos.push(r.to_user);
+    recGroups.set(r.from_user, tos);
+  }
   // Alle aanraders die voor mij bestemd zijn (ook al weggedrukt), met een persoonlijk bericht.
   const receivedNotes = snap.recommendations.filter(
     (r) => r.to_user === userId && r.title_id === title.tmdb_id && r.note
@@ -265,21 +272,18 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </div>
 
-          {/* Aanraders die jij verstuurde */}
-          {sentRecs.length > 0 && (
-            <div className="muted" style={{ fontSize: 12 }}>
-              💌 Jij raadde dit aan{' '}
-              {sentRecs.map((r, i) => {
-                const p = profileById(snap, r.to_user);
-                return (
-                  <span key={r.id}>
-                    {i > 0 && ', '}
-                    {p?.name?.split(' ')[0] || '—'}
-                  </span>
-                );
-              })}
-            </div>
-          )}
+          {/* Aanraders binnen je netwerk: wie raadde deze serie aan wie aan */}
+          {[...recGroups.entries()].map(([from, tos]) => {
+            const toNames = tos.map((t) => (t === userId ? 'jou' : (profileById(snap, t)?.name || 'iemand'))).join(', ');
+            const phrase = from === userId
+              ? 'Jij hebt deze serie aangeraden aan'
+              : `${profileById(snap, from)?.name || 'Iemand'} heeft deze serie aangeraden aan`;
+            return (
+              <div key={from} className="muted" style={{ fontSize: 12 }}>
+                💌 {phrase}: <span style={{ color: 'var(--text)' }}>{toNames}</span>
+              </div>
+            );
+          })}
 
           {/* Persoonlijke berichten van aanraders — blijven zichtbaar ook na wegklikken */}
           {receivedNotes.map((r) => {

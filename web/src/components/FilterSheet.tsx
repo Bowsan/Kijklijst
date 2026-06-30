@@ -1,17 +1,9 @@
-import { useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { selectTitles, followingProfiles } from '../lib/compute';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
 
 export type StatusTab = 'all' | 'want' | 'watching' | 'finished';
-
-export interface PanelFilters {
-  friend: string; // '' = Iedereen
-  services: string[];
-  genres: string[];
-  dropped: boolean; // Afgehaakt tonen (alleen-afgehaakt)
-}
 
 interface Props {
   snap: Snapshot;
@@ -20,29 +12,32 @@ interface Props {
   allGenres: string[];
   /** De actieve statustab — nodig voor de live "Toon N series"-teller. */
   baseStatus: StatusTab;
-  initial: PanelFilters;
-  onApply: (v: PanelFilters) => void;
+  // Live waarden + directe setters: een keuze is meteen van toepassing.
+  friend: string;
+  services: string[];
+  genres: string[];
+  dropped: boolean;
+  onFriend: (v: string) => void;
+  onToggleService: (s: string) => void;
+  onToggleGenre: (g: string) => void;
+  onToggleDropped: () => void;
+  onClear: () => void;
   onClose: () => void;
 }
 
-export default function FilterSheet({ snap, userId, allServices, allGenres, baseStatus, initial, onApply, onClose }: Props) {
-  const [draft, setDraft] = useState<PanelFilters>(initial);
+export default function FilterSheet({
+  snap, userId, allServices, allGenres, baseStatus,
+  friend, services, genres, dropped,
+  onFriend, onToggleService, onToggleGenre, onToggleDropped, onClear, onClose,
+}: Props) {
   const friends = followingProfiles(snap, userId);
   const me = snap.profiles.find((p) => p.id === userId);
 
-  const toggle = (arr: string[], v: string) =>
-    arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
-
-  // Live aantal series dat overblijft met de huidige (concept)keuze.
+  // Live aantal series dat overblijft met de huidige keuze.
   const count = selectTitles(snap, userId, {
-    status: draft.dropped ? 'dropped' : baseStatus,
-    friend: draft.friend,
-    services: draft.services,
-    genres: draft.genres,
-    name: '',
+    status: dropped ? 'dropped' : baseStatus,
+    friend, services, genres, name: '',
   }).length;
-
-  const clear = () => setDraft({ friend: '', services: [], genres: [], dropped: false });
 
   return (
     <Sheet title="Filters" onClose={onClose}>
@@ -50,14 +45,14 @@ export default function FilterSheet({ snap, userId, allServices, allGenres, base
       <div className="filter-section">
         <div className="fs-label">Wiens lijst</div>
         <div className="friend-filter">
-          <button className={draft.friend === '' ? 'sel' : ''} onClick={() => setDraft((d) => ({ ...d, friend: '' }))}>
+          <button className={friend === '' ? 'sel' : ''} onClick={() => onFriend('')}>
             <span className="ff-icon">👥</span>Iedereen
           </button>
-          <button className={draft.friend === userId ? 'sel' : ''} onClick={() => setDraft((d) => ({ ...d, friend: userId }))}>
+          <button className={friend === userId ? 'sel' : ''} onClick={() => onFriend(userId)}>
             <Avatar profile={me} id={userId} size="sm" />Jij
           </button>
           {friends.map((p) => (
-            <button key={p.id} className={draft.friend === p.id ? 'sel' : ''} onClick={() => setDraft((d) => ({ ...d, friend: p.id }))}>
+            <button key={p.id} className={friend === p.id ? 'sel' : ''} onClick={() => onFriend(p.id)}>
               <Avatar profile={p} id={p.id} size="sm" />{p.name}
             </button>
           ))}
@@ -70,11 +65,7 @@ export default function FilterSheet({ snap, userId, allServices, allGenres, base
           <div className="fs-label">Streamingdiensten</div>
           <div className="chip-wrap">
             {allServices.map((s) => (
-              <button
-                key={s}
-                className={`chip-toggle ${draft.services.includes(s) ? 'on' : ''}`}
-                onClick={() => setDraft((d) => ({ ...d, services: toggle(d.services, s) }))}
-              >
+              <button key={s} className={`chip-toggle ${services.includes(s) ? 'on' : ''}`} onClick={() => onToggleService(s)}>
                 {s}
               </button>
             ))}
@@ -88,11 +79,7 @@ export default function FilterSheet({ snap, userId, allServices, allGenres, base
           <div className="fs-label">Genres</div>
           <div className="chip-wrap">
             {allGenres.map((g) => (
-              <button
-                key={g}
-                className={`chip-toggle ${draft.genres.includes(g) ? 'on' : ''}`}
-                onClick={() => setDraft((d) => ({ ...d, genres: toggle(d.genres, g) }))}
-              >
+              <button key={g} className={`chip-toggle ${genres.includes(g) ? 'on' : ''}`} onClick={() => onToggleGenre(g)}>
                 {g}
               </button>
             ))}
@@ -104,19 +91,16 @@ export default function FilterSheet({ snap, userId, allServices, allGenres, base
       <div className="filter-section">
         <div className="fs-label">Status</div>
         <div className="chip-wrap">
-          <button
-            className={`chip-toggle ${draft.dropped ? 'on' : ''}`}
-            onClick={() => setDraft((d) => ({ ...d, dropped: !d.dropped }))}
-          >
+          <button className={`chip-toggle ${dropped ? 'on' : ''}`} onClick={onToggleDropped}>
             Afgehaakt
           </button>
         </div>
       </div>
 
-      {/* Acties */}
+      {/* Acties — keuzes zijn al toegepast; deze knoppen wissen of sluiten alleen. */}
       <div className="row" style={{ gap: 10, marginTop: 18 }}>
-        <button className="btn ghost" onClick={clear}>Wissen</button>
-        <button className="btn primary" style={{ flex: 1 }} onClick={() => { onApply(draft); onClose(); }}>
+        <button className="btn ghost" onClick={onClear}>Wissen</button>
+        <button className="btn primary" style={{ flex: 1 }} onClick={onClose}>
           Toon {count} serie{count === 1 ? '' : 's'}
         </button>
       </div>
