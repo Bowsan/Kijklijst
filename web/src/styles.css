@@ -144,6 +144,33 @@ input, textarea, select {
 
 .title-card { display: flex; flex-direction: column; gap: 10px; }
 .title-head { display: flex; gap: 12px; }
+
+/* Secties in het opengeklapte kaartje: duidelijk gescheiden blokken */
+.tc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 2px;
+}
+.tc-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tc-field { display: flex; flex-direction: column; gap: 6px; }
+.tc-sublabel { font-size: 11px; color: var(--muted); }
+.tc-meta { font-size: 12px; color: var(--muted); }
+.rec-note {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
 .poster {
   width: 64px;
   height: 96px;
