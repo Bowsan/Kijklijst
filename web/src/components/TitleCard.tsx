@@ -78,6 +78,11 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   // Welke gekleurde statusbadge hoort bij jouw beoordeling (cijfer impliceert 'gezien').
   const myBadge: Status | null = mine?.status ?? (mine?.score != null ? 'finished' : null);
 
+  // Seizoen-voortgang voor de ingeklapte kaart: hoeveel van de N seizoenen zag je?
+  const totalSeasons = title.seasons.length;
+  const watchedSeasonCount = mine?.seasons?.filter((n) => title.seasons.some((s) => s.season_number === n)).length ?? 0;
+  const seasonsChip = !!mine && totalSeasons > 1;
+
   const initService = mine?.service || '';
   // "Anders…" alleen als de dienst noch bij TMDb, noch bij de bekende NL-diensten hoort.
   const initIsCustom = !!initService && !title.providers.includes(initService) && !NL_SERVICES.includes(initService);
@@ -161,12 +166,22 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <h3>{title.name}</h3>
           <div className="title-sub">
             {title.year || '—'}
-            {title.seasons.length ? ` · ${title.seasons.length} sz` : ''}
+            {title.seasons.length && !seasonsChip ? ` · ${title.seasons.length} sz` : ''}
             {currentService ? ` · ${currentService}` : ''}
           </div>
           <div className="genres">
             {title.genres.slice(0, 2).map((g) => <span className="chip" key={g}>{g}</span>)}
           </div>
+          {/* Uitgelijnde meta-rij: seizoen-voortgang, kijkers en aanraders */}
+          {(seasonsChip || others.length > 0 || totalRecCount > 0) && (
+            <div className="metarow">
+              {seasonsChip && (
+                <span className="mchip seasons">{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
+              )}
+              {others.length > 0 && <span className="mchip">👥 {others.length}</span>}
+              {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           {showGroupScore && !hideGroup && avg != null && (
@@ -177,12 +192,6 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           )}
           {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
           {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}
-          {others.length > 0 && (
-            <span className="muted" style={{ fontSize: 12 }}>👥 {others.length}</span>
-          )}
-          {totalRecCount > 0 && (
-            <span className="muted" style={{ fontSize: 12 }}>💌 {totalRecCount}</span>
-          )}
         </div>
       </div>
 
