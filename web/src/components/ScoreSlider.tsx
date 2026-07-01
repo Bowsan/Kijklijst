@@ -8,7 +8,7 @@ interface Props {
 
 // Kleurschaal: 1 = rood, 5 = oranje, 7 = groen, 9–10 = goud/geel.
 const STOPS: { p: number; c: [number, number, number] }[] = [
-  { p: 0, c: [229, 72, 77] },     // rood
+  { p: 0, c: [229, 72, 77] },     // rood (1)
   { p: 0.44, c: [255, 159, 28] }, // oranje (≈ 5)
   { p: 0.667, c: [34, 176, 110] },// groen (≈ 7)
   { p: 1, c: [245, 197, 24] },    // goud (10)
@@ -27,30 +27,28 @@ function scoreColor(v: number): string {
   return `rgb(${STOPS[STOPS.length - 1].c.join(', ')})`;
 }
 
-// De volle kleurschaal, gebruikt als vulling van de balk.
-const RAINBOW = 'linear-gradient(90deg, #e5484d 0%, #ff9f1c 44%, #22b06e 66.7%, #f5c518 100%)';
+// Regenboog over de rating-zone: 1 = 10% van de balk … 10 = 100%.
+const RAINBOW = 'linear-gradient(90deg, #e5484d 10%, #ff9f1c 50%, #22b06e 70%, #f5c518 100%)';
 
 /**
- * Cijfer geven met een slider van 1 t/m 10 in halve stappen (7,5 / 8,5 …).
- * De balk verkleurt mee met het cijfer (rood → oranje → groen → goud).
- * Nog geen mening? Zet 'm uit met "Weet ik nog niet" — dan wordt de balk
- * blauw en semi-transparant.
+ * Cijfer geven met een slider. Sleep 'm helemaal naar links (onder de 1) en
+ * de balk wordt blauw + transparant: "Weet ik nog niet" (cijfer gewist).
+ * Daarboven een cijfer van 1 t/m 10 in halve stappen, met een balk die
+ * meekleurt (rood → oranje → groen → goud).
  */
 export default function ScoreSlider({ value, onCommit, onClear }: Props) {
-  const [local, setLocal] = useState<number | null>(value);
-  useEffect(() => setLocal(value), [value]);
+  const [pos, setPos] = useState<number>(value ?? 0);
+  useEffect(() => setPos(value ?? 0), [value]);
 
-  const set = local != null;
-  const shown = local ?? 5.5; // ongekozen: thumb neutraal in het midden
-  const pct = ((shown - 1) / 9) * 100;
-  const label = set ? (Number.isInteger(local!) ? String(local) : local!.toFixed(1)) : '–';
-  const color = scoreColor(shown);
+  const set = pos >= 1; // onder de 1 = "weet ik nog niet"
+  const label = set ? (Number.isInteger(pos) ? String(pos) : pos.toFixed(1)) : '–';
+  const color = scoreColor(pos);
+  const posPct = (pos / 10) * 100;
 
-  const commit = () => { if (local != null) onCommit(local); };
+  const commit = () => { if (pos >= 1) onCommit(pos); else onClear(); };
 
-  // Gevulde regenboog tot aan de thumb (gekozen), of egaal blauw (ongekozen).
   const trackBg = set
-    ? `linear-gradient(90deg, transparent ${pct}%, var(--surface-2) ${pct}%), ${RAINBOW}`
+    ? `linear-gradient(90deg, transparent ${posPct}%, var(--surface-2) ${posPct}%), ${RAINBOW}`
     : 'linear-gradient(90deg, var(--info), var(--info))';
 
   const style = {
@@ -61,25 +59,19 @@ export default function ScoreSlider({ value, onCommit, onClear }: Props) {
   return (
     <div className="score-slider">
       <div className="ss-top">
-        <div className="ss-left">
-          <span className="ss-value" style={{ color: set ? color : 'var(--info)', opacity: set ? 1 : 0.6 }}>{label}</span>
-          <span className="ss-hint muted">{set ? 'jouw cijfer' : 'Weet ik nog niet'}</span>
-        </div>
-        {set && (
-          <button type="button" className="ss-clear" onClick={onClear}>Weet ik nog niet</button>
-        )}
+        <span className="ss-value" style={{ color: set ? color : 'var(--info)', opacity: set ? 1 : 0.6 }}>{label}</span>
+        <span className="ss-hint muted">{set ? 'jouw cijfer' : 'Weet ik nog niet · sleep voor een cijfer'}</span>
       </div>
       <input
         type="range"
-        min={1}
+        min={0}
         max={10}
         step={0.5}
-        value={shown}
+        value={pos}
         aria-label="Cijfer"
         className={set ? '' : 'unset'}
         style={style}
-        onPointerDown={() => { if (local == null) setLocal(shown); }}
-        onChange={(e) => setLocal(Number(e.target.value))}
+        onChange={(e) => setPos(Number(e.target.value))}
         onPointerUp={commit}
         onKeyUp={commit}
       />
