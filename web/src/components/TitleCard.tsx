@@ -6,6 +6,7 @@ import { groupAverage, myRating, profileById, guessService, visibleUserIds, foll
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
+import ScoreSlider from './ScoreSlider';
 
 // Leesbare statuswoorden voor de vrienden-status-lijst.
 const FRIEND_STATUS_TEXT: Record<Status, string> = {
@@ -191,17 +192,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <section className="tc-section">
             <div className="tc-label">Jouw beoordeling</div>
 
-            <div className="scores">
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                <button
-                  key={n}
-                  className={mine?.score === n ? 'sel' : ''}
-                  onClick={() => update({ score: n, status: 'finished' })}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
+            <ScoreSlider value={mine?.score ?? null} onCommit={(n) => update({ score: n, status: 'finished' })} />
 
             <div className="status-row">
               {STATUS_ORDER.map((s) => (
@@ -349,9 +340,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </section>
 
-          {/* ── Sectie: Berichten ── */}
+          {/* ── Sectie: Dit zeggen je vrienden ── */}
           <section className="tc-section">
-            <div className="tc-label">Berichten</div>
+            <div className="tc-label">Dit zeggen je vrienden</div>
             <div className="comments">
               {comments.map((c) => {
                 const p = profileById(snap, c.user_id);

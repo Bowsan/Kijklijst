@@ -5,10 +5,12 @@
   --border: #2a2f3a;
   --text: #e9ecf1;
   --muted: #9aa3b2;
-  --accent: #ff5c7c;
-  --accent-2: #ff8aa0;
+  --accent: #17935a;
+  --accent-2: #21b06e;
+  --accent-grad: linear-gradient(180deg, var(--accent-2) 0%, var(--accent) 100%);
   --good: #4ccd8d;
   --warn: #ffd166;
+  --info: #5b8def;
   --bar-bg: rgba(24, 27, 34, 0.96);
   --radius: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -23,10 +25,11 @@
   --border: #d8dce3;
   --text: #1a1d23;
   --muted: #616a78;
-  --accent: #e23a5e;
-  --accent-2: #ff7d97;
+  --accent: #147d4d;
+  --accent-2: #1c9d63;
   --good: #1f9d63;
   --warn: #c98a00;
+  --info: #2f6fe0;
   --bar-bg: rgba(255, 255, 255, 0.96);
 }
 
@@ -114,7 +117,7 @@ input, textarea, select {
   position: absolute;
   top: 4px;
   right: calc(50% - 22px);
-  background: var(--accent);
+  background: var(--accent-grad);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -162,6 +165,36 @@ input, textarea, select {
   color: var(--muted);
 }
 .tc-field { display: flex; flex-direction: column; gap: 6px; }
+
+/* Cijfer-slider (1–10, halve stappen) */
+.score-slider { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 0; }
+.score-slider .ss-top { display: flex; align-items: baseline; gap: 10px; }
+.score-slider .ss-value { font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1; min-width: 46px; }
+.score-slider .ss-hint { font-size: 12px; }
+.score-slider input[type='range'] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 10px; border-radius: 999px;
+  background: var(--surface-2);
+  outline: none;
+  accent-color: var(--accent);
+  margin: 6px 0;
+}
+.score-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--accent-grad);
+  border: 3px solid var(--surface);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  margin-top: -10px;
+  cursor: pointer;
+}
+.score-slider input[type='range']::-moz-range-thumb {
+  width: 30px; height: 30px; border: 3px solid var(--surface); border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+.score-slider .ss-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 0 2px; }
 .tc-sublabel { font-size: 11px; color: var(--muted); }
 .tc-meta { font-size: 12px; color: var(--muted); }
 .rec-note {
@@ -232,7 +265,7 @@ input, textarea, select {
   font-size: 12px;
   color: var(--muted);
 }
-.status-row button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+.status-row button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
 
 /* ---------- Seizoenen ---------- */
 .seasons { display: flex; gap: 5px; flex-wrap: wrap; }
@@ -353,7 +386,7 @@ input, textarea, select {
   padding: 4px 10px;
   font-size: 13px;
 }
-.reactions button.on { border-color: var(--accent); background: rgba(255, 92, 124, 0.15); }
+.reactions button.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
 
 /* ---------- Acties ---------- */
 .actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -368,7 +401,7 @@ input, textarea, select {
   align-items: center;
   gap: 6px;
 }
-.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.primary { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
 .btn.ghost { background: transparent; }
 .btn:active { transform: scale(0.97); }
 .btn.full { width: 100%; justify-content: center; }
@@ -412,7 +445,7 @@ input, textarea, select {
   font-size: 13px;
   color: var(--muted);
 }
-.filters button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filters button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
 
 /* ---------- Zone 1: statusbalk (segmented control) ---------- */
 .status-bar {
@@ -433,7 +466,7 @@ input, textarea, select {
   color: var(--muted);
   white-space: nowrap;
 }
-.status-bar button.sel { background: var(--accent); color: #fff; }
+.status-bar button.sel { background: var(--accent-grad); color: #fff; }
 
 /* ---------- Zone 2: actiebalk ---------- */
 .action-bar {
@@ -467,7 +500,7 @@ input, textarea, select {
   color: var(--muted);
   white-space: nowrap;
 }
-.scope-toggle button.sel { background: var(--accent); color: #fff; }
+.scope-toggle button.sel { background: var(--accent-grad); color: #fff; }
 .quick-search-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 34px; height: 34px;
@@ -616,16 +649,16 @@ input, textarea, select {
 .switch.on .knob { transform: translateX(18px); }
 .theme-switch { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; flex-shrink: 0; }
 .theme-switch button { padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); white-space: nowrap; }
-.theme-switch button.sel { background: var(--accent); color: #fff; font-weight: 600; }
+.theme-switch button.sel { background: var(--accent-grad); color: #fff; font-weight: 600; }
 .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .service-grid button { padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }
-.service-grid button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+.service-grid button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
 .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
 .empty .big { font-size: 44px; margin-bottom: 12px; }
 .qr { display: flex; justify-content: center; padding: 16px; background: #fff; border-radius: 14px; margin: 12px 0; }
 .qr img { width: 200px; height: 200px; }
 .note { font-size: 13px; color: var(--muted); font-style: italic; }
-.pill-recommend { background: rgba(255, 92, 124, 0.12); border: 1px solid var(--accent); border-radius: 12px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+.pill-recommend { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid var(--accent); border-radius: 12px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
 .toast {
   position: fixed; bottom: calc(84px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
@@ -643,7 +676,7 @@ input, textarea, select {
   z-index: 50;
   width: 52px; height: 52px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-grad);
   color: #fff;
   font-size: 22px;
   border: none;

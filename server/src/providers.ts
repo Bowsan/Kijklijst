@@ -19,6 +19,9 @@ export function canonicalProvider(name: string): string {
   // NPO Plus en NPO Start samenvoegen.
   if (/^npo\s+(plus|start)$/i.test(n)) n = 'NPO Plus';
 
+  // "Max" en "HBO Max" samenvoegen tot "HBO Max".
+  if (/^(hbo\s*max|max)$/i.test(n)) n = 'HBO Max';
+
   return n.trim();
 }
 

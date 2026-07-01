@@ -119,6 +119,13 @@ function normalizeStoredProviders(): void {
       const c = canonicalProvider(r.service);
       if (c !== r.service) updRating.run(c, r.rowid);
     }
+    // Ook de diensten in profielen samenvoegen (bijv. "Max" → "HBO Max").
+    const profiles = db.prepare('SELECT id, services FROM profiles').all() as any[];
+    const updProfile = db.prepare('UPDATE profiles SET services = ? WHERE id = ?');
+    for (const p of profiles) {
+      const next = JSON.stringify(canonicalProviders(parseJson<string[]>(p.services, [])));
+      if (next !== p.services) updProfile.run(next, p.id);
+    }
   });
   tx();
 }

@@ -3,7 +3,7 @@ export const NL_SERVICES = [
   'Netflix',
   'Videoland',
   'Disney Plus',
-  'Max',
+  'HBO Max',
   'Amazon Prime Video',
   'Apple TV',
   'SkyShowtime',

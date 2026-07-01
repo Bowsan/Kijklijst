@@ -3,7 +3,7 @@ import { STATUS_LABELS } from '../lib/types';
 
 // Kleuren per status — gelijk aan de "Verdeling lijst" op het dashboard.
 export const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
-  watching: { bg: 'rgba(255,92,124,0.16)', fg: 'var(--accent)' },
+  watching: { bg: 'color-mix(in srgb, var(--info) 16%, transparent)', fg: 'var(--info)' },
   finished: { bg: 'rgba(76,205,141,0.16)', fg: 'var(--good)' },
   want: { bg: 'rgba(255,209,102,0.18)', fg: 'var(--warn)' },
   dropped: { bg: 'rgba(154,163,178,0.16)', fg: 'var(--muted)' },
