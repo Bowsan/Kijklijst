@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import type { Snapshot, Title } from '../lib/types';
+import type { Snapshot, Title, Status } from '../lib/types';
 import { sendRecommendation } from '../lib/api';
-import { followingProfiles } from '../lib/compute';
+import { followingProfiles, myRating } from '../lib/compute';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
+import StatusBadge from './StatusBadge';
 
 interface Props {
   snap: Snapshot;
@@ -17,6 +18,19 @@ export default function RecommendSheet({ snap, title, userId, onClose, onDone }:
   const [to, setTo] = useState<string>('');
   const [note, setNote] = useState('');
   const friends = followingProfiles(snap, userId);
+
+  // De diensten waarop de serie te zien is (of anders de dienst waarop jij hem keek).
+  const myService = myRating(snap, title.tmdb_id, userId)?.service;
+  const neededServices = title.providers.length ? title.providers : (myService ? [myService] : []);
+
+  // Status + dienst-beschikbaarheid per vriend, zodat je gericht kunt aanraden.
+  const friendInfo = (id: string) => {
+    const r = snap.ratings.find((x) => x.title_id === title.tmdb_id && x.user_id === id);
+    const status: Status | null = r?.status ?? (r?.score != null ? 'finished' : null);
+    const profile = friends.find((f) => f.id === id);
+    const has = neededServices.filter((s) => (profile?.services || []).includes(s));
+    return { status, score: r?.score ?? null, has };
+  };
 
   const send = async () => {
     if (!to) return;
@@ -37,13 +51,24 @@ export default function RecommendSheet({ snap, title, userId, onClose, onDone }:
       ) : (
         <>
           <p className="muted" style={{ fontSize: 13 }}>Aan wie raad je dit persoonlijk aan?</p>
-          <div className="service-grid" style={{ marginBottom: 12 }}>
-            {friends.map((f) => (
-              <button key={f.id} className={to === f.id ? 'sel' : ''} onClick={() => setTo(f.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}>
-                <Avatar profile={f} size="sm" />
-                {f.name}
-              </button>
-            ))}
+          <div className="rec-friends">
+            {friends.map((f) => {
+              const info = friendInfo(f.id);
+              return (
+                <button key={f.id} className={`rec-friend ${to === f.id ? 'sel' : ''}`} onClick={() => setTo(f.id)}>
+                  <Avatar profile={f} size="sm" />
+                  <span className="rf-name">{f.name}</span>
+                  <span className="rf-info">
+                    {info.status && <StatusBadge status={info.status} score={info.score} />}
+                    {neededServices.length > 0 && (
+                      info.has.length
+                        ? <span className="rf-svc ok">✓ {info.has.join(', ')}</span>
+                        : <span className="rf-svc no">✗ {neededServices.slice(0, 2).join(', ')}</span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
           </div>
           <label className="muted" style={{ fontSize: 13, display: 'block', margin: '4px 0 4px' }}>Berichtje toevoegen (optioneel)</label>
           <textarea
