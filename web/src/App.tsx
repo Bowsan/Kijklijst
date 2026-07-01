@@ -316,6 +316,15 @@ export default function App() {
     return () => obs.disconnect();
   }, [tab, visibleTitles, listPage]);
 
+  // "Terug naar boven"-knop tonen zodra je een eind naar beneden hebt gescrold.
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 500);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
 
   // Laden
@@ -544,6 +553,11 @@ export default function App() {
         ) : (
           <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
         )
+      )}
+
+      {/* Terug naar boven */}
+      {showScrollTop && !searchOpen && (
+        <button className="scroll-top" aria-label="Terug naar boven" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>↑</button>
       )}
 
       {tab === 'dashboard' && (
