@@ -68,8 +68,11 @@ export default function App() {
 
   // Filters — statustab springt bij openen terug naar "Alles"; de rest is onthouden.
   const [status, setStatus] = useState<StatusValue>('all');
-  // Standaard zie je je eigen lijst (Jij); de statustabs gaan dan over jouw series.
-  const [friend, setFriend] = useState<string>(saved.friend ?? userId);
+  // Scope van de lijst: 'me' = Jij (lost altijd op naar het huidige account, ook
+  // na inloggen met een bestaande naam), '' = Iedereen, of een specifiek vriend-id.
+  const [friend, setFriend] = useState<string>(saved.friend ?? 'me');
+  // Het echte gebruikers-id waarop we filteren ('me' → jouw account, '' → groep).
+  const scopeUser = friend === 'me' ? userId : friend;
   const [services, setServices] = useState<string[]>(saved.services);
   const [genres, setGenres] = useState<string[]>(saved.genres);
   const [nameFilter, setNameFilter] = useState<string>('');
@@ -116,8 +119,8 @@ export default function App() {
   }) => {
     const s = opts.status;
     if (s === 'all' || s == null) { setFriend(''); setStatus('all'); }
-    else if (s === 'mine') { setFriend(userId); setStatus('all'); }
-    else { setFriend(userId); setStatus(s); }
+    else if (s === 'mine') { setFriend('me'); setStatus('all'); }
+    else { setFriend('me'); setStatus(s); }
     setGenres(opts.genre ? [opts.genre] : []);
     setServices(opts.service ? [opts.service] : []);
     setNameFilter('');
@@ -130,7 +133,7 @@ export default function App() {
 
   // "Jij" heeft een eigen knop, dus die telt hier niet mee als paneelfilter.
   const activeFilterCount =
-    (friend && friend !== userId ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
+    (friend && friend !== 'me' ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
     if (sortKey === key && sortDir === dir) {
@@ -157,7 +160,7 @@ export default function App() {
       await saveRating({ tmdb_id: tmdbId, status: 'want' });
       await reload();
       setJustAddedId(tmdbId);
-      setFriend(userId);
+      setFriend('me');
       setStatus('want');
       toast('Op je wishlist gezet');
     } catch (e: any) {
@@ -171,7 +174,7 @@ export default function App() {
       await saveRating({ tmdb_id, status: 'want', ...(service ? { service } : {}) });
       await reload();
       setJustAddedId(tmdb_id);
-      setFriend(userId);
+      setFriend('me');
       setStatus('want');
       setManualAddQuery(null);
       setTab('list');
@@ -240,7 +243,7 @@ export default function App() {
   // Een serie openen die al op je lijst staat: naar het juiste filter + uitklappen.
   const openExisting = (tmdbId: number) => {
     const st = snap ? myRating(snap, tmdbId, userId)?.status : null;
-    setFriend(userId);
+    setFriend('me');
     setStatus(st ?? 'all');
     setNameFilter('');
     setSearchOpen(false);
@@ -250,17 +253,17 @@ export default function App() {
   // Bij een specifieke persoon tonen we diens eigen cijfer; bij "Iedereen" het groepsgemiddelde.
   const personScore = (tmdbId: number): number | null => {
     if (!snap) return null;
-    if (friend) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === friend)?.score ?? null;
+    if (scopeUser) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === scopeUser)?.score ?? null;
     return groupAverage(snap, tmdbId);
   };
   const personDate = (t: Title): number => {
-    if (!snap || !friend) return t.created_at;
-    return snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === friend)?.updated_at ?? t.created_at;
+    if (!snap || !scopeUser) return t.created_at;
+    return snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === scopeUser)?.updated_at ?? t.created_at;
   };
 
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
-    const list = selectTitles(snap, userId, { status, friend, services, genres, name: nameFilter });
+    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter });
 
     list.sort((a, b) => {
       let cmp: number;
@@ -430,7 +433,7 @@ export default function App() {
               </button>
               {/* Scope: standaard je eigen lijst (Jij); tik Iedereen voor de groep. */}
               <div className="scope-toggle">
-                <button className={friend === userId ? 'sel' : ''} onClick={() => setFriend(userId)}>Jij</button>
+                <button className={friend === 'me' ? 'sel' : ''} onClick={() => setFriend('me')}>Jij</button>
                 <button className={friend === '' ? 'sel' : ''} onClick={() => setFriend('')}>Iedereen</button>
               </div>
               <button
@@ -478,8 +481,8 @@ export default function App() {
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
-              {friend && friend !== userId && (
-                <button className="active-chip" onClick={() => setFriend('')}>
+              {friend && friend !== 'me' && (
+                <button className="active-chip" onClick={() => setFriend('me')}>
                   {profileById(snap, friend)?.name || 'Vriend'} ✕
                 </button>
               )}
@@ -503,7 +506,7 @@ export default function App() {
                 <button
                   className="btn"
                   style={{ marginTop: 10 }}
-                  onClick={() => { setStatus('all'); setFriend(''); setServices([]); setGenres([]); setNameFilter(''); setQuickFilterOpen(false); }}
+                  onClick={() => { setStatus('all'); setFriend('me'); setServices([]); setGenres([]); setNameFilter(''); setQuickFilterOpen(false); }}
                 >
                   Wis filters
                 </button>
@@ -524,7 +527,7 @@ export default function App() {
                     title={t}
                     userId={userId}
                     blind={blind}
-                    showGroupScore={!friend}
+                    showGroupScore={friend === ''}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -616,7 +619,7 @@ export default function App() {
           onToggleService={(s) => setServices((arr) => (arr.includes(s) ? arr.filter((x) => x !== s) : [...arr, s]))}
           onToggleGenre={(g) => setGenres((arr) => (arr.includes(g) ? arr.filter((x) => x !== g) : [...arr, g]))}
           onToggleDropped={() => setStatus((st) => (st === 'dropped' ? 'all' : 'dropped'))}
-          onClear={() => { setFriend(''); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' ? 'all' : st)); }}
+          onClear={() => { setFriend('me'); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' ? 'all' : st)); }}
           onClose={() => setShowFilterSheet(false)}
         />
       )}

@@ -33,10 +33,11 @@ export default function FilterSheet({
   const friends = followingProfiles(snap, userId);
   const me = snap.profiles.find((p) => p.id === userId);
 
-  // Live aantal series dat overblijft met de huidige keuze.
+  // Live aantal series dat overblijft met de huidige keuze ('me' → jouw account).
   const count = selectTitles(snap, userId, {
     status: dropped ? 'dropped' : baseStatus,
-    friend, services, genres, name: '',
+    friend: friend === 'me' ? userId : friend,
+    services, genres, name: '',
   }).length;
 
   return (
@@ -48,7 +49,7 @@ export default function FilterSheet({
           <button className={friend === '' ? 'sel' : ''} onClick={() => onFriend('')}>
             <span className="ff-icon">👥</span>Iedereen
           </button>
-          <button className={friend === userId ? 'sel' : ''} onClick={() => onFriend(userId)}>
+          <button className={friend === 'me' ? 'sel' : ''} onClick={() => onFriend('me')}>
             <Avatar profile={me} id={userId} size="sm" />Jij
           </button>
           {friends.map((p) => (
