@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 interface Props {
   value: number | null;
   onCommit: (score: number) => void;
+  onClear: () => void;
 }
 
 // Kleurschaal: 1 = rood, 5 = oranje, 7 = groen, 9–10 = goud/geel.
@@ -32,35 +33,41 @@ const RAINBOW = 'linear-gradient(90deg, #e5484d 0%, #ff9f1c 44%, #22b06e 66.7%, 
 /**
  * Cijfer geven met een slider van 1 t/m 10 in halve stappen (7,5 / 8,5 …).
  * De balk verkleurt mee met het cijfer (rood → oranje → groen → goud).
- * Tik ergens op de balk om 'm daar neer te zetten, of sleep 'm.
+ * Nog geen mening? Zet 'm uit met "Weet ik nog niet" — dan wordt de balk
+ * blauw en semi-transparant.
  */
-export default function ScoreSlider({ value, onCommit }: Props) {
+export default function ScoreSlider({ value, onCommit, onClear }: Props) {
   const [local, setLocal] = useState<number | null>(value);
   useEffect(() => setLocal(value), [value]);
 
   const set = local != null;
-  const shown = local ?? 7;
+  const shown = local ?? 5.5; // ongekozen: thumb neutraal in het midden
   const pct = ((shown - 1) / 9) * 100;
   const label = set ? (Number.isInteger(local!) ? String(local) : local!.toFixed(1)) : '–';
   const color = scoreColor(shown);
 
   const commit = () => { if (local != null) onCommit(local); };
 
-  // Gevulde regenboog tot aan de thumb, daarna grijs.
+  // Gevulde regenboog tot aan de thumb (gekozen), of egaal blauw (ongekozen).
   const trackBg = set
     ? `linear-gradient(90deg, transparent ${pct}%, var(--surface-2) ${pct}%), ${RAINBOW}`
-    : 'var(--surface-2)';
+    : 'linear-gradient(90deg, var(--info), var(--info))';
 
   const style = {
     '--track-bg': trackBg,
-    '--thumb': set ? color : 'var(--muted)',
+    '--thumb': set ? color : 'var(--info)',
   } as CSSProperties;
 
   return (
     <div className="score-slider">
       <div className="ss-top">
-        <span className="ss-value" style={{ color: set ? color : 'var(--muted)', opacity: set ? 1 : 0.5 }}>{label}</span>
-        <span className="ss-hint muted">{set ? 'jouw cijfer' : 'tik of sleep om een cijfer te geven'}</span>
+        <div className="ss-left">
+          <span className="ss-value" style={{ color: set ? color : 'var(--info)', opacity: set ? 1 : 0.6 }}>{label}</span>
+          <span className="ss-hint muted">{set ? 'jouw cijfer' : 'Weet ik nog niet'}</span>
+        </div>
+        {set && (
+          <button type="button" className="ss-clear" onClick={onClear}>Weet ik nog niet</button>
+        )}
       </div>
       <input
         type="range"
@@ -69,6 +76,7 @@ export default function ScoreSlider({ value, onCommit }: Props) {
         step={0.5}
         value={shown}
         aria-label="Cijfer"
+        className={set ? '' : 'unset'}
         style={style}
         onPointerDown={() => { if (local == null) setLocal(shown); }}
         onChange={(e) => setLocal(Number(e.target.value))}

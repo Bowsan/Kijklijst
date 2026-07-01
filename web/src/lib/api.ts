@@ -42,6 +42,8 @@ export interface RatingUpdate {
 }
 
 export const saveRating = (u: RatingUpdate) => post('/api/rating', u);
+// Cijfer wissen ("weet ik nog niet"), zonder de rest van de beoordeling te raken.
+export const clearRatingScore = (tmdb_id: number) => post('/api/rating', { tmdb_id, clearScore: true });
 export async function removeRating(tmdbId: number): Promise<any> {
   const res = await fetch(`/api/rating/${tmdbId}`, { method: 'DELETE', headers: headers() });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
