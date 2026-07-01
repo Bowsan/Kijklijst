@@ -78,7 +78,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const myBadge: Status | null = mine?.status ?? (mine?.score != null ? 'finished' : null);
 
   const initService = mine?.service || '';
-  const initIsCustom = !!initService && !title.providers.includes(initService);
+  // "Anders…" alleen als de dienst noch bij TMDb, noch bij de bekende NL-diensten hoort.
+  const initIsCustom = !!initService && !title.providers.includes(initService) && !NL_SERVICES.includes(initService);
 
   const [expanded, setExpanded] = useState(initialExpanded);
   const [serviceMode, setServiceMode] = useState<'select' | 'custom'>(initIsCustom ? 'custom' : 'select');
@@ -186,199 +187,201 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
 
       {expanded && (
         <>
-          {/* Cijferknoppen */}
-          <div className="scores">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                className={mine?.score === n ? 'sel' : ''}
-                onClick={() => update({ score: n, status: 'finished' })}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
+          {/* ── Sectie: Jouw beoordeling ── */}
+          <section className="tc-section">
+            <div className="tc-label">Jouw beoordeling</div>
 
-          {/* Status */}
-          <div className="status-row">
-            {STATUS_ORDER.map((s) => (
-              <button key={s} className={mine?.status === s ? 'sel' : ''} onClick={() => update({ status: s })}>
-                {STATUS_LABELS[s]}
-              </button>
-            ))}
-          </div>
-
-          {/* Seizoenen */}
-          {title.seasons.length > 0 && (
-            <div className="seasons">
-              <button
-                className={title.seasons.every((s) => watchedSeasons.includes(s.season_number)) ? 'on' : ''}
-                onClick={toggleAllSeasons}
-                style={{ fontWeight: 700 }}
-              >
-                Alles
-              </button>
-              {title.seasons.map((s) => (
+            <div className="scores">
+              {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
                 <button
-                  key={s.season_number}
-                  className={watchedSeasons.includes(s.season_number) ? 'on' : ''}
-                  onClick={() => toggleSeason(s.season_number)}
+                  key={n}
+                  className={mine?.score === n ? 'sel' : ''}
+                  onClick={() => update({ score: n, status: 'finished' })}
                 >
-                  S{s.season_number}{s.air_year ? ` ${s.air_year}` : ''}
+                  {n}
                 </button>
               ))}
             </div>
+
+            <div className="status-row">
+              {STATUS_ORDER.map((s) => (
+                <button key={s} className={mine?.status === s ? 'sel' : ''} onClick={() => update({ status: s })}>
+                  {STATUS_LABELS[s]}
+                </button>
+              ))}
+            </div>
+
+            {title.seasons.length > 0 && (
+              <div className="tc-field">
+                <div className="tc-sublabel">Seizoenen gezien</div>
+                <div className="seasons">
+                  <button
+                    className={title.seasons.every((s) => watchedSeasons.includes(s.season_number)) ? 'on' : ''}
+                    onClick={toggleAllSeasons}
+                    style={{ fontWeight: 700 }}
+                  >
+                    Alles
+                  </button>
+                  {title.seasons.map((s) => (
+                    <button
+                      key={s.season_number}
+                      className={watchedSeasons.includes(s.season_number) ? 'on' : ''}
+                      onClick={() => toggleSeason(s.season_number)}
+                    >
+                      S{s.season_number}{s.air_year ? ` ${s.air_year}` : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="tc-field">
+              <div className="tc-sublabel">Waar kijk je dit?</div>
+              <select
+                value={serviceMode === 'custom' ? '__anders__' : (mine?.service || '')}
+                onChange={(e) => {
+                  if (e.target.value === '__anders__') {
+                    setServiceMode('custom');
+                  } else {
+                    setServiceMode('select');
+                    update({ service: e.target.value });
+                  }
+                }}
+              >
+                <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
+                {serviceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                <option value="__anders__">Anders…</option>
+              </select>
+              {serviceMode === 'custom' && (
+                <input
+                  placeholder="Naam van de dienst"
+                  value={serviceInput}
+                  onChange={(e) => setServiceInput(e.target.value)}
+                  onBlur={() => serviceInput !== (mine?.service || '') && update({ service: serviceInput })}
+                />
+              )}
+            </div>
+
+            <div className="actions" style={{ justifyContent: 'space-between' }}>
+              <button className="btn ghost" onClick={() => onRecommend(title)}>💌 Raad aan</button>
+              {confirmDelete ? (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button className="btn ghost" style={{ color: '#e55' }} onClick={handleRemove}>Verwijder</button>
+                  <button className="btn ghost" onClick={() => setConfirmDelete(false)}>Annuleer</button>
+                </div>
+              ) : (
+                <button className="btn ghost" style={{ color: 'var(--muted)' }} title="Uit lijst verwijderen" onClick={() => setConfirmDelete(true)}>🗑️</button>
+              )}
+            </div>
+          </section>
+
+          {/* ── Sectie: Wat je vrienden ervan vinden ── */}
+          {((!hideGroup && friends.length > 0) || recGroups.size > 0 || receivedNotes.length > 0) && (
+            <section className="tc-section">
+              <div className="tc-label">Wat je vrienden ervan vinden</div>
+
+              {!hideGroup && friends.length > 0 && (
+                <div className="friend-status-list">
+                  {friends.map((p) => {
+                    const r = snap.ratings.find((x) => x.title_id === title.tmdb_id && x.user_id === p.id);
+                    const maxSeason = r?.seasons?.length ? Math.max(...r.seasons) : 0;
+                    return (
+                      <div className="friend-status-row" key={p.id}>
+                        <Avatar profile={p} id={p.id} size="sm" />
+                        <span className="fsr-name">{p.name?.split(' ')[0] || '—'}</span>
+                        <span className="fsr-val">
+                          {r?.status && (
+                            <span style={{ color: STATUS_COLORS[r.status].fg, fontWeight: 600 }}>
+                              {FRIEND_STATUS_TEXT[r.status]}
+                            </span>
+                          )}
+                          {maxSeason > 0 && r?.status === 'watching' && (
+                            <span className="muted" style={{ fontSize: 12 }}>S{maxSeason}</span>
+                          )}
+                          <span className={r?.score != null ? '' : 'muted'}>{r?.score != null ? r.score : '–'}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {[...recGroups.entries()].map(([from, tos]) => {
+                const toNames = tos.map((t) => (t === userId ? 'jou' : (profileById(snap, t)?.name || 'iemand'))).join(', ');
+                const phrase = from === userId
+                  ? 'Jij hebt deze serie aangeraden aan'
+                  : `${profileById(snap, from)?.name || 'Iemand'} heeft deze serie aangeraden aan`;
+                return (
+                  <div key={from} className="muted" style={{ fontSize: 12 }}>
+                    💌 {phrase}: <span style={{ color: 'var(--text)' }}>{toNames}</span>
+                  </div>
+                );
+              })}
+
+              {receivedNotes.map((r) => {
+                const from = profileById(snap, r.from_user);
+                return (
+                  <div key={r.id} className="rec-note">
+                    <span className="muted" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
+                      💌 {from?.name || 'Iemand'} schreef:
+                    </span>
+                    "{r.note}"
+                  </div>
+                );
+              })}
+            </section>
           )}
 
-          {/* Wat je vrienden ervan vinden: status + cijfer per gevolgde vriend (ook zonder) */}
-          {!hideGroup && friends.length > 0 && (
-            <>
-              <div className="muted" style={{ fontSize: 12, fontWeight: 600 }}>Wat je vrienden ervan vinden</div>
-              <div className="friend-status-list">
-                {friends.map((p) => {
-                  const r = snap.ratings.find((x) => x.title_id === title.tmdb_id && x.user_id === p.id);
-                  const maxSeason = r?.seasons?.length ? Math.max(...r.seasons) : 0;
-                  return (
-                    <div className="friend-status-row" key={p.id}>
-                      <Avatar profile={p} id={p.id} size="sm" />
-                      <span className="fsr-name">{p.name?.split(' ')[0] || '—'}</span>
-                      <span className="fsr-val">
-                        {r?.status && (
-                          <span style={{ color: STATUS_COLORS[r.status].fg, fontWeight: 600 }}>
-                            {FRIEND_STATUS_TEXT[r.status]}
-                          </span>
-                        )}
-                        {maxSeason > 0 && r?.status === 'watching' && (
-                          <span className="muted" style={{ fontSize: 12 }}>S{maxSeason}</span>
-                        )}
-                        <span className={r?.score != null ? '' : 'muted'}>{r?.score != null ? r.score : '–'}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Wie heeft de serie toegevoegd + wanneer jij het toevoegde */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {addedBy && (
-              <span className="muted" style={{ fontSize: 12 }}>
-                ➕ Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}
-              </span>
-            )}
-            {mine && (
-              <span className="muted" style={{ fontSize: 12 }}>
-                📅 {fmtDate(mine.updated_at)}
-              </span>
-            )}
-          </div>
-
-          {/* Aanraders binnen je netwerk: wie raadde deze serie aan wie aan */}
-          {[...recGroups.entries()].map(([from, tos]) => {
-            const toNames = tos.map((t) => (t === userId ? 'jou' : (profileById(snap, t)?.name || 'iemand'))).join(', ');
-            const phrase = from === userId
-              ? 'Jij hebt deze serie aangeraden aan'
-              : `${profileById(snap, from)?.name || 'Iemand'} heeft deze serie aangeraden aan`;
-            return (
-              <div key={from} className="muted" style={{ fontSize: 12 }}>
-                💌 {phrase}: <span style={{ color: 'var(--text)' }}>{toNames}</span>
-              </div>
-            );
-          })}
-
-          {/* Persoonlijke berichten van aanraders — blijven zichtbaar ook na wegklikken */}
-          {receivedNotes.map((r) => {
-            const from = profileById(snap, r.from_user);
-            return (
-              <div key={r.id} style={{ background: 'rgba(255,92,124,0.08)', border: '1px solid rgba(255,92,124,0.25)', borderRadius: 10, padding: '8px 10px', fontSize: 13 }}>
-                <span className="muted" style={{ fontSize: 11, display: 'block', marginBottom: 2 }}>
-                  💌 {from?.name || 'Iemand'} schreef:
-                </span>
-                "{r.note}"
-              </div>
-            );
-          })}
-
-          {/* Streamingdienst */}
-          <select
-            value={serviceMode === 'custom' ? '__anders__' : (mine?.service || '')}
-            onChange={(e) => {
-              if (e.target.value === '__anders__') {
-                setServiceMode('custom');
-              } else {
-                setServiceMode('select');
-                update({ service: e.target.value });
-              }
-            }}
-            style={{ marginTop: 4 }}
-          >
-            <option value="">{currentService ? `${currentService} (gok)` : 'Dienst…'}</option>
-            {serviceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-            <option value="__anders__">Anders…</option>
-          </select>
-          {serviceMode === 'custom' && (
-            <input
-              placeholder="Naam van de dienst"
-              value={serviceInput}
-              onChange={(e) => setServiceInput(e.target.value)}
-              onBlur={() => serviceInput !== (mine?.service || '') && update({ service: serviceInput })}
-              style={{ marginTop: 4 }}
-            />
-          )}
-
-          {/* Acties */}
-          <div className="actions" style={{ justifyContent: 'space-between' }}>
-            <button className="btn ghost" onClick={() => onRecommend(title)}>💌 Raad aan</button>
-            {confirmDelete ? (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button className="btn ghost" style={{ color: '#e55' }} onClick={handleRemove}>Verwijder</button>
-                <button className="btn ghost" onClick={() => setConfirmDelete(false)}>Annuleer</button>
-              </div>
-            ) : (
-              <button className="btn ghost" style={{ color: 'var(--muted)' }} title="Uit lijst verwijderen" onClick={() => setConfirmDelete(true)}>🗑️</button>
-            )}
-          </div>
-
-          {/* Overview + cast + IMDb */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+          {/* ── Sectie: Over de serie ── */}
+          <section className="tc-section">
+            <div className="tc-label">Over de serie</div>
             {title.overview && <p className="note">{title.overview}</p>}
             {title.cast.length > 0 && <p className="title-sub">Met {title.cast.slice(0, 4).join(', ')}</p>}
             <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
               <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
             </a>
-          </div>
+            {(addedBy || mine) && (
+              <div className="tc-meta">
+                {addedBy && <>Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}</>}
+                {addedBy && mine && ' · '}
+                {mine && <>op {fmtDate(mine.updated_at)}</>}
+              </div>
+            )}
+          </section>
 
-          {/* Prikbord: berichten van jou en je vrienden */}
-          <div className="comments">
-            {comments.map((c) => {
-              const p = profileById(snap, c.user_id);
-              return (
-                <div className="comment" key={c.id}>
-                  <Avatar profile={p} id={c.user_id} size="sm" />
-                  <div className="comment-body">
-                    <div className="comment-name">
-                      {c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}
-                      <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
+          {/* ── Sectie: Berichten ── */}
+          <section className="tc-section">
+            <div className="tc-label">Berichten</div>
+            <div className="comments">
+              {comments.map((c) => {
+                const p = profileById(snap, c.user_id);
+                return (
+                  <div className="comment" key={c.id}>
+                    <Avatar profile={p} id={c.user_id} size="sm" />
+                    <div className="comment-body">
+                      <div className="comment-name">
+                        {c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}
+                        <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
+                      </div>
+                      <div className="comment-text">{c.text}</div>
                     </div>
-                    <div className="comment-text">{c.text}</div>
+                    {c.user_id === userId && (
+                      <button className="btn ghost comment-del" title="Bericht verwijderen" onClick={() => deleteComment(c.id)}>🗑️</button>
+                    )}
                   </div>
-                  {c.user_id === userId && (
-                    <button className="btn ghost comment-del" title="Bericht verwijderen" onClick={() => deleteComment(c.id)}>🗑️</button>
-                  )}
-                </div>
-              );
-            })}
-            <div className="comment-form">
-              <input
-                placeholder="Schrijf een bericht…"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && postComment()}
-              />
-              <button className="btn" disabled={!commentText.trim()} onClick={postComment}>Plaats</button>
+                );
+              })}
+              <div className="comment-form">
+                <input
+                  placeholder="Schrijf een bericht…"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && postComment()}
+                />
+                <button className="btn" disabled={!commentText.trim()} onClick={postComment}>Plaats</button>
+              </div>
             </div>
-          </div>
+          </section>
         </>
       )}
     </div>
