@@ -166,32 +166,44 @@ input, textarea, select {
 }
 .tc-field { display: flex; flex-direction: column; gap: 6px; }
 
-/* Cijfer-slider (1–10, halve stappen) */
+/* Cijfer-slider (1–10, halve stappen) — balk verkleurt mee met het cijfer */
 .score-slider { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 0; }
 .score-slider .ss-top { display: flex; align-items: baseline; gap: 10px; }
-.score-slider .ss-value { font-size: 30px; font-weight: 800; color: var(--accent); line-height: 1; min-width: 46px; }
+.score-slider .ss-value { font-size: 32px; font-weight: 800; line-height: 1; min-width: 52px; }
 .score-slider .ss-hint { font-size: 12px; }
 .score-slider input[type='range'] {
   -webkit-appearance: none; appearance: none;
-  width: 100%; height: 10px; border-radius: 999px;
-  background: var(--surface-2);
+  width: 100%; height: 30px;   /* ruimte voor de thumb */
+  background: transparent;
   outline: none;
-  accent-color: var(--accent);
-  margin: 6px 0;
+  margin: 2px 0;
+}
+/* WebKit: track + thumb */
+.score-slider input[type='range']::-webkit-slider-runnable-track {
+  height: 10px; border-radius: 999px;
+  background: var(--track-bg);
 }
 .score-slider input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
-  width: 30px; height: 30px; border-radius: 50%;
-  background: var(--accent-grad);
+  box-sizing: border-box;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--thumb);
   border: 3px solid var(--surface);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-  margin-top: -10px;
+  box-shadow: 0 0 0 1px var(--border), 0 2px 8px color-mix(in srgb, var(--thumb) 55%, transparent);
+  margin-top: -9px;   /* (10 - 28) / 2 → thumb midden op de track */
   cursor: pointer;
 }
+/* Firefox: track + thumb */
+.score-slider input[type='range']::-moz-range-track {
+  height: 10px; border-radius: 999px;
+  background: var(--track-bg);
+}
 .score-slider input[type='range']::-moz-range-thumb {
-  width: 30px; height: 30px; border: 3px solid var(--surface); border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--thumb);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border), 0 2px 8px color-mix(in srgb, var(--thumb) 55%, transparent);
   cursor: pointer;
 }
 .score-slider .ss-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 0 2px; }
