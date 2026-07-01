@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
-import { saveRating, removeRating, addComment, removeComment, type RatingUpdate } from '../lib/api';
+import { saveRating, removeRating, addComment, removeComment, clearRatingScore, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
@@ -192,7 +192,14 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <section className="tc-section">
             <div className="tc-label">Jouw beoordeling</div>
 
-            <ScoreSlider value={mine?.score ?? null} onCommit={(n) => update({ score: n, status: 'finished' })} />
+            <ScoreSlider
+              value={mine?.score ?? null}
+              onCommit={(n) => update({ score: n, status: 'finished' })}
+              onClear={async () => {
+                try { await clearRatingScore(title.tmdb_id); onChange(); }
+                catch (e: any) { toast(e.message || 'Wissen mislukt'); }
+              }}
+            />
 
             <div className="status-row">
               {STATUS_ORDER.map((s) => (
