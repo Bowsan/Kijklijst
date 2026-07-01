@@ -12,9 +12,9 @@ export interface ListPrefs {
   sortDir: SortDir;
 }
 
-// v2: standaard-scope is nu "Jij" (persoonlijk). Oude v1-voorkeuren bewust niet
-// meenemen, zodat iedereen de nieuwe, duidelijkere standaard krijgt.
-const KEY = 'opdebank.listPrefs.v2';
+// v3: scope "Jij" wordt bewaard als sentinel 'me' (niet als account-id), zodat het
+// nooit meer op een verouderd id blijft hangen. Oudere voorkeuren niet meenemen.
+const KEY = 'opdebank.listPrefs.v3';
 
 export const DEFAULT_PREFS: ListPrefs = {
   friend: null,
