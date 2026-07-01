@@ -180,7 +180,7 @@ input, textarea, select {
 }
 /* WebKit: track + thumb */
 .score-slider input[type='range']::-webkit-slider-runnable-track {
-  height: 10px; border-radius: 999px;
+  height: 9px; border-radius: 999px;
   background: var(--track-bg);
 }
 .score-slider input[type='range']::-webkit-slider-thumb {
@@ -190,12 +190,12 @@ input, textarea, select {
   background: var(--thumb);
   border: 3px solid var(--surface);
   box-shadow: 0 0 0 1px var(--border), 0 2px 8px color-mix(in srgb, var(--thumb) 55%, transparent);
-  margin-top: -9px;   /* (10 - 28) / 2 → thumb midden op de track */
+  margin-top: -9.5px;   /* (9 - 28) / 2 → thumb midden op de track */
   cursor: pointer;
 }
 /* Firefox: track + thumb */
 .score-slider input[type='range']::-moz-range-track {
-  height: 10px; border-radius: 999px;
+  height: 9px; border-radius: 999px;
   background: var(--track-bg);
 }
 .score-slider input[type='range']::-moz-range-thumb {
