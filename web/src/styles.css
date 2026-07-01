@@ -148,6 +148,16 @@ input, textarea, select {
 .title-card { display: flex; flex-direction: column; gap: 10px; }
 .title-head { display: flex; gap: 12px; }
 
+/* Meta-rij op de ingeklapte kaart: seizoen-voortgang, kijkers, aanraders */
+.title-head .metarow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.mchip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); color: var(--muted);
+  border-radius: 999px; padding: 3px 9px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.mchip.seasons { background: color-mix(in srgb, var(--good) 14%, var(--surface)); color: var(--good); }
+
 /* Secties in het opengeklapte kaartje: duidelijk gescheiden blokken */
 .tc-section {
   display: flex;
