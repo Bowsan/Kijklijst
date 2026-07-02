@@ -23,6 +23,20 @@ export default function ActivityFeed({ snap }: { snap: Snapshot }) {
       {snap.activity.slice(0, 30).map((a) => {
         const who = profileById(snap, a.user_id);
         const title = a.title_id ? titleById(snap, a.title_id) : undefined;
+
+        // Systeem-melding: nieuw seizoen (geen gebruiker, eigen opmaak).
+        if (a.type === 'new_season') {
+          return (
+            <div className="activity-item" key={a.id}>
+              <div className="act-emoji">🎉</div>
+              <div style={{ flex: 1 }}>
+                <div className="activity-text"><b>{title?.name || 'Een serie'}</b> heeft een nieuw seizoen (seizoen {String(a.meta.to)})</div>
+                <div className="activity-time">{timeAgo(a.created_at)}</div>
+              </div>
+            </div>
+          );
+        }
+
         let text: React.ReactNode = null;
 
         if (a.type === 'rating') {

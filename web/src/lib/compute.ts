@@ -81,6 +81,34 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
   return list;
 }
 
+// Hoe lang een pas-verschenen seizoen als "nieuw" telt (voor badge & Voor jou).
+export const NEW_SEASON_WINDOW = 90 * 24 * 3600 * 1000;
+
+/** Hoeveel van de seizoenen van deze titel heeft de gebruiker afgevinkt. */
+export function watchedSeasonCount(title: Title, rating: Rating | undefined): number {
+  return (rating?.seasons || []).filter((n) => title.seasons.some((s) => s.season_number === n)).length;
+}
+
+/** Kwam er recent een nieuw seizoen bij dat de gebruiker nog niet zag? */
+export function hasUnseenNewSeason(snap: Snapshot, title: Title, userId: string): boolean {
+  if (!title.new_season_at || Date.now() - title.new_season_at > NEW_SEASON_WINDOW) return false;
+  const r = myRating(snap, title.tmdb_id, userId);
+  if (!r) return false;
+  return watchedSeasonCount(title, r) < title.seasons.length;
+}
+
+/** Series met een nieuw seizoen die je 7 of hoger gaf — voor de "Voor jou"-pagina. */
+export function newSeasonForYou(snap: Snapshot, userId: string): Title[] {
+  return snap.titles
+    .filter((t) => {
+      if (!t.new_season_at || Date.now() - t.new_season_at > NEW_SEASON_WINDOW) return false;
+      const r = myRating(snap, t.tmdb_id, userId);
+      if (!r || r.score == null || r.score < 7) return false;
+      return watchedSeasonCount(t, r) < t.seasons.length;
+    })
+    .sort((a, b) => (b.new_season_at ?? 0) - (a.new_season_at ?? 0));
+}
+
 /** Series die een vriend (of jij) op dit moment kijkt. */
 export function watchingTitles(snap: Snapshot, userId: string): Title[] {
   return snap.ratings

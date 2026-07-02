@@ -29,6 +29,9 @@ export interface Title {
   overview: string | null;
   cast: string[];
   imdb_id?: string | null;
+  tmdb_status?: string | null;
+  refreshed_at?: number | null;
+  new_season_at?: number | null;
   added_by: string | null;
   created_at: number;
 }

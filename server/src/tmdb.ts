@@ -61,6 +61,7 @@ export interface TitleDetails {
   overview: string;
   cast: string[];
   imdb_id: string | null;
+  status: string | null;
 }
 
 // Alleen het IMDb-id ophalen (lichte call, voor het bijwerken van bestaande titels).
@@ -114,5 +115,6 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
     overview: data.overview || '',
     cast,
     imdb_id: data.external_ids?.imdb_id || null,
+    status: data.status || null,
   };
 }

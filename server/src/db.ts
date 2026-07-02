@@ -35,6 +35,9 @@ db.exec(`
     overview       TEXT,
     cast           TEXT NOT NULL DEFAULT '[]',
     imdb_id        TEXT,
+    tmdb_status    TEXT,
+    refreshed_at   INTEGER,
+    new_season_at  INTEGER,
     added_by       TEXT,
     created_at     INTEGER NOT NULL
   );
@@ -94,14 +97,19 @@ db.exec(`
   );
 `);
 
-// imdb_id-kolom toevoegen aan bestaande databases (idempotent).
-function addImdbColumn(): void {
+// Kolommen toevoegen aan bestaande databases (idempotent).
+function addTitleColumns(): void {
   const cols = db.prepare('PRAGMA table_info(titles)').all() as any[];
-  if (!cols.some((c) => c.name === 'imdb_id')) {
-    db.exec('ALTER TABLE titles ADD COLUMN imdb_id TEXT');
-  }
+  const names = new Set(cols.map((c) => c.name));
+  const add = (name: string, type: string) => {
+    if (!names.has(name)) db.exec(`ALTER TABLE titles ADD COLUMN ${name} ${type}`);
+  };
+  add('imdb_id', 'TEXT');
+  add('tmdb_status', 'TEXT');
+  add('refreshed_at', 'INTEGER');
+  add('new_season_at', 'INTEGER');
 }
-addImdbColumn();
+addTitleColumns();
 
 // Bestaande titels en beoordelingen normaliseren naar samengevoegde dienstnamen
 // (idempotent: al-genormaliseerde namen blijven gelijk).
