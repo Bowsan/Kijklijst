@@ -2,8 +2,7 @@ import { useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { saveProfile, saveRating, refreshTitles } from '../lib/api';
 import { setBlind, logout, type Theme } from '../lib/identity';
-import { NL_SERVICES } from '../lib/services';
-import { profileById } from '../lib/compute';
+import { profileById, serviceOptions } from '../lib/compute';
 import Avatar from './Avatar';
 
 function today() {
@@ -209,7 +208,7 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
       <h2>Mijn streamingdiensten</h2>
       <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>Optioneel — helpt de app raden waar je een serie keek.</p>
       <div className="service-grid">
-        {NL_SERVICES.map((s) => (
+        {serviceOptions(snap).map((s) => (
           <button key={s} className={services.includes(s) ? 'sel' : ''} onClick={() => toggleService(s)}>{s}</button>
         ))}
       </div>

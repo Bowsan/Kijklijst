@@ -1,6 +1,24 @@
 import type { Snapshot, Title, Rating, Profile } from './types';
+import { NL_SERVICES } from './services';
 
 export const MIN_RATINGS_FOR_PROFILE = 5;
+
+/**
+ * De volledige lijst streamingdiensten — één gedeelde bron voor het profiel én
+ * de filter, zodat ze altijd gelijk zijn. De bekende NL-diensten eerst, daarna
+ * eventuele extra diensten die daadwerkelijk in gebruik zijn.
+ */
+export function serviceOptions(snap: Snapshot): string[] {
+  const seen = new Set<string>(NL_SERVICES);
+  const extras: string[] = [];
+  const add = (s: string | null | undefined) => {
+    if (s && !seen.has(s)) { seen.add(s); extras.push(s); }
+  };
+  snap.titles.forEach((t) => t.providers.forEach(add));
+  snap.ratings.forEach((r) => add(r.service));
+  snap.profiles.forEach((p) => p.services.forEach(add));
+  return [...NL_SERVICES, ...extras];
+}
 
 /** Id's van de mensen die deze gebruiker volgt. */
 export function followingIds(snap: Snapshot, userId: string): string[] {
