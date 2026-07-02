@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Snapshot, Title, SearchResult } from '../lib/types';
-import { POSTER_SMALL } from '../lib/types';
+import { POSTER_BASE } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
   newSeasonForYou,
@@ -18,11 +18,57 @@ interface Props {
   toast: (m: string) => void;
 }
 
-// Korte, menselijke uitleg waarom een berekende tip in de lijst staat.
-function computedReason(groupAvg: number, reasonGenres: string[]): string {
-  const base = `Hoog gewaardeerd in de groep (gem. ${groupAvg.toFixed(1)})`;
-  if (reasonGenres.length === 0) return base;
-  return `${base} en past bij je smaak voor ${reasonGenres.slice(0, 2).join(' & ').toLowerCase()}`;
+// Menselijke uitleg waarom een berekende tip in de lijst staat — als losse regel,
+// niet als een zwaar kadertje.
+function ComputedReason({ groupAvg, reasonGenres }: { groupAvg: number; reasonGenres: string[] }) {
+  return (
+    <div className="rec-reason">
+      <span className="ric">✨</span>
+      <span>
+        Hoog gewaardeerd in de groep <b>(gem. {groupAvg.toFixed(1)})</b>
+        {reasonGenres.length > 0 && (
+          <> en past bij je smaak voor <b>{reasonGenres.slice(0, 2).join(' & ').toLowerCase()}</b></>
+        )}
+      </span>
+    </div>
+  );
+}
+
+// Ontdek-kaart voor een nog niet toegevoegde TMDb-serie: poster, omschrijving,
+// IMDb-link en een knop om 'm op de wishlist te zetten.
+function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: number) => void }) {
+  const [open, setOpen] = useState(false);
+  const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${item.name} ${item.year || ''}`.trim())}&s=tt&ttype=tv`;
+  return (
+    <div className="card discover-card">
+      <div className="title-head">
+        {item.poster_path
+          ? <img className="poster" src={POSTER_BASE + item.poster_path} alt="" loading="lazy" />
+          : <div className="poster" />}
+        <div className="title-meta">
+          <h3>{item.name}</h3>
+          <div className="title-sub">{item.year || '—'}</div>
+          {item.overview
+            ? (
+              <p
+                className={`dc-overview${open ? '' : ' clamp'}`}
+                onClick={() => setOpen((o) => !o)}
+                title={open ? 'Inklappen' : 'Lees meer'}
+              >
+                {item.overview}
+              </p>
+            )
+            : <p className="dc-overview empty-note">Nog geen omschrijving beschikbaar.</p>}
+        </div>
+      </div>
+      <div className="dc-actions">
+        <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
+          <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+        </a>
+        <button className="btn primary dc-add" onClick={() => onAdd(item.tmdb_id)}>+ Toevoegen</button>
+      </div>
+    </div>
+  );
 }
 
 export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChange, toast }: Props) {
@@ -53,10 +99,13 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {/* 1. Nieuw seizoen van een serie die je 7+ gaf */}
       {newSeasons.length > 0 && (
         <>
-          <h2>🎉 1. Nieuw seizoen</h2>
+          <h2>1. Nieuw seizoen</h2>
           {newSeasons.map((title) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <div className="pill-recommend">Er is een nieuw seizoen van <b>{title.name}</b> — jij vond 'm goed!</div>
+              <div className="rec-reason">
+                <span className="ric">🎉</span>
+                <span>Er is een nieuw seizoen van <b>{title.name}</b> — jij vond 'm goed!</span>
+              </div>
               <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
             </div>
           ))}
@@ -69,8 +118,9 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           <h2>2. Aanraders van vrienden</h2>
           {incoming.map(({ rec, from, title }) => (
             <div key={rec.id} style={{ marginBottom: 16 }}>
-              <div className="pill-recommend">
-                <b>{from?.name || 'Iemand'}</b> raadt jou aan{rec.note ? `: "${rec.note}"` : ''}
+              <div className="rec-reason">
+                <span className="ric">💌</span>
+                <span><b>{from?.name || 'Iemand'}</b> raadt jou aan{rec.note ? `: "${rec.note}"` : ''}</span>
               </div>
               <TitleCard snap={snap} title={title!} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
               <button
@@ -99,7 +149,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           <h2>3. Misschien iets voor jou</h2>
           {computed.map(({ title, groupAvg, reasonGenres }) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <div className="pill-recommend">{computedReason(groupAvg, reasonGenres)}</div>
+              <ComputedReason groupAvg={groupAvg} reasonGenres={reasonGenres} />
               <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
             </div>
           ))}
@@ -109,19 +159,14 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {/* 4. Ontdek — de nieuwste series bij TMDb die nog niet in de app staan */}
       {newest.length > 0 && (
         <>
-          <h2>✨ Nieuw bij TMDb</h2>
-          <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 10px' }}>
-            De nieuwste series — nog niet op jullie lijst.
+          <h2>4. Nieuw bij TMDb</h2>
+          <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 12px' }}>
+            De nieuwste series — nog niet op jullie lijst. Tik op de tekst voor de hele omschrijving.
           </p>
           {newest.map((r) => (
-            <button key={r.tmdb_id} className="suggestion" onClick={() => onAdd(r.tmdb_id)}>
-              {r.poster_path ? <img src={POSTER_SMALL + r.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="s-name">{r.name}</div>
-                <div className="title-sub">{r.year || '—'}</div>
-              </div>
-              <span className="chip" style={{ flexShrink: 0, color: 'var(--accent)', borderColor: 'var(--accent)' }}>+ Toevoegen</span>
-            </button>
+            <div key={r.tmdb_id} style={{ marginBottom: 16 }}>
+              <DiscoverCard item={r} onAdd={onAdd} />
+            </div>
           ))}
         </>
       )}
