@@ -683,7 +683,24 @@ input, textarea, select {
 .qr { display: flex; justify-content: center; padding: 16px; background: #fff; border-radius: 14px; margin: 12px 0; }
 .qr img { width: 200px; height: 200px; }
 .note { font-size: 13px; color: var(--muted); font-style: italic; }
-.pill-recommend { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid var(--accent); border-radius: 12px; padding: 8px 10px; font-size: 13px; margin-bottom: 8px; }
+/* Toelichting boven een tip: een lichte losse regel i.p.v. een zwaar kadertje. */
+.rec-reason {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 2px 4px 7px; font-size: 12.5px; line-height: 1.45; color: var(--muted);
+}
+.rec-reason .ric { flex-shrink: 0; }
+.rec-reason b { color: var(--text); font-weight: 600; }
+
+/* Ontdek-kaart voor nog niet toegevoegde TMDb-series */
+.discover-card { display: flex; flex-direction: column; gap: 12px; }
+.dc-overview { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+.dc-overview.clamp {
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden; cursor: pointer;
+}
+.dc-overview.empty-note { font-style: italic; }
+.dc-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.dc-add { flex-shrink: 0; }
 .toast {
   position: fixed; bottom: calc(84px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
