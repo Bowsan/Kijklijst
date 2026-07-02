@@ -167,7 +167,6 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <h3>{title.name}</h3>
           <div className="title-sub">
             {title.year || '—'}
-            {title.seasons.length && !seasonsChip ? ` · ${title.seasons.length} sz` : ''}
             {currentService ? ` · ${currentService}` : ''}
           </div>
           {title.genres.length > 0 && (
@@ -178,7 +177,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="metarow">
               {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
-                <span className="mchip seasons">{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
+                // Groen als je alle seizoenen zag, anders lichtgrijs (nog niet af).
+                <span className={`mchip${watchedSeasonCount >= totalSeasons ? ' seasons' : ''}`}>{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
               )}
               {others.length > 0 && <span className="mchip">👥 {others.length}</span>}
               {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
