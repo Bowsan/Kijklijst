@@ -575,7 +575,7 @@ export default function App() {
       )}
 
       {tab === 'foryou' && (
-        <ForYou snap={snap} userId={userId} blind={blind} onRecommend={setRecommendTarget} onChange={reload} toast={toast} />
+        <ForYou snap={snap} userId={userId} blind={blind} onRecommend={setRecommendTarget} onAdd={addTitle} onChange={reload} toast={toast} />
       )}
 
       {tab === 'friends' && (

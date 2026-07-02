@@ -26,6 +26,13 @@ export async function searchTmdb(q: string, signal?: AbortSignal): Promise<Searc
   return res.json();
 }
 
+// De nieuwste series ophalen bij TMDb (voor de ontdek-sectie in "Voor jou").
+export async function discoverNewTv(): Promise<SearchResult[]> {
+  const res = await fetch('/api/tmdb/new', { headers: headers() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function fetchTitleDetails(id: number): Promise<Title> {
   const res = await fetch(`/api/tmdb/tv/${id}`, { headers: headers() });
   if (!res.ok) throw new Error('kon details niet laden');
