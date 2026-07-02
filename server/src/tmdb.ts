@@ -29,6 +29,18 @@ export interface SearchResult {
   year: number | null;
   poster_path: string | null;
   overview: string;
+  providers?: string[];
+}
+
+// De NL-streamingdiensten voor één serie ophalen (lichte losse call).
+export async function getWatchProviders(id: number): Promise<string[]> {
+  const data = await tmdb(`/tv/${id}/watch/providers`);
+  const region = data.results?.[REGION];
+  const set = new Map<number, string>();
+  for (const kind of ['flatrate', 'free', 'ads'] as const) {
+    for (const p of region?.[kind] || []) set.set(p.provider_id, p.provider_name);
+  }
+  return canonicalProviders([...set.values()]);
 }
 
 export async function searchTv(query: string): Promise<SearchResult[]> {
@@ -60,9 +72,9 @@ export async function getNewTv(): Promise<SearchResult[]> {
     'vote_count.gte': '15',
     watch_region: REGION,
   });
-  return (data.results || [])
+  const results: SearchResult[] = (data.results || [])
     .filter((r: any) => r.first_air_date)
-    .slice(0, 20)
+    .slice(0, 10)
     .map((r: any) => ({
       tmdb_id: r.id,
       name: r.name,
@@ -70,6 +82,15 @@ export async function getNewTv(): Promise<SearchResult[]> {
       poster_path: r.poster_path,
       overview: r.overview || '',
     }));
+
+  // Per serie de NL-streamingdienst(en) erbij zoeken (parallel; fout = geen dienst).
+  await Promise.all(
+    results.map(async (r) => {
+      try { r.providers = await getWatchProviders(r.tmdb_id); }
+      catch { r.providers = []; }
+    }),
+  );
+  return results;
 }
 
 export interface TitleDetails {
