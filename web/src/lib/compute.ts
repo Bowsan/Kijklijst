@@ -249,23 +249,27 @@ export function tasteMates(snap: Snapshot, userId: string): { profile: Profile; 
 }
 
 /** Berekende aanraders: hoge groepscijfers die passen bij je smaakprofiel, die je nog niet zag. */
-export function computedRecommendations(snap: Snapshot, userId: string): { title: Title; groupAvg: number; score: number }[] {
+export function computedRecommendations(
+  snap: Snapshot,
+  userId: string,
+): { title: Title; groupAvg: number; score: number; reasonGenres: string[] }[] {
   const profile = tasteProfile(snap, userId);
   const genreScore = new Map(profile.map((g) => [g.genre, g.avg]));
 
-  const result: { title: Title; groupAvg: number; score: number }[] = [];
+  const result: { title: Title; groupAvg: number; score: number; reasonGenres: string[] }[] = [];
   for (const t of snap.titles) {
     if (myRating(snap, t.tmdb_id, userId)?.score != null) continue;
     const avg = groupAverage(snap, t.tmdb_id);
     if (avg == null) continue;
 
     // Genre-affiniteit: gemiddelde van jouw genre-cijfers voor de genres van deze titel.
-    const affinities = t.genres.map((g) => genreScore.get(g)).filter((v): v is number => v != null);
+    const reasonGenres = t.genres.filter((g) => genreScore.has(g));
+    const affinities = reasonGenres.map((g) => genreScore.get(g)!);
     const affinity = affinities.length ? affinities.reduce((a, b) => a + b, 0) / affinities.length : 6;
 
     // Combineer groepscijfer en persoonlijke affiniteit.
     const score = avg * 0.6 + affinity * 0.4;
-    result.push({ title: t, groupAvg: avg, score });
+    result.push({ title: t, groupAvg: avg, score, reasonGenres });
   }
   return result.sort((a, b) => b.score - a.score).slice(0, 12);
 }

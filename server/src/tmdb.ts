@@ -48,6 +48,30 @@ export async function searchTv(query: string): Promise<SearchResult[]> {
     }));
 }
 
+// De nieuwste series ontdekken (voor de "Voor jou" ontdek-sectie).
+// We sorteren op eerste uitzenddatum aflopend, maar eisen een minimum aan stemmen
+// zodat we geen obscure of lege inzendingen tonen.
+export async function getNewTv(): Promise<SearchResult[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const data = await tmdb('/discover/tv', {
+    sort_by: 'first_air_date.desc',
+    include_adult: 'false',
+    'first_air_date.lte': today,
+    'vote_count.gte': '15',
+    watch_region: REGION,
+  });
+  return (data.results || [])
+    .filter((r: any) => r.first_air_date)
+    .slice(0, 20)
+    .map((r: any) => ({
+      tmdb_id: r.id,
+      name: r.name,
+      year: r.first_air_date ? Number(r.first_air_date.slice(0, 4)) : null,
+      poster_path: r.poster_path,
+      overview: r.overview || '',
+    }));
+}
+
 export interface TitleDetails {
   tmdb_id: number;
   name: string;

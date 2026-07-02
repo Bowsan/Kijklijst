@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { db, getSnapshot, parseJson } from './db.js';
-import { searchTv, getTvDetails, getImdbId } from './tmdb.js';
+import { searchTv, getTvDetails, getImdbId, getNewTv } from './tmdb.js';
 import { addClient, broadcast } from './events.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +58,15 @@ app.get('/api/tmdb/search', async (req, res) => {
   try {
     const q = String(req.query.q || '');
     res.json(await searchTv(q));
+  } catch (err: any) {
+    res.status(502).json({ error: err.message });
+  }
+});
+
+// De nieuwste series (ontdek-sectie in "Voor jou").
+app.get('/api/tmdb/new', async (_req, res) => {
+  try {
+    res.json(await getNewTv());
   } catch (err: any) {
     res.status(502).json({ error: err.message });
   }

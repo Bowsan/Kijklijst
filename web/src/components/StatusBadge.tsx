@@ -6,7 +6,8 @@ export const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
   watching: { bg: 'color-mix(in srgb, var(--info) 16%, transparent)', fg: 'var(--info)' },
   finished: { bg: 'rgba(76,205,141,0.16)', fg: 'var(--good)' },
   want: { bg: 'rgba(255,209,102,0.18)', fg: 'var(--warn)' },
-  dropped: { bg: 'rgba(154,163,178,0.16)', fg: 'var(--muted)' },
+  // Grauw-rood: herkenbaar als "gestopt", maar met weinig verzadiging.
+  dropped: { bg: 'rgba(178,110,110,0.16)', fg: '#b47b7b' },
 };
 
 /** Gekleurd statuslabel zodat je in één oogopslag ziet hoe een serie op jouw lijst staat. */
