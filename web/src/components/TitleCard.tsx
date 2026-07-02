@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, type RatingUpdate } from '../lib/api';
-import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles } from '../lib/compute';
+import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
@@ -82,6 +82,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const totalSeasons = title.seasons.length;
   const watchedSeasonCount = mine?.seasons?.filter((n) => title.seasons.some((s) => s.season_number === n)).length ?? 0;
   const seasonsChip = !!mine && totalSeasons > 1;
+  const newSeason = hasUnseenNewSeason(snap, title, userId);
 
   const initService = mine?.service || '';
   // "Anders…" alleen als de dienst noch bij TMDb, noch bij de bekende NL-diensten hoort.
@@ -172,9 +173,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {title.genres.length > 0 && (
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
-          {/* Uitgelijnde meta-rij: seizoen-voortgang, kijkers en aanraders */}
-          {(seasonsChip || others.length > 0 || totalRecCount > 0) && (
+          {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
+          {(newSeason || seasonsChip || others.length > 0 || totalRecCount > 0) && (
             <div className="metarow">
+              {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
                 <span className="mchip seasons">{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
               )}

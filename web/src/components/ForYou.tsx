@@ -1,6 +1,7 @@
 import type { Snapshot, Title } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
+  newSeasonForYou,
 } from '../lib/compute';
 import { dismissRecommendation } from '../lib/api';
 import TitleCard from './TitleCard';
@@ -17,6 +18,7 @@ interface Props {
 export default function ForYou({ snap, userId, blind, onRecommend, onChange, toast }: Props) {
   const count = ratedCount(snap, userId);
   const incoming = incomingRecommendations(snap, userId);
+  const newSeasons = newSeasonForYou(snap, userId);
   const ready = count >= MIN_RATINGS_FOR_PROFILE;
   const computed = ready ? computedRecommendations(snap, userId) : [];
 
@@ -27,6 +29,19 @@ export default function ForYou({ snap, userId, blind, onRecommend, onChange, toa
 
   return (
     <div className="page">
+      {/* Nieuw seizoen van een serie die je 7+ gaf */}
+      {newSeasons.length > 0 && (
+        <>
+          <h2>🎉 Nieuw seizoen</h2>
+          {newSeasons.map((title) => (
+            <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
+              <div className="pill-recommend">Er is een nieuw seizoen van <b>{title.name}</b> — jij vond 'm goed!</div>
+              <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
+            </div>
+          ))}
+        </>
+      )}
+
       {/* Persoonlijke aanraders van vrienden — altijd, ook onder de 5 */}
       {incoming.length > 0 && (
         <>
@@ -68,7 +83,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onChange, toa
             </>
           )}
 
-          {computed.length === 0 && incoming.length === 0 && (
+          {computed.length === 0 && incoming.length === 0 && newSeasons.length === 0 && (
             <p className="muted center" style={{ padding: 30 }}>Nog geen tips — voeg meer series toe of laat vrienden cijfers geven.</p>
           )}
         </>

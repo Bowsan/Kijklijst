@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { saveProfile, saveRating } from '../lib/api';
+import { saveProfile, saveRating, refreshTitles } from '../lib/api';
 import { setBlind, logout, type Theme } from '../lib/identity';
 import { NL_SERVICES } from '../lib/services';
 import { profileById } from '../lib/compute';
@@ -112,6 +112,19 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
   const importRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const doRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const { count } = await refreshTitles();
+      toast(`Serie-info wordt bijgewerkt (${count}) — nieuwe seizoenen verschijnen vanzelf`);
+    } catch (e: any) {
+      toast(e.message || 'Bijwerken mislukt');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleImport = async (file: File) => {
     setImporting(true);
@@ -228,6 +241,16 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
       </div>
 
       <button className="btn full" style={{ marginTop: 12 }} onClick={onShare}>🔗 Vrienden erbij halen</button>
+
+      <h2>Serie-info</h2>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="muted" style={{ fontSize: 13 }}>
+          Lopende series worden automatisch bijgewerkt. Wil je nu alles verversen (nieuwe seizoenen, diensten, posters)?
+        </div>
+        <button className="btn ghost" disabled={refreshing} onClick={doRefresh}>
+          {refreshing ? 'Bezig…' : '🔄 Serie-info bijwerken'}
+        </button>
+      </div>
 
       <h2>Gegevens</h2>
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

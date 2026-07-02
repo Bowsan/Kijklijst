@@ -157,6 +157,7 @@ input, textarea, select {
   font-size: 12px; font-weight: 600; white-space: nowrap;
 }
 .mchip.seasons { background: color-mix(in srgb, var(--good) 14%, var(--surface)); color: var(--good); }
+.mchip.newseason { background: color-mix(in srgb, #f5c518 22%, var(--surface)); color: #a67c00; border: 1px solid color-mix(in srgb, #f5c518 45%, var(--border)); }
 
 /* Secties in het opengeklapte kaartje: duidelijk gescheiden blokken */
 .tc-section {
@@ -608,6 +609,7 @@ input, textarea, select {
 .activity-text { font-size: 13px; }
 .activity-text b { font-weight: 700; }
 .activity-time { font-size: 11px; color: var(--muted); }
+.act-emoji { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--surface-2); flex-shrink: 0; }
 
 /* ---------- Modal / sheet ---------- */
 .sheet-backdrop {

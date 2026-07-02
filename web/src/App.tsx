@@ -5,7 +5,7 @@ import { getUserId, getBlind, getTheme, setTheme, type Theme } from './lib/ident
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
-  profileById, myRating, groupAverage, incomingRecommendations, selectTitles,
+  profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -329,7 +329,7 @@ export default function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const forYouCount = snap ? incomingRecommendations(snap, userId).length : 0;
+  const forYouCount = snap ? incomingRecommendations(snap, userId).length + newSeasonForYou(snap, userId).length : 0;
 
   // Laden
   if (!snap) return <div className="loading">Laden…</div>;

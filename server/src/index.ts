@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import { db, getSnapshot } from './db.js';
+import { db, getSnapshot, parseJson } from './db.js';
 import { searchTv, getTvDetails, getImdbId } from './tmdb.js';
 import { addClient, broadcast } from './events.js';
 
@@ -79,12 +79,12 @@ async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any>
   const d = await getTvDetails(tmdbId);
   db.prepare(
     `INSERT INTO titles
-      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, imdb_id, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     d.tmdb_id, d.name, d.year, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
-    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, addedBy, Date.now()
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, d.status, Date.now(), addedBy, Date.now()
   );
   return db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
 }
@@ -373,11 +373,88 @@ async function backfillImdbIds(): Promise<void> {
   console.log(`IMDb-backfill klaar: ${filled} van ${rows.length} bijgewerkt.`);
 }
 
+const ONGOING = new Set(['Returning Series', 'In Production', 'Planned', 'Pilot']);
+
+// Eén serie verversen bij TMDb. Werkt de info bij en detecteert een nieuw seizoen.
+async function refreshTitle(tmdbId: number): Promise<boolean> {
+  const existing: any = db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
+  if (!existing) return false;
+
+  const d = await getTvDetails(tmdbId);
+  const oldSeasons = parseJson<any[]>(existing.seasons, []);
+  const gainedSeason = d.seasons.length > oldSeasons.length;
+  const now = Date.now();
+
+  db.prepare(
+    `UPDATE titles SET
+       name=?, year=?, poster_path=?, genres=?, seasons=?, episode_count=?, runtime=?,
+       providers=?, overview=?, cast=?, imdb_id=COALESCE(?, imdb_id), tmdb_status=?,
+       refreshed_at=?, new_season_at=?
+     WHERE tmdb_id=?`
+  ).run(
+    d.name, d.year, d.poster_path,
+    JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, d.status,
+    now, gainedSeason ? now : existing.new_season_at ?? null,
+    tmdbId,
+  );
+
+  if (gainedSeason) {
+    // Systeem-event (geen gebruiker) — verschijnt in de activiteitenlog.
+    logActivity('new_season', '', tmdbId, { from: oldSeasons.length, to: d.seasons.length });
+  }
+  return gainedSeason;
+}
+
+// Ververs een set titels op de achtergrond, rustig getimed.
+async function refreshTitles(rows: { tmdb_id: number }[], label: string): Promise<void> {
+  if (!process.env.TMDB_API_KEY || !rows.length) return;
+  console.log(`${label}: ${rows.length} titel(s) verversen…`);
+  let changed = 0;
+  for (const r of rows) {
+    try {
+      if (await refreshTitle(r.tmdb_id)) changed++;
+    } catch { /* titel overslaan bij fout */ }
+    await new Promise((res) => setTimeout(res, 300));
+  }
+  broadcast('state', getSnapshot());
+  console.log(`${label} klaar: ${changed} met een nieuw seizoen.`);
+}
+
+// Automatisch: alleen nog-lopende (of nog onbekende) series, hooguit 1×/dag.
+async function refreshOngoingTitles(): Promise<void> {
+  if (!process.env.TMDB_API_KEY) return;
+  const dayAgo = Date.now() - 24 * 3600 * 1000;
+  const rows = (db.prepare('SELECT tmdb_id, tmdb_status, refreshed_at FROM titles WHERE tmdb_id > 0').all() as any[])
+    .filter((t) => {
+      if (t.refreshed_at == null) return true; // nog nooit ververst
+      if (t.refreshed_at > dayAgo) return false; // recent genoeg
+      return t.tmdb_status == null || ONGOING.has(t.tmdb_status); // alleen lopende
+    })
+    .map((t) => ({ tmdb_id: t.tmdb_id }));
+  await refreshTitles(rows, 'Auto-refresh lopende series');
+}
+
+// Handmatig (vanuit profiel): alle echte TMDb-titels geforceerd verversen.
+app.post('/api/refresh-titles', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  if (!process.env.TMDB_API_KEY) return res.status(503).json({ error: 'TMDb-sleutel ontbreekt' });
+  const rows = db.prepare('SELECT tmdb_id FROM titles WHERE tmdb_id > 0').all() as { tmdb_id: number }[];
+  refreshTitles(rows, 'Handmatige refresh').catch((e) => console.warn('Refresh mislukt:', e?.message || e));
+  res.json({ ok: true, count: rows.length });
+});
+
 app.listen(PORT, () => {
   console.log(`Op de Bank server luistert op poort ${PORT}`);
   if (!process.env.TMDB_API_KEY) {
     console.warn('LET OP: TMDB_API_KEY ontbreekt — zoeken en details werken pas met een sleutel.');
   }
-  // Niet awaiten: de backfill mag rustig op de achtergrond lopen.
+  // Niet awaiten: op de achtergrond laten lopen.
   backfillImdbIds().catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e));
+  refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
+  // Daarna elke 12 uur opnieuw de lopende series checken.
+  setInterval(() => {
+    refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
+  }, 12 * 3600 * 1000);
 });
