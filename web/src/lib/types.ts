@@ -104,6 +104,7 @@ export interface SearchResult {
   year: number | null;
   poster_path: string | null;
   overview: string;
+  providers?: string[];
 }
 
 export const STATUS_LABELS: Record<Status, string> = {

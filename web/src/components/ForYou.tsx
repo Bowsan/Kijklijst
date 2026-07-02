@@ -31,7 +31,10 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
           : <div className="poster" />}
         <div className="title-meta">
           <h3>{item.name}</h3>
-          <div className="title-sub">{item.year || '—'}</div>
+          <div className="title-sub">
+            {item.year || '—'}
+            {item.providers && item.providers.length > 0 && ` · ${item.providers.join(', ')}`}
+          </div>
           {item.overview
             ? (
               <p
