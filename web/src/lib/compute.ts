@@ -29,7 +29,8 @@ export function visibleUserIds(snap: Snapshot, userId: string): string[] {
   return [userId, ...followingIds(snap, userId)];
 }
 
-export type StatusValue = 'all' | 'want' | 'watching' | 'finished' | 'dropped';
+// 'notdone' = "nog afkijken": gemarkeerd als gezien, maar nog niet alle seizoenen afgevinkt.
+export type StatusValue = 'all' | 'want' | 'watching' | 'finished' | 'dropped' | 'notdone';
 
 export interface ListFilters {
   status: StatusValue;
@@ -37,6 +38,19 @@ export interface ListFilters {
   services: string[];
   genres: string[];
   name: string;
+}
+
+/** Voldoet een beoordeling (van deze persoon, voor deze titel) aan de statusfilter? */
+function matchesStatus(r: Rating, t: Title, status: StatusValue): boolean {
+  if (status === 'all') return true;
+  if (status === 'notdone') {
+    if (r.status !== 'finished') return false;
+    const total = t.seasons.length;
+    if (total === 0) return false;
+    const watched = (r.seasons || []).filter((n) => t.seasons.some((s) => s.season_number === n)).length;
+    return watched < total;
+  }
+  return r.status === status;
 }
 
 /**
@@ -48,11 +62,7 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
   const personSet = new Set(personIds);
 
   let list = snap.titles.filter((t) =>
-    snap.ratings.some((r) =>
-      r.title_id === t.tmdb_id &&
-      personSet.has(r.user_id) &&
-      (f.status === 'all' ? true : r.status === f.status),
-    ),
+    snap.ratings.some((r) => r.title_id === t.tmdb_id && personSet.has(r.user_id) && matchesStatus(r, t, f.status)),
   );
 
   if (f.genres.length) list = list.filter((t) => f.genres.some((g) => t.genres.includes(g)));
