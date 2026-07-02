@@ -5,7 +5,7 @@ import { getUserId, getBlind, getTheme, setTheme, type Theme } from './lib/ident
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
-  profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou,
+  profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou, serviceOptions,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -198,12 +198,8 @@ export default function App() {
     [snap, userId],
   );
 
-  const allServices = useMemo(() => {
-    if (!snap) return [];
-    const set = new Set<string>();
-    snap.titles.forEach((t) => t.providers.forEach((p) => set.add(p)));
-    return [...set].sort();
-  }, [snap]);
+  // Zelfde dienstenlijst als het profiel (gedeelde bron).
+  const allServices = useMemo(() => (snap ? serviceOptions(snap) : []), [snap]);
 
   // --- Zoeken/toevoegen via de + knop ---
   const searchQuery = nameFilter.trim();
@@ -618,8 +614,14 @@ export default function App() {
           friend={friend}
           services={services}
           genres={genres}
+          myServices={me?.services || []}
           onFriend={setFriend}
           onToggleService={(s) => setServices((arr) => (arr.includes(s) ? arr.filter((x) => x !== s) : [...arr, s]))}
+          onMyServices={() => setServices((cur) => {
+            const mine = me?.services || [];
+            const allOn = mine.length > 0 && mine.every((s) => cur.includes(s));
+            return allOn ? cur.filter((s) => !mine.includes(s)) : [...new Set([...cur, ...mine])];
+          })}
           onToggleGenre={(g) => setGenres((arr) => (arr.includes(g) ? arr.filter((x) => x !== g) : [...arr, g]))}
           onToggleDropped={() => setStatus((st) => (st === 'dropped' ? 'all' : 'dropped'))}
           onToggleNotDone={() => setStatus((st) => (st === 'notdone' ? 'all' : 'notdone'))}

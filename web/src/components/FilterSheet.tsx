@@ -14,8 +14,10 @@ interface Props {
   friend: string;
   services: string[];
   genres: string[];
+  myServices: string[];
   onFriend: (v: string) => void;
   onToggleService: (s: string) => void;
+  onMyServices: () => void;
   onToggleGenre: (g: string) => void;
   onToggleDropped: () => void;
   onToggleNotDone: () => void;
@@ -25,13 +27,14 @@ interface Props {
 
 export default function FilterSheet({
   snap, userId, allServices, allGenres, status,
-  friend, services, genres,
-  onFriend, onToggleService, onToggleGenre, onToggleDropped, onToggleNotDone, onClear, onClose,
+  friend, services, genres, myServices,
+  onFriend, onToggleService, onMyServices, onToggleGenre, onToggleDropped, onToggleNotDone, onClear, onClose,
 }: Props) {
   const friends = followingProfiles(snap, userId);
   const me = snap.profiles.find((p) => p.id === userId);
   const dropped = status === 'dropped';
   const notDone = status === 'notdone';
+  const myServicesOn = myServices.length > 0 && myServices.every((s) => services.includes(s));
 
   // Live aantal series dat overblijft met de huidige keuze ('me' → jouw account).
   const count = selectTitles(snap, userId, {
@@ -65,6 +68,11 @@ export default function FilterSheet({
         <div className="filter-section">
           <div className="fs-label">Streamingdiensten</div>
           <div className="chip-wrap">
+            {myServices.length > 0 && (
+              <button className={`chip-toggle ${myServicesOn ? 'on' : ''}`} onClick={onMyServices}>
+                ★ Mijn diensten
+              </button>
+            )}
             {allServices.map((s) => (
               <button key={s} className={`chip-toggle ${services.includes(s) ? 'on' : ''}`} onClick={() => onToggleService(s)}>
                 {s}
