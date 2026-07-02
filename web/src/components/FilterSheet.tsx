@@ -1,41 +1,41 @@
 import type { Snapshot } from '../lib/types';
-import { selectTitles, followingProfiles } from '../lib/compute';
+import { selectTitles, followingProfiles, type StatusValue } from '../lib/compute';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
-
-export type StatusTab = 'all' | 'want' | 'watching' | 'finished';
 
 interface Props {
   snap: Snapshot;
   userId: string;
   allServices: string[];
   allGenres: string[];
-  /** De actieve statustab — nodig voor de live "Toon N series"-teller. */
-  baseStatus: StatusTab;
+  /** De actieve status (incl. overloop-opties Afgehaakt / Nog afkijken). */
+  status: StatusValue;
   // Live waarden + directe setters: een keuze is meteen van toepassing.
   friend: string;
   services: string[];
   genres: string[];
-  dropped: boolean;
   onFriend: (v: string) => void;
   onToggleService: (s: string) => void;
   onToggleGenre: (g: string) => void;
   onToggleDropped: () => void;
+  onToggleNotDone: () => void;
   onClear: () => void;
   onClose: () => void;
 }
 
 export default function FilterSheet({
-  snap, userId, allServices, allGenres, baseStatus,
-  friend, services, genres, dropped,
-  onFriend, onToggleService, onToggleGenre, onToggleDropped, onClear, onClose,
+  snap, userId, allServices, allGenres, status,
+  friend, services, genres,
+  onFriend, onToggleService, onToggleGenre, onToggleDropped, onToggleNotDone, onClear, onClose,
 }: Props) {
   const friends = followingProfiles(snap, userId);
   const me = snap.profiles.find((p) => p.id === userId);
+  const dropped = status === 'dropped';
+  const notDone = status === 'notdone';
 
   // Live aantal series dat overblijft met de huidige keuze ('me' → jouw account).
   const count = selectTitles(snap, userId, {
-    status: dropped ? 'dropped' : baseStatus,
+    status,
     friend: friend === 'me' ? userId : friend,
     services, genres, name: '',
   }).length;
@@ -88,12 +88,15 @@ export default function FilterSheet({
         </div>
       )}
 
-      {/* Status — overloop (Afgehaakt past niet in de tabbalk) */}
+      {/* Status — overloop (past niet in de tabbalk) */}
       <div className="filter-section">
         <div className="fs-label">Status</div>
         <div className="chip-wrap">
           <button className={`chip-toggle ${dropped ? 'on' : ''}`} onClick={onToggleDropped}>
             Afgehaakt
+          </button>
+          <button className={`chip-toggle ${notDone ? 'on' : ''}`} onClick={onToggleNotDone}>
+            Nog afkijken
           </button>
         </div>
       </div>

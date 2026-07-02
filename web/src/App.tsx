@@ -26,7 +26,7 @@ import ManualAddSheet from './components/ManualAddSheet';
 
 type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 type StatusTab = 'all' | 'want' | 'watching' | 'finished';
-type StatusValue = StatusTab | 'dropped';
+type StatusValue = StatusTab | 'dropped' | 'notdone';
 
 // De statustabs bovenaan (kijkstatus). Afgehaakt zit in het filterpaneel.
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
@@ -133,7 +133,8 @@ export default function App() {
 
   // "Jij" heeft een eigen knop, dus die telt hier niet mee als paneelfilter.
   const activeFilterCount =
-    (friend && friend !== 'me' ? 1 : 0) + services.length + genres.length + (status === 'dropped' ? 1 : 0);
+    (friend && friend !== 'me' ? 1 : 0) + services.length + genres.length +
+    (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
     if (sortKey === key && sortDir === dir) {
@@ -495,6 +496,9 @@ export default function App() {
               {status === 'dropped' && (
                 <button className="active-chip" onClick={() => setStatus('all')}>Afgehaakt ✕</button>
               )}
+              {status === 'notdone' && (
+                <button className="active-chip" onClick={() => setStatus('all')}>Nog afkijken ✕</button>
+              )}
             </div>
           )}
 
@@ -610,16 +614,16 @@ export default function App() {
           userId={userId}
           allServices={allServices}
           allGenres={allGenres}
-          baseStatus={status === 'dropped' ? 'all' : status}
+          status={status}
           friend={friend}
           services={services}
           genres={genres}
-          dropped={status === 'dropped'}
           onFriend={setFriend}
           onToggleService={(s) => setServices((arr) => (arr.includes(s) ? arr.filter((x) => x !== s) : [...arr, s]))}
           onToggleGenre={(g) => setGenres((arr) => (arr.includes(g) ? arr.filter((x) => x !== g) : [...arr, g]))}
           onToggleDropped={() => setStatus((st) => (st === 'dropped' ? 'all' : 'dropped'))}
-          onClear={() => { setFriend('me'); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' ? 'all' : st)); }}
+          onToggleNotDone={() => setStatus((st) => (st === 'notdone' ? 'all' : 'notdone'))}
+          onClear={() => { setFriend('me'); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' || st === 'notdone' ? 'all' : st)); }}
           onClose={() => setShowFilterSheet(false)}
         />
       )}
