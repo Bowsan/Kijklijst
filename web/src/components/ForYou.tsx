@@ -3,7 +3,7 @@ import type { Snapshot, Title, SearchResult } from '../lib/types';
 import { POSTER_BASE } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
-  newSeasonForYou,
+  newSeasonForYou, myRating,
 } from '../lib/compute';
 import { dismissRecommendation, discoverNewTv } from '../lib/api';
 import TitleCard from './TitleCard';
@@ -16,22 +16,6 @@ interface Props {
   onAdd: (tmdbId: number) => void;
   onChange: () => void;
   toast: (m: string) => void;
-}
-
-// Menselijke uitleg waarom een berekende tip in de lijst staat — als losse regel,
-// niet als een zwaar kadertje.
-function ComputedReason({ groupAvg, reasonGenres }: { groupAvg: number; reasonGenres: string[] }) {
-  return (
-    <div className="rec-reason">
-      <span className="ric">✨</span>
-      <span>
-        Hoog gewaardeerd in de groep <b>(gem. {groupAvg.toFixed(1)})</b>
-        {reasonGenres.length > 0 && (
-          <> en past bij je smaak voor <b>{reasonGenres.slice(0, 2).join(' & ').toLowerCase()}</b></>
-        )}
-      </span>
-    </div>
-  );
 }
 
 // Ontdek-kaart voor een nog niet toegevoegde TMDb-serie: poster, omschrijving,
@@ -89,6 +73,13 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
   const known = new Set(snap.titles.map((t) => t.tmdb_id));
   const newest = discover.filter((r) => !known.has(r.tmdb_id)).slice(0, 5);
 
+  // Jouw wishlist krijgt een eigen lijst; die series horen niet bij de tips.
+  const wishlist = snap.titles
+    .filter((t) => myRating(snap, t.tmdb_id, userId)?.status === 'want')
+    .sort((a, b) => (myRating(snap, b.tmdb_id, userId)?.updated_at ?? 0) - (myRating(snap, a.tmdb_id, userId)?.updated_at ?? 0));
+  const wishlistIds = new Set(wishlist.map((t) => t.tmdb_id));
+  const freshComputed = computed.filter((c) => !wishlistIds.has(c.title.tmdb_id));
+
   const dismiss = async (id: string) => {
     await dismissRecommendation(id);
     onChange();
@@ -99,7 +90,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {/* 1. Nieuw seizoen van een serie die je 7+ gaf */}
       {newSeasons.length > 0 && (
         <>
-          <h2>1. Nieuw seizoen</h2>
+          <h2>Nieuw seizoen</h2>
           {newSeasons.map((title) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
               <div className="rec-reason">
@@ -115,7 +106,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {/* 2. Persoonlijke aanraders van vrienden — altijd, ook onder de 5 */}
       {incoming.length > 0 && (
         <>
-          <h2>2. Aanraders van vrienden</h2>
+          <h2>Aanraders van vrienden</h2>
           {incoming.map(({ rec, from, title }) => (
             <div key={rec.id} style={{ marginBottom: 16 }}>
               <div className="rec-reason">
@@ -143,23 +134,37 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
         </div>
       )}
 
-      {/* 3. Berekende tips op basis van je smaak + groepscijfers */}
-      {ready && computed.length > 0 && (
+      {/* Berekende tips op basis van je smaak + groepscijfers (zonder cijfers per serie) */}
+      {ready && freshComputed.length > 0 && (
         <>
-          <h2>3. Misschien iets voor jou</h2>
-          {computed.map(({ title, groupAvg, reasonGenres }) => (
+          <h2>Misschien iets voor jou?</h2>
+          <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 12px' }}>
+            Hoog gewaardeerde series in jouw groep en passend genre.
+          </p>
+          {freshComputed.map(({ title }) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <ComputedReason groupAvg={groupAvg} reasonGenres={reasonGenres} />
               <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
             </div>
           ))}
         </>
       )}
 
-      {/* 4. Ontdek — de nieuwste series bij TMDb die nog niet in de app staan */}
+      {/* Jouw wishlist — series die je zelf al apart hebt gezet */}
+      {wishlist.length > 0 && (
+        <>
+          <h2>Jouw Wishlist</h2>
+          {wishlist.map((title) => (
+            <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
+              <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* Ontdek — de nieuwste series bij TMDb die nog niet in de app staan */}
       {newest.length > 0 && (
         <>
-          <h2>4. Nieuw bij TMDb</h2>
+          <h2>Nieuw bij TMDb</h2>
           <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 12px' }}>
             De nieuwste series — nog niet op jullie lijst. Tik op de tekst voor de hele omschrijving.
           </p>
@@ -171,7 +176,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
         </>
       )}
 
-      {ready && computed.length === 0 && incoming.length === 0 && newSeasons.length === 0 && newest.length === 0 && (
+      {ready && freshComputed.length === 0 && wishlist.length === 0 && incoming.length === 0 && newSeasons.length === 0 && newest.length === 0 && (
         <p className="muted center" style={{ padding: 30 }}>Nog geen tips — voeg meer series toe of laat vrienden cijfers geven.</p>
       )}
     </div>
