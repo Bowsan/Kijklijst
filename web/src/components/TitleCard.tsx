@@ -169,9 +169,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             {title.seasons.length && !seasonsChip ? ` · ${title.seasons.length} sz` : ''}
             {currentService ? ` · ${currentService}` : ''}
           </div>
-          <div className="genres">
-            {title.genres.slice(0, 2).map((g) => <span className="chip" key={g}>{g}</span>)}
-          </div>
+          {title.genres.length > 0 && (
+            <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
+          )}
           {/* Uitgelijnde meta-rij: seizoen-voortgang, kijkers en aanraders */}
           {(seasonsChip || others.length > 0 || totalRecCount > 0) && (
             <div className="metarow">
