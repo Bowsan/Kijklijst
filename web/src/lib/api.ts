@@ -73,6 +73,8 @@ export async function removeComment(id: string): Promise<any> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
   return res.json();
 }
+// Een profiel verbergen of weer tonen in de volglijst.
+export const setProfileHidden = (id: string, hidden: boolean) => post(`/api/profile/${id}/hidden`, { hidden });
 export const followUser = (followee: string) => post('/api/follow', { followee });
 export async function unfollowUser(followee: string): Promise<any> {
   const res = await fetch(`/api/follow/${followee}`, { method: 'DELETE', headers: headers() });
