@@ -54,6 +54,17 @@ export function hiddenProfiles(snap: Snapshot, userId: string): Profile[] {
   return snap.profiles.filter((p) => p.id !== userId && p.hidden);
 }
 
+/** Berichten van anderen bij series die op JOUW lijst staan. */
+export function commentsOnMyList(snap: Snapshot, userId: string) {
+  const mine = new Set(snap.ratings.filter((r) => r.user_id === userId).map((r) => r.title_id));
+  return snap.comments.filter((c) => c.user_id !== userId && mine.has(c.title_id));
+}
+
+/** Aantal nog niet geziene berichten (nieuwer dan wanneer je de log opende). */
+export function unseenCommentCount(snap: Snapshot, userId: string, since: number): number {
+  return commentsOnMyList(snap, userId).filter((c) => c.created_at > since).length;
+}
+
 /** Jij + de vrienden die je volgt — bepaalt wat er in "Alles" verschijnt. */
 export function visibleUserIds(snap: Snapshot, userId: string): string[] {
   return [userId, ...followingIds(snap, userId)];

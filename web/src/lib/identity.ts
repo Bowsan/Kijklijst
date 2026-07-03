@@ -3,6 +3,15 @@
 const ID_KEY = 'opdebank.userId';
 const BLIND_KEY = 'opdebank.blind';
 const THEME_KEY = 'opdebank.theme';
+const SEEN_KEY = 'opdebank.activitySeen';
+
+// Wanneer je de log/notificaties voor het laatst opende — bepaalt het bolletje.
+export function getActivitySeen(): number {
+  return Number(localStorage.getItem(SEEN_KEY) || 0);
+}
+export function setActivitySeen(ts: number): void {
+  localStorage.setItem(SEEN_KEY, String(ts));
+}
 
 export type Theme = 'dark' | 'light';
 

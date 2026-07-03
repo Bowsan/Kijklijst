@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
 import { POSTER_SMALL } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
   profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou, serviceOptions,
+  unseenCommentCount,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -65,6 +66,16 @@ export default function App() {
   const [manualAddQuery, setManualAddQuery] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState('');
   const [showActivity, setShowActivity] = useState(false);
+  const [activitySeen, setActivitySeenState] = useState(getActivitySeen());
+
+  // Log/notificaties openen → alles als "gezien" markeren (bolletje verdwijnt).
+  const openActivity = () => {
+    setShowActivity((v) => {
+      const next = !v;
+      if (next) { const now = Date.now(); setActivitySeen(now); setActivitySeenState(now); }
+      return next;
+    });
+  };
 
   // Filters — statustab springt bij openen terug naar "Alles"; de rest is onthouden.
   const [status, setStatus] = useState<StatusValue>('all');
@@ -326,6 +337,7 @@ export default function App() {
   }, []);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length + newSeasonForYou(snap, userId).length : 0;
+  const unseenMessages = snap ? unseenCommentCount(snap, userId, activitySeen) : 0;
 
   // Laden
   if (!snap) return <div className="loading">Laden…</div>;
@@ -344,8 +356,9 @@ export default function App() {
           <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden">
             👥
           </button>
-          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowActivity((v) => !v)} title="Activiteit">
+          <button className="btn ghost" style={{ padding: '6px 10px', position: 'relative' }} onClick={openActivity} title="Activiteit">
             🔔
+            {unseenMessages > 0 && <span className="notif-dot" />}
           </button>
         </div>
       </header>
@@ -353,7 +366,11 @@ export default function App() {
       {/* Activiteit */}
       {showActivity && (
         <div className="page" style={{ paddingTop: 4 }}>
-          <ActivityFeed snap={snap} />
+          <ActivityFeed
+            snap={snap}
+            userId={userId}
+            onOpenTitle={(id) => { setShowActivity(false); navigateToList({ status: 'all', titleId: id }); }}
+          />
         </div>
       )}
 
