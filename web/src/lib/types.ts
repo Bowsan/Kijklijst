@@ -7,6 +7,7 @@ export interface Profile {
   color: string | null;
   services: string[];
   updated_at: number;
+  hidden?: boolean;
 }
 
 export interface Season {

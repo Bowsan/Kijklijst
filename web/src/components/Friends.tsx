@@ -1,6 +1,6 @@
 import type { Snapshot } from '../lib/types';
-import { followingProfiles, suggestedProfiles } from '../lib/compute';
-import { followUser, unfollowUser } from '../lib/api';
+import { followingProfiles, suggestedProfiles, hiddenProfiles } from '../lib/compute';
+import { followUser, unfollowUser, setProfileHidden } from '../lib/api';
 import Avatar from './Avatar';
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
 export default function Friends({ snap, userId, onOpenProfile, onChange, onShare, toast }: Props) {
   const friends = followingProfiles(snap, userId);
   const suggestions = suggestedProfiles(snap, userId);
+  const hidden = hiddenProfiles(snap, userId);
 
   const follow = async (id: string, name: string) => {
     try { await followUser(id); toast('Je volgt nu ' + name); onChange(); }
@@ -22,6 +23,10 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
   };
   const unfollow = async (id: string) => {
     try { await unfollowUser(id); toast('Ontvolgd'); onChange(); }
+    catch (e: any) { toast(e.message || 'Mislukt'); }
+  };
+  const setHidden = async (id: string, hide: boolean) => {
+    try { await setProfileHidden(id, hide); toast(hide ? 'Account verborgen' : 'Account weer zichtbaar'); onChange(); }
     catch (e: any) { toast(e.message || 'Mislukt'); }
   };
 
@@ -61,7 +66,30 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
                   <Avatar profile={p} size="sm" />
                   <span>{p.name}</span>
                 </div>
-                <button className="btn primary" style={{ padding: '4px 10px' }} onClick={() => follow(p.id, p.name)}>+ Volgen</button>
+                <div className="row" style={{ gap: 6 }}>
+                  <button className="btn ghost" style={{ padding: '4px 8px', color: 'var(--muted)' }} title="Verbergen uit deze lijst" onClick={() => setHidden(p.id, true)}>Verberg</button>
+                  <button className="btn primary" style={{ padding: '4px 10px' }} onClick={() => follow(p.id, p.name)}>+ Volgen</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {hidden.length > 0 && (
+        <>
+          <h2 style={{ marginTop: 18 }}>Verborgen accounts</h2>
+          <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>
+            Deze accounts staan niet in "Mensen om te volgen". Zet ze terug als je ze weer wilt zien.
+          </p>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {hidden.map((p) => (
+              <div className="row spread" key={p.id} style={{ padding: '6px 0' }}>
+                <div className="row" style={{ gap: 10 }}>
+                  <Avatar profile={p} size="sm" />
+                  <span className="muted">{p.name}</span>
+                </div>
+                <button className="btn ghost" style={{ padding: '4px 10px' }} onClick={() => setHidden(p.id, false)}>Toon weer</button>
               </div>
             ))}
           </div>

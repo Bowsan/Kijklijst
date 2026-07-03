@@ -111,6 +111,14 @@ function addTitleColumns(): void {
 }
 addTitleColumns();
 
+// Nieuwe kolommen op profiles toevoegen zonder bestaande data te verliezen.
+function addProfileColumns(): void {
+  const cols = db.prepare('PRAGMA table_info(profiles)').all() as any[];
+  const names = new Set(cols.map((c) => c.name));
+  if (!names.has('hidden')) db.exec('ALTER TABLE profiles ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0');
+}
+addProfileColumns();
+
 // Bestaande titels en beoordelingen normaliseren naar samengevoegde dienstnamen
 // (idempotent: al-genormaliseerde namen blijven gelijk).
 function normalizeStoredProviders(): void {
@@ -225,6 +233,7 @@ export function getSnapshot(): Snapshot {
   const profiles = db.prepare('SELECT * FROM profiles').all().map((p: any) => ({
     ...p,
     services: parseJson(p.services, []),
+    hidden: !!p.hidden,
   }));
 
   const titles = db.prepare('SELECT * FROM titles').all().map((t: any) => ({

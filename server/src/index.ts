@@ -315,6 +315,18 @@ app.delete('/api/follow/:followee', (req, res) => {
   res.json({ ok: true });
 });
 
+// Een profiel verbergen of weer tonen in de volglijst (niet-destructief).
+app.post('/api/profile/:id/hidden', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const exists = db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(req.params.id);
+  if (!exists) return res.status(404).json({ error: 'profiel niet gevonden' });
+  const hidden = req.body?.hidden ? 1 : 0;
+  db.prepare('UPDATE profiles SET hidden = ? WHERE id = ?').run(hidden, req.params.id);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
 // Aanrader wegklikken (privé bij de ontvanger).
 app.post('/api/recommendation/:id/dismiss', (req, res) => {
   const uid = userId(req);

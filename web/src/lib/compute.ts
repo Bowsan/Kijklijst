@@ -37,13 +37,21 @@ export function isFollowing(snap: Snapshot, userId: string, otherId: string): bo
 }
 
 /** Andere profielen die je nog niet volgt (om toe te voegen).
- *  Lege accounts (nog geen enkele beoordeling) verbergen we, zodat per ongeluk
- *  aangemaakte of niet meer gebruikte profielen niet in de lijst blijven staan.
- *  Zodra een account z'n eerste serie beoordeelt, verschijnt het vanzelf. */
+ *  Lege accounts (nog geen enkele beoordeling) en handmatig verborgen accounts
+ *  tonen we niet, zodat per ongeluk aangemaakte of niet meer gebruikte profielen
+ *  niet in de lijst blijven staan. Zodra een leeg account z'n eerste serie
+ *  beoordeelt, verschijnt het vanzelf weer. */
 export function suggestedProfiles(snap: Snapshot, userId: string): Profile[] {
   const following = new Set(followingIds(snap, userId));
   const active = new Set(snap.ratings.map((r) => r.user_id));
-  return snap.profiles.filter((p) => p.id !== userId && !following.has(p.id) && active.has(p.id));
+  return snap.profiles.filter(
+    (p) => p.id !== userId && !following.has(p.id) && active.has(p.id) && !p.hidden,
+  );
+}
+
+/** Handmatig verborgen accounts (om ze weer te kunnen tonen). */
+export function hiddenProfiles(snap: Snapshot, userId: string): Profile[] {
+  return snap.profiles.filter((p) => p.id !== userId && p.hidden);
 }
 
 /** Jij + de vrienden die je volgt — bepaalt wat er in "Alles" verschijnt. */
