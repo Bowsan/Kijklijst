@@ -1,5 +1,5 @@
-import type { Snapshot } from '../lib/types';
-import { profileById, titleById } from '../lib/compute';
+import type { Snapshot, Comment } from '../lib/types';
+import { profileById, titleById, commentsOnMyList } from '../lib/compute';
 import Avatar from './Avatar';
 
 function timeAgo(ts: number): string {
@@ -13,21 +13,66 @@ function timeAgo(ts: number): string {
   return `${d} d`;
 }
 
-export default function ActivityFeed({ snap }: { snap: Snapshot }) {
-  if (!snap.activity.length) {
+interface Props {
+  snap: Snapshot;
+  userId: string;
+  onOpenTitle: (titleId: number) => void;
+}
+
+// Twee bronnen samenvoegen in één tijdlijn: de activiteitenlog + berichten van
+// anderen bij series die op jouw lijst staan.
+type FeedItem =
+  | { kind: 'activity'; id: string; created_at: number; a: Snapshot['activity'][number] }
+  | { kind: 'comment'; id: string; created_at: number; c: Comment };
+
+export default function ActivityFeed({ snap, userId, onOpenTitle }: Props) {
+  const messages = commentsOnMyList(snap, userId);
+
+  const items: FeedItem[] = [
+    ...snap.activity.map((a) => ({ kind: 'activity' as const, id: a.id, created_at: a.created_at, a })),
+    ...messages.map((c) => ({ kind: 'comment' as const, id: `c-${c.id}`, created_at: c.created_at, c })),
+  ]
+    .sort((x, y) => y.created_at - x.created_at)
+    .slice(0, 40);
+
+  if (items.length === 0) {
     return <p className="muted center" style={{ padding: 20 }}>Nog geen activiteit. Voeg een serie toe om te beginnen.</p>;
   }
 
   return (
     <div>
-      {snap.activity.slice(0, 30).map((a) => {
+      {items.map((item) => {
+        // Bericht van een vriend bij een serie op jouw lijst — valt extra op en is klikbaar.
+        if (item.kind === 'comment') {
+          const c = item.c;
+          const who = profileById(snap, c.user_id);
+          const title = titleById(snap, c.title_id);
+          return (
+            <button
+              type="button"
+              className="activity-item message"
+              key={item.id}
+              onClick={() => onOpenTitle(c.title_id)}
+            >
+              <Avatar profile={who} id={c.user_id} size="sm" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="activity-text">
+                  💬 Bericht van <b>{who?.name || 'Iemand'}</b> bij <b>{title?.name || 'een serie'}</b>
+                </div>
+                <div className="activity-time">{timeAgo(c.created_at)}</div>
+              </div>
+            </button>
+          );
+        }
+
+        const a = item.a;
         const who = profileById(snap, a.user_id);
         const title = a.title_id ? titleById(snap, a.title_id) : undefined;
 
         // Systeem-melding: nieuw seizoen (geen gebruiker, eigen opmaak).
         if (a.type === 'new_season') {
           return (
-            <div className="activity-item" key={a.id}>
+            <div className="activity-item" key={item.id}>
               <div className="act-emoji">🎉</div>
               <div style={{ flex: 1 }}>
                 <div className="activity-text"><b>{title?.name || 'Een serie'}</b> heeft een nieuw seizoen (seizoen {String(a.meta.to)})</div>
@@ -51,7 +96,7 @@ export default function ActivityFeed({ snap }: { snap: Snapshot }) {
         }
 
         return (
-          <div className="activity-item" key={a.id}>
+          <div className="activity-item" key={item.id}>
             <Avatar profile={who} id={a.user_id} size="sm" />
             <div style={{ flex: 1 }}>
               <div className="activity-text">{text}</div>

@@ -617,6 +617,25 @@ input, textarea, select {
 .activity-time { font-size: 11px; color: var(--muted); }
 .act-emoji { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--surface-2); flex-shrink: 0; }
 
+/* Bericht van een vriend bij jouw serie: valt extra op (lichtgeel) en is klikbaar. */
+.activity-item.message {
+  background: color-mix(in srgb, #f5c518 22%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f5c518 45%, var(--border));
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+}
+
+/* Bolletje op de bel als er ongelezen berichten zijn. */
+.notif-dot {
+  position: absolute; top: 2px; right: 3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #e5484d; border: 1.5px solid var(--bar-bg);
+}
+
 /* ---------- Modal / sheet ---------- */
 .sheet-backdrop {
   position: fixed; inset: 0;
