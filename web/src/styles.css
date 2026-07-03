@@ -79,6 +79,7 @@ input, textarea, select {
   z-index: 20;
   background: var(--bar-bg);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: calc(10px + var(--safe-top)) 16px 10px;
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -97,8 +98,13 @@ input, textarea, select {
   display: flex;
   background: var(--bar-bg);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
   padding-bottom: var(--safe-bottom);
+  /* iOS Safari: eigen compositielaag, zodat de balk bij het in-/uitschuiven van
+     de adresbalk aan de échte onderkant blijft plakken i.p.v. te 'zweven'. */
+  transform: translateZ(0);
+  will-change: transform;
 }
 .nav button {
   flex: 1;
@@ -751,6 +757,7 @@ input, textarea, select {
   padding: 10px 14px;
   background: var(--bar-bg);
   backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
 }
 .fab-search-bar input { flex: 1; margin: 0; }

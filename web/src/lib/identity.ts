@@ -7,7 +7,8 @@ const THEME_KEY = 'opdebank.theme';
 export type Theme = 'dark' | 'light';
 
 export function getTheme(): Theme {
-  return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
+  // Standaard lichte modus; alleen wie zelf 'donker' koos, houdt donker.
+  return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
 }
 
 export function setTheme(theme: Theme): void {
@@ -18,6 +19,9 @@ export function setTheme(theme: Theme): void {
 // Pas het thema toe op het document (CSS leest dit via [data-theme]).
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
+  // Laat de browser-chrome (statusbalk) meekleuren met het thema.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f7' : '#0f1115');
 }
 
 export function getUserId(): string {
