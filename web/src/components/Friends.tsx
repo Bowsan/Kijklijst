@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { followingProfiles, suggestedProfiles, hiddenProfiles } from '../lib/compute';
 import { followUser, unfollowUser, setProfileHidden } from '../lib/api';
@@ -16,6 +17,7 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
   const friends = followingProfiles(snap, userId);
   const suggestions = suggestedProfiles(snap, userId);
   const hidden = hiddenProfiles(snap, userId);
+  const [showHidden, setShowHidden] = useState(false);
 
   const follow = async (id: string, name: string) => {
     try { await followUser(id); toast('Je volgt nu ' + name); onChange(); }
@@ -77,23 +79,28 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
       )}
 
       {hidden.length > 0 && (
-        <>
-          <h2 style={{ marginTop: 18 }}>Verborgen accounts</h2>
-          <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>
-            Deze accounts staan niet in "Mensen om te volgen". Zet ze terug als je ze weer wilt zien.
-          </p>
-          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {hidden.map((p) => (
-              <div className="row spread" key={p.id} style={{ padding: '6px 0' }}>
-                <div className="row" style={{ gap: 10 }}>
-                  <Avatar profile={p} size="sm" />
-                  <span className="muted">{p.name}</span>
+        <div style={{ marginTop: 28 }}>
+          <button
+            className="btn ghost"
+            style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 2px' }}
+            onClick={() => setShowHidden((v) => !v)}
+          >
+            {showHidden ? '▾' : '▸'} Verborgen accounts ({hidden.length})
+          </button>
+          {showHidden && (
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+              {hidden.map((p) => (
+                <div className="row spread" key={p.id} style={{ padding: '6px 0' }}>
+                  <div className="row" style={{ gap: 10 }}>
+                    <Avatar profile={p} size="sm" />
+                    <span className="muted">{p.name}</span>
+                  </div>
+                  <button className="btn ghost" style={{ padding: '4px 10px' }} onClick={() => setHidden(p.id, false)}>Toon weer</button>
                 </div>
-                <button className="btn ghost" style={{ padding: '4px 10px' }} onClick={() => setHidden(p.id, false)}>Toon weer</button>
-              </div>
-            ))}
-          </div>
-        </>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

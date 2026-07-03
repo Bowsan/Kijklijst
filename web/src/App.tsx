@@ -15,6 +15,7 @@ import StatusBadge from './components/StatusBadge';
 import FilterSheet from './components/FilterSheet';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
+import Sheet from './components/Sheet';
 import ForYou from './components/ForYou';
 import Dashboard from './components/Dashboard';
 import Friends from './components/Friends';
@@ -363,15 +364,15 @@ export default function App() {
         </div>
       </header>
 
-      {/* Activiteit */}
+      {/* Meldingen — als overlay over de huidige pagina heen. */}
       {showActivity && (
-        <div className="page" style={{ paddingTop: 4 }}>
+        <Sheet title="Meldingen" onClose={() => setShowActivity(false)}>
           <ActivityFeed
             snap={snap}
             userId={userId}
             onOpenTitle={(id) => { setShowActivity(false); navigateToList({ status: 'all', titleId: id }); }}
           />
-        </div>
+        </Sheet>
       )}
 
       {tab === 'list' && searchActive && (
