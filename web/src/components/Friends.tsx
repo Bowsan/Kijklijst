@@ -3,6 +3,7 @@ import type { Snapshot } from '../lib/types';
 import { followingProfiles, suggestedProfiles, hiddenProfiles } from '../lib/compute';
 import { followUser, unfollowUser, setProfileHidden } from '../lib/api';
 import Avatar from './Avatar';
+import MyTips from './MyTips';
 
 interface Props {
   snap: Snapshot;
@@ -77,6 +78,8 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
           </div>
         </>
       )}
+
+      <MyTips snap={snap} userId={userId} onChange={onChange} toast={toast} />
 
       {hidden.length > 0 && (
         <div style={{ marginTop: 28 }}>

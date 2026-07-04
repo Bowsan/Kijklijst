@@ -336,6 +336,26 @@ app.post('/api/recommendation/:id/dismiss', (req, res) => {
   res.json({ ok: true });
 });
 
+// Je eigen tip terugtrekken (alleen de afzender).
+app.delete('/api/recommendation/:id', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  db.prepare('DELETE FROM recommendations WHERE id = ? AND from_user = ?').run(req.params.id, uid);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
+// Opmerking bij je eigen tip toevoegen of aanpassen (alleen de afzender).
+app.post('/api/recommendation/:id/note', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
+  db.prepare('UPDATE recommendations SET note = ? WHERE id = ? AND from_user = ?')
+    .run(note || null, req.params.id, uid);
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
+});
+
 // ---------- Emoji-reactie ----------
 app.post('/api/reaction', (req, res) => {
   const uid = userId(req);
