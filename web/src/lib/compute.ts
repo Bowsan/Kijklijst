@@ -49,6 +49,16 @@ export function suggestedProfiles(snap: Snapshot, userId: string): Profile[] {
   );
 }
 
+/** Nog niet gevolgde, niet-verborgen accounts zónder beoordelingen.
+ *  Normaal verborgen in "Mensen om te volgen", maar oproepbaar via "Toon alle accounts". */
+export function inactiveFollowableProfiles(snap: Snapshot, userId: string): Profile[] {
+  const following = new Set(followingIds(snap, userId));
+  const active = new Set(snap.ratings.map((r) => r.user_id));
+  return snap.profiles.filter(
+    (p) => p.id !== userId && !following.has(p.id) && !p.hidden && !active.has(p.id),
+  );
+}
+
 /** Handmatig verborgen accounts (om ze weer te kunnen tonen). */
 export function hiddenProfiles(snap: Snapshot, userId: string): Profile[] {
   return snap.profiles.filter((p) => p.id !== userId && p.hidden);
