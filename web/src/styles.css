@@ -629,6 +629,19 @@ input, textarea, select {
   color: var(--text);
 }
 
+/* Jouw tips aan vrienden */
+.tip-row { display: flex; gap: 10px; }
+.tip-row:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.tip-poster { width: 40px; height: 60px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-2); }
+.tip-poster.empty { background: var(--surface-2); }
+.tip-title { font-weight: 600; font-size: 14px; }
+.tip-status {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid; background: transparent;
+}
+.tip-note { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 6px; }
+
 /* Bolletje op de bel als er ongelezen berichten zijn. */
 .notif-dot {
   position: absolute; top: 2px; right: 3px;

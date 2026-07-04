@@ -54,6 +54,29 @@ export function hiddenProfiles(snap: Snapshot, userId: string): Profile[] {
   return snap.profiles.filter((p) => p.id !== userId && p.hidden);
 }
 
+export type TipStatus = 'wishlist' | 'watching' | 'finished' | 'dropped' | 'dismissed' | 'pending';
+
+/** Alle tips die JIJ aan vrienden gaf, met de status van de ontvanger erbij. */
+export function sentRecommendations(snap: Snapshot, userId: string) {
+  return snap.recommendations
+    .filter((rec) => rec.from_user === userId)
+    .map((rec) => {
+      const to = profileById(snap, rec.to_user);
+      const title = titleById(snap, rec.title_id);
+      const r = myRating(snap, rec.title_id, rec.to_user);
+      let status: TipStatus;
+      if (r?.status === 'want') status = 'wishlist';
+      else if (r?.status === 'watching') status = 'watching';
+      else if (r?.status === 'finished' || r?.score != null) status = 'finished';
+      else if (r?.status === 'dropped') status = 'dropped';
+      else if (rec.dismissed) status = 'dismissed';
+      else status = 'pending';
+      return { rec, to, title, status };
+    })
+    .filter((x) => x.title && x.to)
+    .sort((a, b) => b.rec.created_at - a.rec.created_at);
+}
+
 /** Berichten van anderen bij series die op JOUW lijst staan. */
 export function commentsOnMyList(snap: Snapshot, userId: string) {
   const mine = new Set(snap.ratings.filter((r) => r.user_id === userId).map((r) => r.title_id));

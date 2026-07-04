@@ -62,6 +62,13 @@ export const identify = (name: string): Promise<{ id: string | null }> => post('
 export const sendRecommendation = (r: { to_user: string; tmdb_id: number; note?: string }) =>
   post('/api/recommendation', r);
 export const dismissRecommendation = (id: string) => post(`/api/recommendation/${id}/dismiss`, {});
+// Eigen tip terugtrekken of de opmerking erbij aanpassen.
+export async function withdrawRecommendation(id: string): Promise<any> {
+  const res = await fetch(`/api/recommendation/${id}`, { method: 'DELETE', headers: headers() });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);
+  return res.json();
+}
+export const setRecommendationNote = (id: string, note: string) => post(`/api/recommendation/${id}/note`, { note });
 export const toggleReaction = (tmdb_id: number, emoji: string) => post('/api/reaction', { tmdb_id, emoji });
 export const createManualTitle = (name: string, service?: string, seasons?: number): Promise<{ tmdb_id: number }> =>
   post('/api/title/manual', { name, service, seasons });
