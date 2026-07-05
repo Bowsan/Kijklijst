@@ -119,3 +119,11 @@ export const STATUS_ORDER: Status[] = ['finished', 'watching', 'want', 'dropped'
 
 export const POSTER_BASE = 'https://image.tmdb.org/t/p/w342';
 export const POSTER_SMALL = 'https://image.tmdb.org/t/p/w185';
+
+// Bouw de juiste poster-URL. TMDb levert een pad (bijv. "/abc.jpg"); andere
+// bronnen (TVmaze) of een geüploade cover leveren een volledige URL of data-URI.
+export function posterUrl(path: string | null | undefined, size: 'base' | 'small' = 'base'): string {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  return (size === 'small' ? POSTER_SMALL : POSTER_BASE) + path;
+}

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Snapshot, Title, SearchResult } from '../lib/types';
-import { POSTER_BASE } from '../lib/types';
+import { posterUrl } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
   newSeasonForYou, myRating,
@@ -27,7 +27,7 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
     <div className="card discover-card">
       <div className="title-head">
         {item.poster_path
-          ? <img className="poster" src={POSTER_BASE + item.poster_path} alt="" loading="lazy" />
+          ? <img className="poster" src={posterUrl(item.poster_path)} alt="" loading="lazy" />
           : <div className="poster" />}
         <div className="title-meta">
           <h3>{item.name}</h3>

@@ -72,6 +72,12 @@ export const setRecommendationNote = (id: string, note: string) => post(`/api/re
 export const toggleReaction = (tmdb_id: number, emoji: string) => post('/api/reaction', { tmdb_id, emoji });
 export const createManualTitle = (name: string, service?: string, seasons?: number): Promise<{ tmdb_id: number }> =>
   post('/api/title/manual', { name, service, seasons });
+// Serie-info aanvullen via een IMDb-link (TMDb → TVmaze).
+export const enrichTitle = (id: number, imdb: string): Promise<{ found: boolean; source?: string }> =>
+  post(`/api/title/${id}/enrich`, { imdb });
+// Serie-info handmatig invullen (jaar, genres, cover, omschrijving).
+export const setTitleMeta = (id: number, meta: { year?: number | null; genres?: string; poster?: string; overview?: string }) =>
+  post(`/api/title/${id}/meta`, meta);
 // Serie-info handmatig bijwerken bij TMDb (op de achtergrond).
 export const refreshTitles = (): Promise<{ ok: boolean; count: number }> => post('/api/refresh-titles', {});
 export const addComment = (tmdb_id: number, text: string) => post('/api/comment', { tmdb_id, text });

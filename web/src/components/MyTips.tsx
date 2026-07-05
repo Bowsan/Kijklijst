@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { POSTER_SMALL } from '../lib/types';
+import { posterUrl } from '../lib/types';
 import { sentRecommendations, type TipStatus } from '../lib/compute';
 import { withdrawRecommendation, setRecommendationNote } from '../lib/api';
 import Avatar from './Avatar';
@@ -60,7 +60,7 @@ export default function MyTips({ snap, userId, onChange, toast }: Props) {
           return (
             <div key={rec.id} className="tip-row">
               {title!.poster_path
-                ? <img className="tip-poster" src={POSTER_SMALL + title!.poster_path} alt="" />
+                ? <img className="tip-poster" src={posterUrl(title!.poster_path, 'small')} alt="" />
                 : <div className="tip-poster empty" />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="tip-title">{title!.name}</div>

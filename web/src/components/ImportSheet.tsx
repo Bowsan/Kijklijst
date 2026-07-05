@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { parseImport } from '../lib/importList';
 import { searchTmdb, saveRating, fetchTitleDetails } from '../lib/api';
 import type { SearchResult } from '../lib/types';
-import { POSTER_SMALL } from '../lib/types';
+import { posterUrl } from '../lib/types';
 import Sheet from './Sheet';
 
 interface Row {
@@ -103,7 +103,7 @@ export default function ImportSheet({ onClose, onDone }: { onClose: () => void; 
               )}
               {row.chosen != null && (() => {
                 const opt = row.options.find((o) => o.tmdb_id === row.chosen);
-                return opt?.poster_path ? <img src={POSTER_SMALL + opt.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 6, marginTop: 6 }} /> : null;
+                return opt?.poster_path ? <img src={posterUrl(opt.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 6, marginTop: 6 }} /> : null;
               })()}
             </div>
           ))}
