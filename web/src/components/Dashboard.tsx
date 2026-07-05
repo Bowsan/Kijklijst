@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
-import { POSTER_SMALL } from '../lib/types';
+import { posterUrl } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
@@ -28,7 +28,7 @@ function TitleRow({ title, right, onClick }: { title: Title; right?: ReactNode; 
   return (
     <div className="row" style={{ gap: 10, alignItems: 'center', padding: '4px 0' }}>
       {title.poster_path
-        ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+        ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
         : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
       <div style={{ flex: 1, minWidth: 0, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
         <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>

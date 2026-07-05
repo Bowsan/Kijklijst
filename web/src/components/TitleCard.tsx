@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
-import { STATUS_ORDER, STATUS_LABELS, POSTER_BASE } from '../lib/types';
+import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
+import EnrichSheet from './EnrichSheet';
 
 // Leesbare statuswoorden voor de vrienden-status-lijst.
 const FRIEND_STATUS_TEXT: Record<Status, string> = {
@@ -93,6 +94,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const [serviceInput, setServiceInput] = useState(initService);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showEnrich, setShowEnrich] = useState(false);
 
   // Berichten op het prikbord: alleen van jou + de vrienden die je volgt.
   const comments = snap.comments
@@ -161,7 +163,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
       {/* Compact header — klikken klapt uit/in */}
       <div className="title-head" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
         {title.poster_path
-          ? <img className="poster" src={POSTER_BASE + title.poster_path} alt="" loading="lazy" />
+          ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" />
           : <div className="poster" />}
         <div className="title-meta">
           <h3>{title.name}</h3>
@@ -349,6 +351,12 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
               <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
             </a>
+            {/* Handmatig toegevoegde serie (negatief id): info aanvullen via IMDb/TVmaze. */}
+            {title.tmdb_id < 0 && (
+              <button className="btn ghost" style={{ alignSelf: 'flex-start', color: 'var(--accent)', padding: '4px 0', fontSize: 13 }} onClick={() => setShowEnrich(true)}>
+                🧩 Serie-info aanvullen
+              </button>
+            )}
             {(addedBy || mine) && (
               <div className="tc-meta">
                 {addedBy && <>Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}</>}
@@ -392,6 +400,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           </section>
         </>
+      )}
+
+      {showEnrich && (
+        <EnrichSheet title={title} onClose={() => setShowEnrich(false)} onChange={onChange} toast={toast} />
       )}
     </div>
   );

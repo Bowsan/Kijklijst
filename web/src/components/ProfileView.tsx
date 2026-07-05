@@ -1,5 +1,5 @@
 import type { Snapshot } from '../lib/types';
-import { POSTER_SMALL, STATUS_LABELS } from '../lib/types';
+import { posterUrl, STATUS_LABELS } from '../lib/types';
 import {
   profileById, favoriteTitles, listedTitles, totalWatchHours, ratedCount, serviceStats,
   isFollowing, myRating,
@@ -84,7 +84,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             return (
               <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
                 {title.poster_path
-                  ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                   : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
@@ -107,7 +107,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             {biggestDiffs.map(({ title, theirScore, myScore, diff }) => (
               <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
                 {title.poster_path
-                  ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                   : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
@@ -131,7 +131,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
               return (
                 <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
                   {title.poster_path
-                    ? <img src={POSTER_SMALL + title.poster_path} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                     : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>

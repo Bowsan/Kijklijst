@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
-import { POSTER_SMALL } from './lib/types';
+import { posterUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
@@ -386,7 +386,7 @@ export default function App() {
                 const badge: Status | null = r?.status ?? (r?.score != null ? 'finished' : null);
                 return (
                   <button key={t.tmdb_id} className="suggestion" onClick={() => openExisting(t.tmdb_id)}>
-                    {t.poster_path ? <img src={POSTER_SMALL + t.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
+                    {t.poster_path ? <img src={posterUrl(t.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="s-name">{t.name}</div>
                       <div className="title-sub">{t.year || '—'}</div>
@@ -404,7 +404,7 @@ export default function App() {
           </div>
           {addableResults.map((r) => (
             <button key={r.tmdb_id} className="suggestion" onClick={() => addTitle(r.tmdb_id)}>
-              {r.poster_path ? <img src={POSTER_SMALL + r.poster_path} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
+              {r.poster_path ? <img src={posterUrl(r.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="s-name">{r.name}</div>
                 <div className="title-sub">{r.year || '—'}</div>

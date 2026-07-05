@@ -109,6 +109,13 @@ export interface TitleDetails {
   status: string | null;
 }
 
+// Een TMDb-serie opzoeken op IMDb-ID (voor series die de naam-zoekopdracht miste).
+export async function findTvIdByImdb(imdbId: string): Promise<number | null> {
+  const data = await tmdb(`/find/${imdbId}`, { external_source: 'imdb_id' });
+  const tv = (data.tv_results || [])[0];
+  return tv ? tv.id : null;
+}
+
 // Alleen het IMDb-id ophalen (lichte call, voor het bijwerken van bestaande titels).
 export async function getImdbId(id: number): Promise<string | null> {
   const data = await tmdb(`/tv/${id}/external_ids`);

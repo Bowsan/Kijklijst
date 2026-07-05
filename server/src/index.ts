@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { db, getSnapshot, parseJson } from './db.js';
-import { searchTv, getTvDetails, getImdbId, getNewTv } from './tmdb.js';
+import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb } from './tmdb.js';
+import { tvmazeByImdb, type EnrichData } from './tvmaze.js';
 import { addClient, broadcast } from './events.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -136,6 +137,110 @@ app.post('/api/title/manual', (req, res) => {
 
   broadcast('state', getSnapshot());
   res.json({ ok: true, tmdb_id: id });
+});
+
+// Haal een IMDb-id ("tt1234567") uit een link of losse tekst.
+function parseImdbId(input: unknown): string | null {
+  if (typeof input !== 'string') return null;
+  const m = input.match(/tt\d{6,}/i);
+  return m ? m[0].toLowerCase() : null;
+}
+
+// Serie-info aanvullen bij een (meestal handmatige) titel via een IMDb-id.
+// Probeert eerst TMDb (op IMDb-id) en daarna TVmaze — nuttig als TMDb 'm niet kent.
+app.post('/api/title/:id/enrich', async (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+
+  const titleId = Number(req.params.id);
+  const existing: any = db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(titleId);
+  if (!existing) return res.status(404).json({ error: 'serie niet gevonden' });
+
+  const imdb = parseImdbId(req.body?.imdb);
+  if (!imdb) return res.status(400).json({ error: 'geen geldige IMDb-link of -id' });
+
+  let data: EnrichData | null = null;
+  let source: string | null = null;
+
+  // 1) TMDb heeft de serie misschien tóch — opzoeken op IMDb-id.
+  try {
+    if (process.env.TMDB_API_KEY) {
+      const tmdbId = await findTvIdByImdb(imdb);
+      if (tmdbId) {
+        const d = await getTvDetails(tmdbId);
+        data = {
+          name: d.name, year: d.year, poster_path: d.poster_path, genres: d.genres,
+          seasons: d.seasons, episode_count: d.episode_count, overview: d.overview,
+        };
+        source = 'TMDb';
+      }
+    }
+  } catch { /* val terug op TVmaze */ }
+
+  // 2) Anders TVmaze proberen (geen sleutel nodig).
+  if (!data) {
+    try {
+      data = await tvmazeByImdb(imdb);
+      if (data) source = 'TVmaze';
+    } catch { /* niets gevonden */ }
+  }
+
+  if (!data) return res.json({ found: false });
+
+  db.prepare(
+    `UPDATE titles SET
+       name = ?, year = ?, poster_path = COALESCE(?, poster_path),
+       genres = ?, seasons = ?, episode_count = COALESCE(?, episode_count),
+       overview = ?, imdb_id = ?
+     WHERE tmdb_id = ?`
+  ).run(
+    data.name || existing.name,
+    data.year ?? existing.year,
+    data.poster_path,
+    JSON.stringify(data.genres || []),
+    JSON.stringify(data.seasons?.length ? data.seasons : parseJson(existing.seasons, [])),
+    data.episode_count,
+    data.overview || existing.overview,
+    imdb,
+    titleId,
+  );
+
+  broadcast('state', getSnapshot());
+  res.json({ found: true, source });
+});
+
+// Serie-info handmatig invullen (jaar, genres, cover) als geen enkele bron iets vindt.
+app.post('/api/title/:id/meta', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+
+  const titleId = Number(req.params.id);
+  const existing: any = db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(titleId);
+  if (!existing) return res.status(404).json({ error: 'serie niet gevonden' });
+
+  const { year, genres, poster, overview } = req.body || {};
+  const yearVal = year === '' || year == null ? null : Math.max(1900, Math.min(2100, Math.floor(Number(year)) || 0)) || null;
+  const genreArr = Array.isArray(genres)
+    ? genres
+    : typeof genres === 'string'
+      ? genres.split(',').map((g: string) => g.trim()).filter(Boolean)
+      : parseJson(existing.genres, []);
+  // Alleen een geüploade cover (data-URI) of TMDb-pad accepteren; grens tegen misbruik.
+  const posterVal = typeof poster === 'string' && poster.length < 400000 && (poster.startsWith('data:image/') || poster.startsWith('http'))
+    ? poster
+    : existing.poster_path;
+
+  db.prepare('UPDATE titles SET year = ?, genres = ?, poster_path = ?, overview = ? WHERE tmdb_id = ?')
+    .run(
+      yearVal,
+      JSON.stringify(genreArr),
+      posterVal,
+      typeof overview === 'string' ? overview.slice(0, 2000) : existing.overview,
+      titleId,
+    );
+
+  broadcast('state', getSnapshot());
+  res.json({ ok: true });
 });
 
 // ---------- Identiteit: bestaand account zoeken op naam ----------
