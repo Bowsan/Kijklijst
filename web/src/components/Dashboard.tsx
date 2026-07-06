@@ -180,7 +180,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         </div>
       )}
 
-      <h2 style={{ marginTop: 18 }}>Mijn vrienden kijken</h2>
+      <h2>Mijn vrienden kijken</h2>
       {friends.length === 0 ? (
         <div className="empty">
           <div className="big">👥</div>

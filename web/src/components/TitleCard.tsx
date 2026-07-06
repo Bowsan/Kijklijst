@@ -8,6 +8,7 @@ import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
+import PosterFallback from './PosterFallback';
 
 // Leesbare statuswoorden voor de vrienden-status-lijst.
 const FRIEND_STATUS_TEXT: Record<Status, string> = {
@@ -164,7 +165,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
       <div className="title-head" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
         {title.poster_path
           ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" />
-          : <div className="poster" />}
+          : <PosterFallback name={title.name} />}
         <div className="title-meta">
           <h3>{title.name}</h3>
           <div className="title-sub">

@@ -15,6 +15,12 @@
   --radius: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Spacing-schaal: gebruik deze i.p.v. losse pixelwaarden. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
 }
 
 /* Light mode — kiesbaar per gebruiker in het profiel. */
@@ -137,8 +143,9 @@ input, textarea, select {
 }
 
 /* ---------- Content ---------- */
-.page { padding: 12px 14px; }
-.page h2 { font-size: 16px; margin: 18px 4px 8px; }
+.page { padding: var(--sp-3) 14px; }
+.page h2 { font-size: 16px; margin: var(--sp-5) var(--sp-1) var(--sp-2); }
+.page h2:first-child { margin-top: var(--sp-2); }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 
@@ -669,6 +676,17 @@ input, textarea, select {
   font-size: 14px; font-weight: 600; color: var(--muted);
 }
 .subtabs button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+/* Skeleton-laadstatus: pulserende vlakken op de plek van echte inhoud. */
+.skel {
+  background: var(--surface-2);
+  border-radius: 8px;
+  animation: skelPulse 1.3s ease-in-out infinite;
+}
+@keyframes skelPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.skel-card { display: flex; gap: 12px; }
+.skel-poster { width: 64px; height: 96px; border-radius: 10px; flex-shrink: 0; }
+.skel-bar { height: 13px; margin-bottom: 9px; }
 
 /* Snelcijfer-knopjes in de onboarding. */
 .quick-score {

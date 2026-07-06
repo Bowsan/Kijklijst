@@ -7,6 +7,7 @@ import {
 } from '../lib/compute';
 import { dismissRecommendation, discoverNewTv } from '../lib/api';
 import TitleCard from './TitleCard';
+import PosterFallback from './PosterFallback';
 
 interface Props {
   snap: Snapshot;
@@ -28,7 +29,7 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
       <div className="title-head">
         {item.poster_path
           ? <img className="poster" src={posterUrl(item.poster_path)} alt="" loading="lazy" />
-          : <div className="poster" />}
+          : <PosterFallback name={item.name} />}
         <div className="title-meta">
           <h3>{item.name}</h3>
           <div className="title-sub">

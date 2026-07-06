@@ -350,8 +350,29 @@ export default function App() {
   const forYouCount = snap ? incomingRecommendations(snap, userId).length + newSeasonForYou(snap, userId).length : 0;
   const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
 
-  // Laden
-  if (!snap) return <div className="loading">Laden…</div>;
+  // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
+  if (!snap) {
+    return (
+      <div className="app">
+        <header className="topbar">
+          <h1><span className="logo">🛋️</span> Op de Bank</h1>
+        </header>
+        <div className="page" aria-busy="true" aria-label="Laden">
+          <div className="skel skel-bar" style={{ width: '40%' }} />
+          {[0, 1, 2, 3].map((i) => (
+            <div className="card skel-card" key={i}>
+              <div className="skel skel-poster" />
+              <div style={{ flex: 1 }}>
+                <div className="skel skel-bar" style={{ width: '60%' }} />
+                <div className="skel skel-bar" style={{ width: '35%' }} />
+                <div className="skel skel-bar" style={{ width: '45%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Onboarding als er nog geen profiel met naam is voor dit apparaat.
   if (!me) return <Onboarding onDone={reload} />;

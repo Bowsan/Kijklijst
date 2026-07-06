@@ -50,7 +50,7 @@ export default function MyTips({ snap, userId, onChange, toast }: Props) {
 
   return (
     <>
-      <h2 style={{ marginTop: 18 }}>Jouw tips</h2>
+      <h2>Jouw tips</h2>
       <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>
         Series die je aan vrienden aanraadde — met wat zij ermee deden.
       </p>

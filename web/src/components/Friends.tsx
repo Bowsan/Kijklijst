@@ -82,7 +82,7 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
       <>
       <button className="btn full" style={{ marginTop: 4 }} onClick={onShare}>🔗 Vrienden uitnodigen</button>
 
-      <h2 style={{ marginTop: 18 }}>Wie je volgt</h2>
+      <h2>Wie je volgt</h2>
       {friends.length === 0 ? (
         <div className="empty">
           <div className="big">👥</div>
@@ -105,7 +105,7 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
 
       {(suggestions.length > 0 || inactive.length > 0) && (
         <>
-          <h2 style={{ marginTop: 18 }}>Mensen om te volgen</h2>
+          <h2>Mensen om te volgen</h2>
           {(suggestions.length > 0 || showAll) && (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {suggestions.map(followRow)}
