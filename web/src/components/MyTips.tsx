@@ -4,10 +4,12 @@ import { posterUrl } from '../lib/types';
 import { sentRecommendations, type TipStatus } from '../lib/compute';
 import { withdrawRecommendation, setRecommendationNote } from '../lib/api';
 import Avatar from './Avatar';
+import PosterFallback from './PosterFallback';
 
 interface Props {
   snap: Snapshot;
   userId: string;
+  onOpenTitle: (tmdbId: number) => void;
   onChange: () => void;
   toast: (m: string) => void;
 }
@@ -22,7 +24,7 @@ const STATUS_META: Record<TipStatus, { label: string; color: string }> = {
   pending: { label: 'Nog niks mee gedaan', color: 'var(--warn)' },
 };
 
-export default function MyTips({ snap, userId, onChange, toast }: Props) {
+export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: Props) {
   const tips = sentRecommendations(snap, userId);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -59,11 +61,14 @@ export default function MyTips({ snap, userId, onChange, toast }: Props) {
           const meta = STATUS_META[status];
           return (
             <div key={rec.id} className="tip-row">
-              {title!.poster_path
-                ? <img className="tip-poster" src={posterUrl(title!.poster_path, 'small')} alt="" />
-                : <div className="tip-poster empty" />}
+              {/* Klik op poster of titel → naar de serie (bv. om opnieuw aan te raden). */}
+              <div className="tip-open" onClick={() => onOpenTitle(title!.tmdb_id)} title={`Open ${title!.name}`}>
+                {title!.poster_path
+                  ? <img className="tip-poster" src={posterUrl(title!.poster_path, 'small')} alt="" />
+                  : <PosterFallback name={title!.name} width={40} height={60} />}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="tip-title">{title!.name}</div>
+                <div className="tip-title tip-open" onClick={() => onOpenTitle(title!.tmdb_id)}>{title!.name}</div>
                 <div className="row" style={{ gap: 6, margin: '3px 0' }}>
                   <Avatar profile={to} id={rec.to_user} size="sm" />
                   <span className="muted" style={{ fontSize: 13 }}>aan {to!.name}</span>
