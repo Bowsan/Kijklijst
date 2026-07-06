@@ -17,10 +17,14 @@ interface Props {
   onClose: () => void;
   onChange: () => void;
   onAdd: (tmdbId: number) => void;
+  /** Ga naar een specifieke serie in de lijst. */
+  onOpenTitle: (tmdbId: number) => void;
+  /** Toon de hele lijst "als" deze vriend, gesorteerd op diens cijfer. */
+  onViewList: (profileId: string) => void;
   toast: (m: string) => void;
 }
 
-export default function ProfileView({ snap, profileId, userId, onClose, onChange, onAdd, toast }: Props) {
+export default function ProfileView({ snap, profileId, userId, onClose, onChange, onAdd, onOpenTitle, onViewList, toast }: Props) {
   const profile = profileById(snap, profileId);
   const isMe = profileId === userId;
   const following = isFollowing(snap, userId, profileId);
@@ -74,6 +78,12 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
         </div>
       )}
 
+      {!isMe && fullList.length > 0 && (
+        <button className="btn full" style={{ marginTop: 14 }} onClick={() => onViewList(profileId)}>
+          📋 Bekijk lijst als {profile?.name?.split(' ')[0] || 'deze vriend'}
+        </button>
+      )}
+
       <h3 style={{ marginTop: 18 }}>Favoriete series</h3>
       {favorites.length === 0 ? (
         <p className="muted" style={{ fontSize: 13 }}>Nog geen beoordeelde series.</p>
@@ -82,7 +92,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
           {favorites.map(({ title, score }) => {
             const haveIt = !!myRating(snap, title.tmdb_id, userId);
             return (
-              <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
+              <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
                 {title.poster_path
                   ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                   : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
@@ -92,7 +102,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
                 </div>
                 <span className="badge-score sel" style={{ flexShrink: 0 }}>{score}</span>
                 {!isMe && !haveIt && (
-                  <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={() => onAdd(title.tmdb_id)} title="Aan mijn lijst toevoegen">+</button>
+                  <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); onAdd(title.tmdb_id); }} title="Aan mijn lijst toevoegen">+</button>
                 )}
               </div>
             );
@@ -105,7 +115,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
           <h3 style={{ marginTop: 18 }}>Grootste verschil met jou</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {biggestDiffs.map(({ title, theirScore, myScore, diff }) => (
-              <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
+              <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
                 {title.poster_path
                   ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                   : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
@@ -129,7 +139,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             {fullList.map(({ title, rating }) => {
               const haveIt = !!myRating(snap, title.tmdb_id, userId);
               return (
-                <div key={title.tmdb_id} className="row" style={{ gap: 10, alignItems: 'center' }}>
+                <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
                   {title.poster_path
                     ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
                     : <div style={{ width: 36, height: 54, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
@@ -143,7 +153,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
                       ? <span className="chip" style={{ flexShrink: 0, fontSize: 12 }}>{STATUS_LABELS[rating.status]}</span>
                       : null}
                   {!isMe && !haveIt && (
-                    <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={() => onAdd(title.tmdb_id)} title="Aan mijn lijst toevoegen">+</button>
+                    <button className="btn ghost" style={{ padding: '4px 8px', flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); onAdd(title.tmdb_id); }} title="Aan mijn lijst toevoegen">+</button>
                   )}
                 </div>
               );

@@ -147,7 +147,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           </p>
           {freshComputed.map(({ title }) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
+              <TitleCard snap={snap} title={title} userId={userId} blind={blind} showFriendScores onRecommend={onRecommend} onChange={onChange} toast={toast} />
             </div>
           ))}
         </>
