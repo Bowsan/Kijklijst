@@ -369,6 +369,142 @@ export function guessService(title: Title, profile: Profile | undefined, overrid
   return title.providers[0]; // bij benadering een dienst die hem wel aanbiedt
 }
 
+// ---------- "De Bank vergelijkt": sociale statistieken over de groep ----------
+
+/** Cijfers van de zichtbare groep (jij + gevolgde vrienden) per titel. */
+function groupScoresByTitle(snap: Snapshot, userId: string): Map<number, { user_id: string; score: number }[]> {
+  const visible = new Set(visibleUserIds(snap, userId));
+  const byTitle = new Map<number, { user_id: string; score: number }[]>();
+  for (const r of snap.ratings) {
+    if (r.score == null || !visible.has(r.user_id)) continue;
+    if (!byTitle.has(r.title_id)) byTitle.set(r.title_id, []);
+    byTitle.get(r.title_id)!.push({ user_id: r.user_id, score: r.score });
+  }
+  return byTitle;
+}
+
+/** De Jury: wie cijfert streng, wie mild? Gemiddelde afwijking t.o.v. de rest
+ *  van de groep op gedeelde series (minstens 3 gedeelde titels per persoon). */
+export function juryScores(snap: Snapshot, userId: string): { profile: Profile; delta: number; count: number }[] {
+  const byTitle = groupScoresByTitle(snap, userId);
+  const deltas = new Map<string, number[]>();
+  for (const scores of byTitle.values()) {
+    if (scores.length < 2) continue;
+    const total = scores.reduce((a, s) => a + s.score, 0);
+    for (const s of scores) {
+      const othersAvg = (total - s.score) / (scores.length - 1);
+      if (!deltas.has(s.user_id)) deltas.set(s.user_id, []);
+      deltas.get(s.user_id)!.push(s.score - othersAvg);
+    }
+  }
+  return [...deltas.entries()]
+    .filter(([, d]) => d.length >= 3)
+    .map(([id, d]) => ({
+      profile: profileById(snap, id)!,
+      delta: d.reduce((a, b) => a + b, 0) / d.length,
+      count: d.length,
+    }))
+    .filter((x) => x.profile)
+    .sort((a, b) => a.delta - b.delta); // strengste eerst
+}
+
+export interface DividedTitle {
+  title: Title;
+  low: { user: Profile; score: number };
+  high: { user: Profile; score: number };
+  spread: number;
+  count: number;
+}
+
+/** Meest verdeelde serie (grootste kloof) en meest eensgezinde (kleinste, 3+ cijfers). */
+export function groupDivision(snap: Snapshot, userId: string): { divided: DividedTitle | null; agreed: DividedTitle | null } {
+  const byTitle = groupScoresByTitle(snap, userId);
+  let divided: DividedTitle | null = null;
+  let agreed: DividedTitle | null = null;
+  for (const [titleId, scores] of byTitle) {
+    if (scores.length < 2) continue;
+    const t = titleById(snap, titleId);
+    if (!t) continue;
+    const sorted = [...scores].sort((a, b) => a.score - b.score);
+    const lo = sorted[0];
+    const hi = sorted[sorted.length - 1];
+    const loP = profileById(snap, lo.user_id);
+    const hiP = profileById(snap, hi.user_id);
+    if (!loP || !hiP) continue;
+    const entry: DividedTitle = {
+      title: t,
+      low: { user: loP, score: lo.score },
+      high: { user: hiP, score: hi.score },
+      spread: hi.score - lo.score,
+      count: scores.length,
+    };
+    if (entry.spread >= 2 && (!divided || entry.spread > divided.spread)) divided = entry;
+    if (scores.length >= 3 && entry.spread <= 1 && (!agreed || entry.spread < agreed.spread)) agreed = entry;
+  }
+  return { divided, agreed };
+}
+
+export interface TasteOutlier { title: Title; mine: number; others: number }
+
+/** Jouw smaak vs de groep: guilty pleasure (jij veel hoger) en het omgekeerde. */
+export function tasteOutliers(snap: Snapshot, userId: string): { guilty: TasteOutlier | null; panned: TasteOutlier | null } {
+  const byTitle = groupScoresByTitle(snap, userId);
+  let guilty: TasteOutlier | null = null;
+  let panned: TasteOutlier | null = null;
+  let maxDiff = 1.5; // pas interessant vanaf 1,5 punt verschil
+  let minDiff = -1.5;
+  for (const [titleId, scores] of byTitle) {
+    const mine = scores.find((s) => s.user_id === userId);
+    const others = scores.filter((s) => s.user_id !== userId);
+    if (!mine || others.length === 0) continue;
+    const t = titleById(snap, titleId);
+    if (!t) continue;
+    const othersAvg = others.reduce((a, s) => a + s.score, 0) / others.length;
+    const diff = mine.score - othersAvg;
+    if (diff >= maxDiff) { maxDiff = diff; guilty = { title: t, mine: mine.score, others: othersAvg }; }
+    if (diff <= minDiff) { minDiff = diff; panned = { title: t, mine: mine.score, others: othersAvg }; }
+  }
+  return { guilty, panned };
+}
+
+/** Blinde vlek: het genre dat je vrienden het vaakst kijken maar jij nog nooit probeerde. */
+export function blindSpotGenre(snap: Snapshot, userId: string): { genre: string; count: number } | null {
+  const myGenres = new Set<string>();
+  for (const r of snap.ratings) {
+    if (r.user_id !== userId) continue;
+    const t = titleById(snap, r.title_id);
+    t?.genres.forEach((g) => myGenres.add(g));
+  }
+  const friendIds = new Set(followingIds(snap, userId));
+  const counts = new Map<string, number>();
+  for (const r of snap.ratings) {
+    if (!friendIds.has(r.user_id)) continue;
+    const t = titleById(snap, r.title_id);
+    if (!t) continue;
+    for (const g of t.genres) {
+      if (!myGenres.has(g)) counts.set(g, (counts.get(g) || 0) + 1);
+    }
+  }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  return top && top[1] >= 3 ? { genre: top[0], count: top[1] } : null;
+}
+
+/** Afmaker of afhaker: percentage afgekeken van alle afgeronde keuzes (gezien/afgehaakt). */
+export function finisherStats(snap: Snapshot, userId: string): { profile: Profile; pct: number; finished: number; dropped: number }[] {
+  const visible = visibleUserIds(snap, userId);
+  const result: { profile: Profile; pct: number; finished: number; dropped: number }[] = [];
+  for (const id of visible) {
+    const p = profileById(snap, id);
+    if (!p) continue;
+    const mine = snap.ratings.filter((r) => r.user_id === id);
+    const finished = mine.filter((r) => r.status === 'finished').length;
+    const dropped = mine.filter((r) => r.status === 'dropped').length;
+    if (finished + dropped < 3) continue; // te weinig om iets te zeggen
+    result.push({ profile: p, pct: Math.round((finished / (finished + dropped)) * 100), finished, dropped });
+  }
+  return result.sort((a, b) => b.pct - a.pct);
+}
+
 /** "Jouw jaar in series": statistieken over de beoordelingen van dit kalenderjaar.
  *  Benadering: we gaan uit van het moment waarop je de beoordeling (laatst) bijwerkte. */
 export function yearStats(snap: Snapshot, userId: string, year: number) {

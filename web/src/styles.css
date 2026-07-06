@@ -695,6 +695,14 @@ input, textarea, select {
 .year-card { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface)); }
 .year-rows { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
 
+/* "De Bank vergelijkt": streng/mild-labels in de jury-kaart. */
+.jury-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 999px;
+}
+.jury-tag.strict { background: color-mix(in srgb, #b47b7b 18%, var(--surface)); color: #b47b7b; }
+.jury-tag.mild { background: color-mix(in srgb, var(--good) 16%, var(--surface)); color: var(--good); }
+
 /* Skeleton-laadstatus: pulserende vlakken op de plek van echte inhoud. */
 .skel {
   background: var(--surface-2);
