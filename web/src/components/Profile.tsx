@@ -221,8 +221,9 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
             <div className="muted" style={{ fontSize: 12 }}>Kies tussen donker en licht.</div>
           </div>
           <div className="theme-switch">
-            <button className={theme === 'dark' ? 'sel' : ''} onClick={() => setTheme('dark')}>🌙 Donker</button>
             <button className={theme === 'light' ? 'sel' : ''} onClick={() => setTheme('light')}>☀️ Licht</button>
+            <button className={theme === 'dark' ? 'sel' : ''} onClick={() => setTheme('dark')}>🌙 Donker</button>
+            <button className={theme === 'system' ? 'sel' : ''} onClick={() => setTheme('system')}>📱 Auto</button>
           </div>
         </div>
         <div className="toggle" style={{ marginTop: 6 }}>

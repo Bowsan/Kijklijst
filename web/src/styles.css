@@ -649,6 +649,43 @@ input, textarea, select {
   background: #e5484d; border: 1.5px solid var(--bar-bg);
 }
 
+/* Offline-banner onder de topbar. */
+.offline-banner {
+  background: color-mix(in srgb, #f5c518 25%, var(--surface));
+  border-bottom: 1px solid color-mix(in srgb, #f5c518 50%, var(--border));
+  color: var(--text);
+  font-size: 13px; text-align: center; padding: 7px 12px;
+}
+
+/* Sub-tabs (segmented control) binnen een pagina. */
+.subtabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border-radius: 12px; padding: 4px;
+  margin-bottom: 14px;
+}
+.subtabs button {
+  flex: 1; padding: 8px 10px; border-radius: 9px;
+  font-size: 14px; font-weight: 600; color: var(--muted);
+}
+.subtabs button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+/* Snelcijfer-knopjes in de onboarding. */
+.quick-score {
+  width: 34px; height: 30px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface-2); color: var(--text);
+  font-weight: 700; font-size: 13px;
+}
+.quick-score:active { background: var(--accent); color: #fff; }
+
+/* Zichtbare focus voor toetsenbordgebruik (alleen bij toetsenbord-navigatie). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ---------- Modal / sheet ---------- */
 .sheet-backdrop {
   position: fixed; inset: 0;

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { Snapshot, Profile } from '../lib/types';
-import { followingProfiles, suggestedProfiles, hiddenProfiles, inactiveFollowableProfiles } from '../lib/compute';
+import {
+  followingProfiles, suggestedProfiles, hiddenProfiles, inactiveFollowableProfiles, sentRecommendations,
+} from '../lib/compute';
 import { followUser, unfollowUser, setProfileHidden } from '../lib/api';
 import Avatar from './Avatar';
 import MyTips from './MyTips';
@@ -19,8 +21,11 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
   const suggestions = suggestedProfiles(snap, userId);
   const inactive = inactiveFollowableProfiles(snap, userId);
   const hidden = hiddenProfiles(snap, userId);
+  const tipCount = sentRecommendations(snap, userId).length;
   const [showHidden, setShowHidden] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  // Sub-tabs: de vriendenlijsten en je verstuurde tips gescheiden houden.
+  const [subTab, setSubTab] = useState<'friends' | 'tips'>('friends');
 
   const follow = async (id: string, name: string) => {
     try { await followUser(id); toast('Je volgt nu ' + name); onChange(); }
@@ -52,7 +57,30 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
   return (
     <div className="page">
       <h2>Vrienden</h2>
-      <button className="btn full" onClick={onShare}>🔗 Vrienden uitnodigen</button>
+
+      {/* Sub-tabs: vriendenlijsten of jouw verstuurde tips */}
+      <div className="subtabs" role="tablist">
+        <button role="tab" aria-selected={subTab === 'friends'} className={subTab === 'friends' ? 'sel' : ''} onClick={() => setSubTab('friends')}>
+          👥 Vrienden
+        </button>
+        <button role="tab" aria-selected={subTab === 'tips'} className={subTab === 'tips' ? 'sel' : ''} onClick={() => setSubTab('tips')}>
+          💌 Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}
+        </button>
+      </div>
+
+      {subTab === 'tips' ? (
+        tipCount > 0 ? (
+          <MyTips snap={snap} userId={userId} onChange={onChange} toast={toast} />
+        ) : (
+          <div className="empty">
+            <div className="big">💌</div>
+            <p>Je hebt nog geen tips verstuurd.</p>
+            <p className="muted">Open een serie en kies "💌 Raad aan" om er een vriend blij mee te maken.</p>
+          </div>
+        )
+      ) : (
+      <>
+      <button className="btn full" style={{ marginTop: 4 }} onClick={onShare}>🔗 Vrienden uitnodigen</button>
 
       <h2 style={{ marginTop: 18 }}>Wie je volgt</h2>
       {friends.length === 0 ? (
@@ -96,8 +124,6 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
         </>
       )}
 
-      <MyTips snap={snap} userId={userId} onChange={onChange} toast={toast} />
-
       {hidden.length > 0 && (
         <div style={{ marginTop: 28 }}>
           <button
@@ -121,6 +147,8 @@ export default function Friends({ snap, userId, onOpenProfile, onChange, onShare
             </div>
           )}
         </div>
+      )}
+      </>
       )}
     </div>
   );

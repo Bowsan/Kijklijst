@@ -68,7 +68,8 @@ export default function ScoreSlider({ value, onCommit, onClear }: Props) {
         max={10}
         step={0.5}
         value={pos}
-        aria-label="Cijfer"
+        aria-label="Jouw cijfer voor deze serie"
+        aria-valuetext={set ? `${label} van de 10` : 'Nog geen cijfer'}
         className={set ? '' : 'unset'}
         style={style}
         onChange={(e) => setPos(Number(e.target.value))}

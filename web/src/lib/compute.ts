@@ -98,6 +98,21 @@ export function unseenCommentCount(snap: Snapshot, userId: string, since: number
   return commentsOnMyList(snap, userId).filter((c) => c.created_at > since).length;
 }
 
+/** Alles wat het bolletje op de bel laat branden: berichten bij jouw series,
+ *  tips die je kreeg en nieuwe seizoenen van series op je lijst — voor zover
+ *  nieuwer dan je laatste bezoek aan de meldingen. */
+export function unseenNotificationCount(snap: Snapshot, userId: string, since: number): number {
+  const mine = new Set(snap.ratings.filter((r) => r.user_id === userId).map((r) => r.title_id));
+  const comments = unseenCommentCount(snap, userId, since);
+  const tips = snap.recommendations.filter(
+    (r) => r.to_user === userId && !r.dismissed && r.created_at > since,
+  ).length;
+  const newSeasons = snap.activity.filter(
+    (a) => a.type === 'new_season' && a.title_id != null && mine.has(a.title_id) && a.created_at > since,
+  ).length;
+  return comments + tips + newSeasons;
+}
+
 /** Jij + de vrienden die je volgt — bepaalt wat er in "Alles" verschijnt. */
 export function visibleUserIds(snap: Snapshot, userId: string): string[] {
   return [userId, ...followingIds(snap, userId)];
