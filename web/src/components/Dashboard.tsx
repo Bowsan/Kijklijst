@@ -5,7 +5,9 @@ import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
   visibleUserIds, titleById, profileById, yearStats,
+  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
 } from '../lib/compute';
+import type { Profile } from '../lib/types';
 import Avatar from './Avatar';
 
 interface NavOpts {
@@ -61,6 +63,18 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   // --- Mijn statistieken ---
   const currentYear = new Date().getFullYear();
   const year = useMemo(() => yearStats(snap, userId, currentYear), [snap, userId, currentYear]);
+
+  // --- De Bank vergelijkt: sociale statistieken ---
+  const jury = useMemo(() => juryScores(snap, userId), [snap, userId]);
+  const division = useMemo(() => groupDivision(snap, userId), [snap, userId]);
+  const outliers = useMemo(() => tasteOutliers(snap, userId), [snap, userId]);
+  const blindSpot = useMemo(() => blindSpotGenre(snap, userId), [snap, userId]);
+  const finishers = useMemo(() => finisherStats(snap, userId), [snap, userId]);
+  const nick = (p: Profile) => (p.id === userId ? 'Jij' : p.name);
+  const hasCompare =
+    jury.length >= 2 || division.divided != null || division.agreed != null ||
+    outliers.guilty != null || outliers.panned != null || blindSpot != null || finishers.length >= 2;
+
   const myRatings = snap.ratings.filter((r) => r.user_id === userId);
   const totalCount = myRatings.length;
   const finishedCount = myRatings.filter((r) => r.status === 'finished').length;
@@ -299,6 +313,95 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ---- De Bank vergelijkt: sociale inzichten uit de gedeelde cijfers ---- */}
+      {hasCompare && (
+        <>
+          <h2 style={{ marginTop: 24 }}>De Bank vergelijkt</h2>
+
+          {jury.length >= 2 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>🧑‍⚖️ De jury</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Wie cijfert streng, wie mild — vergeleken met de rest op dezelfde series.
+              </div>
+              {jury.map((j, i) => (
+                <div className="row spread" key={j.profile.id} style={{ padding: '5px 0' }}>
+                  <div className="row" style={{ gap: 8 }}>
+                    <Avatar profile={j.profile} size="sm" />
+                    <span style={{ fontSize: 14 }}>{nick(j.profile)}</span>
+                    {i === 0 && <span className="jury-tag strict">strengste</span>}
+                    {i === jury.length - 1 && <span className="jury-tag mild">mildste</span>}
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: j.delta <= 0 ? '#b47b7b' : 'var(--good)' }}>
+                    {j.delta > 0 ? '+' : '−'}{Math.abs(j.delta).toFixed(1).replace('.', ',')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(division.divided || division.agreed) && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>⚔️ Verdeeld & eensgezind</div>
+              <div className="year-rows">
+                {division.divided && (
+                  <div>
+                    🔥 Meest verdeeld: <b>{division.divided.title.name}</b> — {nick(division.divided.low.user)} gaf een {division.divided.low.score}, {nick(division.divided.high.user)} een {division.divided.high.score}
+                  </div>
+                )}
+                {division.agreed && (
+                  <div>
+                    🤝 Meest eensgezind: <b>{division.agreed.title.name}</b> — alle {division.agreed.count} cijfers hooguit {division.agreed.spread === 0 ? 'nul' : division.agreed.spread.toFixed(1).replace('.', ',')} punt uit elkaar
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(outliers.guilty || outliers.panned || blindSpot) && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>🙈 Jouw smaak vs de groep</div>
+              <div className="year-rows">
+                {outliers.guilty && (
+                  <div>
+                    💖 Jouw guilty pleasure: <b>{outliers.guilty.title.name}</b> — jij gaf een {outliers.guilty.mine}, de rest gemiddeld {outliers.guilty.others.toFixed(1).replace('.', ',')}
+                  </div>
+                )}
+                {outliers.panned && (
+                  <div>
+                    🥶 Alleen jij vond dit niks: <b>{outliers.panned.title.name}</b> — jij een {outliers.panned.mine}, de rest {outliers.panned.others.toFixed(1).replace('.', ',')}
+                  </div>
+                )}
+                {blindSpot && (
+                  <div>
+                    🕳️ Blinde vlek: <b>{blindSpot.genre}</b> — je vrienden keken al {blindSpot.count} series in dit genre, jij nog geen één
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {finishers.length >= 2 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>🏁 Afmakers</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Hoeveel van de begonnen series kijkt iedereen ook echt af?
+              </div>
+              {finishers.map((f) => (
+                <BarRow
+                  key={f.profile.id}
+                  label={nick(f.profile)}
+                  value={f.pct}
+                  max={100}
+                  val={`${f.pct}% (${f.finished}/${f.finished + f.dropped})`}
+                  color={f.pct >= 70 ? 'var(--good)' : f.pct >= 40 ? 'var(--warn)' : '#b47b7b'}
+                />
+              ))}
             </div>
           )}
         </>

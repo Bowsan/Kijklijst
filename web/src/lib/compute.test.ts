@@ -4,6 +4,7 @@ import {
   selectTitles, computedRecommendations, newSeasonForYou, hasUnseenNewSeason,
   suggestedProfiles, inactiveFollowableProfiles, hiddenProfiles,
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
+  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
   NEW_SEASON_WINDOW,
 } from './compute';
 
@@ -219,6 +220,65 @@ describe('unseenCommentCount', () => {
     });
     expect(unseenCommentCount(s, 'me', 50)).toBe(1);
     expect(unseenCommentCount(s, 'me', 0)).toBe(2);
+  });
+});
+
+// ---- De Bank vergelijkt ----
+
+describe('De Bank vergelijkt', () => {
+  // Groep: ik + Sam (gevolgd); Piet wordt niet gevolgd en telt dus niet mee.
+  const base = snap({
+    profiles: [profile('me'), profile('sam'), profile('piet')],
+    follows: [{ follower: 'me', followee: 'sam', created_at: 1 }],
+    titles: [
+      title(1, { genres: ['Drama'] }), title(2, { genres: ['Drama'] }),
+      title(3, { genres: ['Komedie'] }), title(4, { genres: ['Documentaire'] }),
+      title(5, { genres: ['Documentaire'] }), title(6, { genres: ['Documentaire'] }),
+    ],
+    ratings: [
+      // drie gedeelde titels: ik steeds lager dan Sam
+      rating(1, 'me', { score: 6, status: 'finished' }), rating(1, 'sam', { score: 8, status: 'finished' }),
+      rating(2, 'me', { score: 5, status: 'finished' }), rating(2, 'sam', { score: 9, status: 'finished' }),
+      rating(3, 'me', { score: 7, status: 'finished' }), rating(3, 'sam', { score: 8, status: 'finished' }),
+      // Sam kijkt documentaires, ik nooit
+      rating(4, 'sam', { score: 8, status: 'finished' }),
+      rating(5, 'sam', { score: 7, status: 'finished' }),
+      rating(6, 'sam', { score: 9, status: 'dropped' }),
+      // Piet (niet gevolgd) zou de cijfers vervuilen als hij meetelde
+      rating(1, 'piet', { score: 1 }),
+    ],
+  });
+
+  it('juryScores: strengste eerst, alleen groepsleden met 3+ gedeelde titels', () => {
+    const jury = juryScores(base, 'me');
+    expect(jury.map((j) => j.profile.id)).toEqual(['me', 'sam']);
+    expect(jury[0].delta).toBeLessThan(0); // ik cijfer lager dan de rest
+    expect(jury[0].delta).toBeCloseTo(-((2 + 4 + 1) / 3));
+  });
+
+  it('groupDivision: grootste kloof met de juiste uitersten', () => {
+    const { divided } = groupDivision(base, 'me');
+    expect(divided?.title.tmdb_id).toBe(2);
+    expect(divided?.low.user.id).toBe('me');
+    expect(divided?.high.score).toBe(9);
+    expect(divided?.spread).toBe(4);
+  });
+
+  it('tasteOutliers: panned als ik ruim lager zit; geen guilty zonder uitschieter omhoog', () => {
+    const { guilty, panned } = tasteOutliers(base, 'me');
+    expect(panned?.title.tmdb_id).toBe(2); // ik 5, Sam 9
+    expect(guilty).toBeNull();
+  });
+
+  it('blindSpotGenre: genre dat vrienden kijken maar ik nooit', () => {
+    expect(blindSpotGenre(base, 'me')).toEqual({ genre: 'Documentaire', count: 3 });
+  });
+
+  it('finisherStats: percentage afgekeken, hoogste eerst, minimaal 3 afgeronde', () => {
+    const stats = finisherStats(base, 'me');
+    expect(stats.map((s) => s.profile.id)).toEqual(['me', 'sam']);
+    expect(stats[0].pct).toBe(100); // ik: 3 gezien, 0 afgehaakt
+    expect(stats[1].pct).toBe(83);  // Sam: 5 gezien, 1 afgehaakt
   });
 });
 
