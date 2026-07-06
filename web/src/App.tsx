@@ -639,7 +639,7 @@ export default function App() {
       )}
 
       {tab === 'friends' && (
-        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
       {tab === 'profile' && (

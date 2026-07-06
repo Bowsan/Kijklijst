@@ -676,6 +676,8 @@ input, textarea, select {
   border: 1px solid; background: transparent;
 }
 .tip-note { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 6px; }
+.tip-open { cursor: pointer; }
+.tip-title.tip-open:active { color: var(--accent); }
 
 /* Bolletje op de bel als er ongelezen berichten zijn. */
 .notif-dot {
