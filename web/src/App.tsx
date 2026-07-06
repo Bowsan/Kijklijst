@@ -12,6 +12,7 @@ import {
 import Onboarding from './components/Onboarding';
 import ListSearchBar from './components/ListSearchBar';
 import StatusBadge from './components/StatusBadge';
+import Avatar from './components/Avatar';
 import FilterSheet from './components/FilterSheet';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
@@ -153,9 +154,10 @@ export default function App() {
     setTab('list');
   };
 
-  // "Jij" heeft een eigen knop, dus die telt hier niet mee als paneelfilter.
+  // "Jij" heeft een eigen knop en een vriend-scope toont z'n eigen banner,
+  // dus die tellen hier niet mee als paneelfilter.
   const activeFilterCount =
-    (friend && friend !== 'me' ? 1 : 0) + services.length + genres.length +
+    services.length + genres.length +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
@@ -457,6 +459,17 @@ export default function App() {
 
       {tab === 'list' && !searchActive && (
         <div className="page" style={searchOpen ? { paddingBottom: 88 } : undefined}>
+          {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
+          {friend && friend !== 'me' && (
+            <div className="viewing-as">
+              <div className="row" style={{ gap: 8, minWidth: 0 }}>
+                <Avatar profile={profileById(snap, friend)} id={friend} size="sm" />
+                <span>Dit is de lijst van: <b>{profileById(snap, friend)?.name || 'Vriend'}</b></span>
+              </div>
+              <button className="btn ghost" style={{ padding: '4px 10px', flexShrink: 0 }} onClick={() => setFriend('me')}>Naar jouw lijst</button>
+            </div>
+          )}
+
           {/* Zone 1 — statusbalk (kijkstatus), de hoofdnavigatie */}
           <div className="status-bar">
             {STATUS_TABS.map((s) => (
@@ -529,11 +542,6 @@ export default function App() {
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
-              {friend && friend !== 'me' && (
-                <button className="active-chip" onClick={() => setFriend('me')}>
-                  {profileById(snap, friend)?.name || 'Vriend'} ✕
-                </button>
-              )}
               {services.map((s) => (
                 <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
               ))}
@@ -579,6 +587,7 @@ export default function App() {
                     userId={userId}
                     blind={blind}
                     showGroupScore={friend === ''}
+                    compareUserId={friend && friend !== 'me' ? friend : undefined}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -700,6 +709,15 @@ export default function App() {
           onClose={() => setProfileTarget(null)}
           onChange={reload}
           onAdd={(id) => addTitle(id)}
+          onOpenTitle={(id) => { setProfileTarget(null); navigateToList({ status: 'all', titleId: id }); }}
+          onViewList={(id) => {
+            setProfileTarget(null);
+            setFriend(id);
+            setStatus('all');
+            setGenres([]); setServices([]); setNameFilter('');
+            setSortKey('rating'); setSortDir('desc');
+            setTab('list');
+          }}
           toast={toast}
         />
       )}

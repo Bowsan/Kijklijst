@@ -118,6 +118,16 @@ export function visibleUserIds(snap: Snapshot, userId: string): string[] {
   return [userId, ...followingIds(snap, userId)];
 }
 
+/** Cijfers van de vrienden die je volgt voor één titel (voor snelle inline-weergave). */
+export function friendScoresFor(snap: Snapshot, userId: string, titleId: number): { profile: Profile; score: number }[] {
+  const friendIds = new Set(followingIds(snap, userId));
+  return snap.ratings
+    .filter((r) => r.title_id === titleId && r.score != null && friendIds.has(r.user_id))
+    .map((r) => ({ profile: profileById(snap, r.user_id)!, score: r.score as number }))
+    .filter((x) => x.profile)
+    .sort((a, b) => b.score - a.score);
+}
+
 // 'notdone' = "nog afkijken": gemarkeerd als gezien, maar nog niet alle seizoenen afgevinkt.
 export type StatusValue = 'all' | 'want' | 'watching' | 'finished' | 'dropped' | 'notdone';
 

@@ -332,8 +332,38 @@ input, textarea, select {
   flex-shrink: 0;
   border: 2px solid var(--surface);
 }
+.avatar.xs { width: 16px; height: 16px; font-size: 8px; }
 .avatar.sm { width: 20px; height: 20px; font-size: 9px; }
 .avatar.lg { width: 64px; height: 64px; font-size: 24px; }
+
+/* Vriendcijfers als kleine chips op de ingeklapte kaart. */
+.metarow.friend-scores { margin-top: 6px; }
+.fscore {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border-radius: 999px;
+  padding: 2px 8px 2px 3px; font-size: 12px;
+}
+.fscore b { font-weight: 700; }
+
+/* "Als vriend"-weergave: jouw cijfer klein onder dat van de vriend. */
+.compare-mine { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+/* Klikbare serie-rij in het profiel-overzicht. */
+.pv-row {
+  display: flex; gap: 10px; align-items: center;
+  cursor: pointer; border-radius: 8px;
+  margin: 0 -6px; padding: 3px 6px;
+}
+.pv-row:active { background: var(--surface-2); }
+
+/* Banner boven de lijst als je 'm als een vriend bekijkt. */
+.viewing-as {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: color-mix(in srgb, var(--info) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--info) 35%, var(--border));
+  border-radius: 12px; padding: 8px 10px; margin-bottom: 10px;
+  font-size: 14px;
+}
 .avatar-stack { display: flex; }
 .avatar-stack .avatar:not(:first-child) { margin-left: -8px; }
 

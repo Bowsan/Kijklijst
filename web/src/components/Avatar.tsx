@@ -5,11 +5,11 @@ interface Props {
   profile?: Profile;
   id?: string;
   name?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export default function Avatar({ profile, id, name, size = 'md' }: Props) {
-  const cls = size === 'sm' ? 'avatar sm' : size === 'lg' ? 'avatar lg' : 'avatar';
+  const cls = `avatar${size === 'md' ? '' : ' ' + size}`;
   const displayName = profile?.name || name || '?';
   const userId = profile?.id || id || displayName;
   const initial = displayName.trim().charAt(0).toUpperCase() || '?';

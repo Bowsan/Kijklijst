@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
-import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason } from '../lib/compute';
+import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
@@ -41,13 +41,17 @@ interface Props {
   userId: string;
   blind: boolean;
   showGroupScore?: boolean;
+  /** Toon in de kop het cijfer van deze vriend (met jouw cijfer erbij) i.p.v. je eigen badge. */
+  compareUserId?: string;
+  /** Toon de cijfers van je vrienden als kleine chips in de ingeklapte kaart. */
+  showFriendScores?: boolean;
   onRecommend: (title: Title) => void;
   onChange: () => void;
   toast: (msg: string) => void;
   initialExpanded?: boolean;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -82,6 +86,16 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
 
   // Welke gekleurde statusbadge hoort bij jouw beoordeling (cijfer impliceert 'gezien').
   const myBadge: Status | null = mine?.status ?? (mine?.score != null ? 'finished' : null);
+
+  // Bekijk je de lijst "als" een vriend? Dan tonen we diens cijfer, met dat van jou erbij.
+  const compareProfile = compareUserId && compareUserId !== userId ? profileById(snap, compareUserId) : undefined;
+  const compareRating = compareProfile ? myRating(snap, title.tmdb_id, compareUserId!) : undefined;
+  const compareBadge: Status | null = compareRating?.status ?? (compareRating?.score != null ? 'finished' : null);
+
+  // Cijfers van vrienden voor de ingeklapte kaart (sectie "Misschien iets voor jou?").
+  const friendScores = showFriendScores ? friendScoresFor(snap, userId, title.tmdb_id) : [];
+  // De algemene 👥-teller verbergen we als we de vriendcijfers al apart tonen.
+  const showOthers = others.length > 0 && !(showFriendScores && friendScores.length > 0);
 
   // Seizoen-voortgang voor de ingeklapte kaart: hoeveel van de N seizoenen zag je?
   const totalSeasons = title.seasons.length;
@@ -188,27 +202,52 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
           {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
-          {(newSeason || seasonsChip || others.length > 0 || totalRecCount > 0) && (
+          {(newSeason || seasonsChip || showOthers || totalRecCount > 0) && (
             <div className="metarow">
               {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
                 // Groen als je alle seizoenen zag, anders lichtgrijs (nog niet af).
                 <span className={`mchip${watchedSeasonCount >= totalSeasons ? ' seasons' : ''}`}>{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
               )}
-              {others.length > 0 && <span className="mchip">👥 {others.length}</span>}
+              {showOthers && <span className="mchip">👥 {others.length}</span>}
               {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
+            </div>
+          )}
+          {/* Cijfers van vrienden, direct zichtbaar zonder uitklappen. */}
+          {friendScores.length > 0 && (
+            <div className="metarow friend-scores">
+              {friendScores.map(({ profile, score }) => (
+                <span className="fscore" key={profile.id} title={`${profile.name}: ${score}`}>
+                  <Avatar profile={profile} id={profile.id} size="xs" />
+                  <b>{score}</b>
+                </span>
+              ))}
             </div>
           )}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          {showGroupScore && !hideGroup && avg != null && (
-            <div className="avg">
-              <span className="num">{avg.toFixed(1)}</span>
-              <span className="lbl">groep</span>
-            </div>
+          {compareProfile ? (
+            // "Als vriend"-weergave: hun cijfer groot, jouw cijfer klein eronder.
+            <>
+              {compareBadge
+                ? <StatusBadge status={compareBadge} score={compareRating?.score ?? null} />
+                : <span className="chip" style={{ fontSize: 12 }}>–</span>}
+              <span className="compare-mine">
+                jij {mine?.score != null ? mine.score : (myBadge ? '·' : '–')}
+              </span>
+            </>
+          ) : (
+            <>
+              {showGroupScore && !hideGroup && avg != null && (
+                <div className="avg">
+                  <span className="num">{avg.toFixed(1)}</span>
+                  <span className="lbl">groep</span>
+                </div>
+              )}
+              {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
+              {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}
+            </>
           )}
-          {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
-          {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}
         </div>
       </div>
 
