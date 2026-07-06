@@ -10,6 +10,8 @@ import { db, getSnapshot, parseJson } from './db.js';
 import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb } from './tmdb.js';
 import { tvmazeByImdb, type EnrichData } from './tvmaze.js';
 import { addClient, broadcast } from './events.js';
+import { scheduleBackups } from './backup.js';
+import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -18,6 +20,9 @@ const app = express();
 app.use(cors());
 app.use(compression());
 app.use(express.json({ limit: '2mb' })); // ruimte voor kleine avatar-afbeeldingen
+
+// Geüploade avatars en covers (bestanden op het data-volume).
+app.use('/uploads', express.static(uploadsDir(), { maxAge: '30d', immutable: true }));
 
 // Eenvoudige identiteit: de client stuurt zijn lokale code mee.
 function userId(req: express.Request): string | null {
@@ -135,7 +140,7 @@ app.post('/api/title/manual', (req, res) => {
     JSON.stringify(providers), null, '[]', uid, Date.now()
   );
 
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true, tmdb_id: id });
 });
 
@@ -144,6 +149,36 @@ function parseImdbId(input: unknown): string | null {
   if (typeof input !== 'string') return null;
   const m = input.match(/tt\d{6,}/i);
   return m ? m[0].toLowerCase() : null;
+}
+
+// Een handmatige titel (negatief id) omzetten naar het echte TMDb-id, inclusief
+// alle beoordelingen, berichten, tips en logregels. Bestaat het TMDb-id al in de
+// lijst, dan voegen we samen (bestaande beoordelingen op de echte titel winnen).
+// Alles in één transactie: bij een fout blijft de oude situatie intact.
+function promoteToTmdbId(oldId: number, newId: number, uid: string): number | null {
+  if (oldId >= 0 || db.prepare('SELECT 1 FROM titles WHERE tmdb_id = ?').get(oldId) == null) return null;
+  const run = db.transaction(() => {
+    const targetExists = db.prepare('SELECT 1 FROM titles WHERE tmdb_id = ?').get(newId);
+    if (targetExists) {
+      // Samenvoegen: verplaats wat kan, bewaar bestaande rijen op de echte titel.
+      db.prepare('UPDATE OR IGNORE ratings SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+      db.prepare('DELETE FROM ratings WHERE title_id = ?').run(oldId);
+      db.prepare('UPDATE OR IGNORE reactions SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+      db.prepare('DELETE FROM reactions WHERE title_id = ?').run(oldId);
+      db.prepare('DELETE FROM titles WHERE tmdb_id = ?').run(oldId);
+    } else {
+      // Hernoemen: de titelrij krijgt het echte id; details vult de refresh daarna.
+      db.prepare('UPDATE titles SET tmdb_id = ? WHERE tmdb_id = ?').run(newId, oldId);
+      db.prepare('UPDATE ratings SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+      db.prepare('UPDATE reactions SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+    }
+    db.prepare('UPDATE recommendations SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+    db.prepare('UPDATE comments SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+    db.prepare('UPDATE activity SET title_id = ? WHERE title_id = ?').run(newId, oldId);
+    logActivity('promoted', uid, newId, { from: oldId });
+  });
+  try { run(); return newId; }
+  catch (e: any) { console.warn('Promotie mislukt:', e?.message || e); return null; }
 }
 
 // Serie-info aanvullen bij een (meestal handmatige) titel via een IMDb-id.
@@ -163,9 +198,19 @@ app.post('/api/title/:id/enrich', async (req, res) => {
   let source: string | null = null;
 
   // 1) TMDb heeft de serie misschien tóch — opzoeken op IMDb-id.
+  // Een handmatige titel (negatief id) promoveren we dan naar het échte TMDb-id,
+  // zodat hij voortaan meedraait in de automatische seizoen-updates.
   try {
     if (process.env.TMDB_API_KEY) {
       const tmdbId = await findTvIdByImdb(imdb);
+      if (tmdbId && titleId < 0) {
+        const newId = promoteToTmdbId(titleId, tmdbId, uid);
+        if (newId) {
+          await refreshTitle(newId).catch(() => {});
+          broadcast('state', 1);
+          return res.json({ found: true, source: 'TMDb', tmdb_id: newId });
+        }
+      }
       if (tmdbId) {
         const d = await getTvDetails(tmdbId);
         data = {
@@ -205,7 +250,7 @@ app.post('/api/title/:id/enrich', async (req, res) => {
     titleId,
   );
 
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ found: true, source });
 });
 
@@ -225,9 +270,9 @@ app.post('/api/title/:id/meta', (req, res) => {
     : typeof genres === 'string'
       ? genres.split(',').map((g: string) => g.trim()).filter(Boolean)
       : parseJson(existing.genres, []);
-  // Alleen een geüploade cover (data-URI) of TMDb-pad accepteren; grens tegen misbruik.
+  // Alleen een geüploade cover (data-URI, direct als bestand opgeslagen) of URL accepteren.
   const posterVal = typeof poster === 'string' && poster.length < 400000 && (poster.startsWith('data:image/') || poster.startsWith('http'))
-    ? poster
+    ? storeDataUri(poster, 'poster')
     : existing.poster_path;
 
   db.prepare('UPDATE titles SET year = ?, genres = ?, poster_path = ?, overview = ? WHERE tmdb_id = ?')
@@ -239,7 +284,7 @@ app.post('/api/title/:id/meta', (req, res) => {
       titleId,
     );
 
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -273,14 +318,14 @@ app.post('/api/profile', (req, res) => {
   ).run({
     id: uid,
     name: name.trim().slice(0, 40),
-    avatar: avatar || null,
+    // Base64-afbeelding meteen als bestand opslaan, niet in de database.
+    avatar: storeDataUri(avatar || null, 'avatar'),
     color: color || null,
     services: JSON.stringify(Array.isArray(services) ? services : []),
     updated_at: Date.now(),
   });
 
-  const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(uid);
-  broadcast('profile', profile);
+  broadcast('profile', 1);
   res.json({ ok: true });
 });
 
@@ -327,8 +372,7 @@ app.post('/api/rating', async (req, res) => {
       logActivity('added', uid, Number(tmdb_id), { status: status ?? null });
     }
 
-    const snapshot = getSnapshot();
-    broadcast('state', snapshot);
+    broadcast('state', 1);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(502).json({ error: err.message });
@@ -352,7 +396,7 @@ app.post('/api/recommendation', async (req, res) => {
     ).run(id, uid, to_user, Number(tmdb_id), note || null, Date.now());
 
     logActivity('recommend', uid, Number(tmdb_id), { to_user });
-    broadcast('state', getSnapshot());
+    broadcast('state', 1);
     res.json({ ok: true, id });
   } catch (err: any) {
     res.status(502).json({ error: err.message });
@@ -364,7 +408,7 @@ app.delete('/api/rating/:tmdb_id', (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   db.prepare('DELETE FROM ratings WHERE title_id = ? AND user_id = ?').run(Number(req.params.tmdb_id), uid);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -380,7 +424,7 @@ app.post('/api/comment', (req, res) => {
   const id = randomUUID();
   db.prepare('INSERT INTO comments (id, title_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)')
     .run(id, Number(tmdb_id), uid, text.trim().slice(0, 1000), Date.now());
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true, id });
 });
 
@@ -389,7 +433,7 @@ app.delete('/api/comment/:id', (req, res) => {
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   // Alleen je eigen bericht mag je weghalen.
   db.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?').run(req.params.id, uid);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -408,7 +452,7 @@ app.post('/api/follow', (req, res) => {
 
   db.prepare('INSERT OR IGNORE INTO follows (follower, followee, created_at) VALUES (?, ?, ?)')
     .run(uid, followee, Date.now());
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -416,7 +460,7 @@ app.delete('/api/follow/:followee', (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   db.prepare('DELETE FROM follows WHERE follower = ? AND followee = ?').run(uid, req.params.followee);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -428,7 +472,7 @@ app.post('/api/profile/:id/hidden', (req, res) => {
   if (!exists) return res.status(404).json({ error: 'profiel niet gevonden' });
   const hidden = req.body?.hidden ? 1 : 0;
   db.prepare('UPDATE profiles SET hidden = ? WHERE id = ?').run(hidden, req.params.id);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -437,7 +481,7 @@ app.post('/api/recommendation/:id/dismiss', (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   db.prepare('UPDATE recommendations SET dismissed = 1 WHERE id = ? AND to_user = ?').run(req.params.id, uid);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -446,7 +490,7 @@ app.delete('/api/recommendation/:id', (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   db.prepare('DELETE FROM recommendations WHERE id = ? AND from_user = ?').run(req.params.id, uid);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -457,7 +501,7 @@ app.post('/api/recommendation/:id/note', (req, res) => {
   const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
   db.prepare('UPDATE recommendations SET note = ? WHERE id = ? AND from_user = ?')
     .run(note || null, req.params.id, uid);
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -475,7 +519,7 @@ app.post('/api/reaction', (req, res) => {
   } else {
     db.prepare('INSERT INTO reactions (title_id, user_id, emoji, created_at) VALUES (?, ?, ?, ?)').run(tmdb_id, uid, emoji, Date.now());
   }
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   res.json({ ok: true });
 });
 
@@ -508,14 +552,14 @@ async function backfillImdbIds(): Promise<void> {
         upd.run(imdb, r.tmdb_id);
         filled++;
         // Tussentijds de clients bijwerken zodat links geleidelijk verschijnen.
-        if (filled % 25 === 0) broadcast('state', getSnapshot());
+        if (filled % 25 === 0) broadcast('state', 1);
       }
     } catch {
       /* titel overslaan bij een fout */
     }
     await new Promise((res) => setTimeout(res, 250));
   }
-  if (filled) broadcast('state', getSnapshot());
+  if (filled) broadcast('state', 1);
   console.log(`IMDb-backfill klaar: ${filled} van ${rows.length} bijgewerkt.`);
 }
 
@@ -563,7 +607,7 @@ async function refreshTitles(rows: { tmdb_id: number }[], label: string): Promis
     } catch { /* titel overslaan bij fout */ }
     await new Promise((res) => setTimeout(res, 300));
   }
-  broadcast('state', getSnapshot());
+  broadcast('state', 1);
   console.log(`${label} klaar: ${changed} met een nieuw seizoen.`);
 }
 
@@ -596,6 +640,10 @@ app.listen(PORT, () => {
   if (!process.env.TMDB_API_KEY) {
     console.warn('LET OP: TMDB_API_KEY ontbreekt — zoeken en details werken pas met een sleutel.');
   }
+  // Dagelijkse back-up van de database (bewaart de laatste 14 dagen).
+  scheduleBackups();
+  // Bestaande base64-afbeeldingen eenmalig naar bestanden verplaatsen.
+  try { migrateDataUrisToFiles(); } catch (e: any) { console.warn('Uploads-migratie mislukt:', e?.message || e); }
   // Niet awaiten: op de achtergrond laten lopen.
   backfillImdbIds().catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e));
   refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
