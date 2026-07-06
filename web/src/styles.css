@@ -107,10 +107,8 @@ input, textarea, select {
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--border);
   padding-bottom: var(--safe-bottom);
-  /* iOS Safari: eigen compositielaag, zodat de balk bij het in-/uitschuiven van
-     de adresbalk aan de échte onderkant blijft plakken i.p.v. te 'zweven'. */
-  transform: translateZ(0);
-  will-change: transform;
+  /* Bewust géén transform/will-change: een eigen GPU-laag laat de balk op iOS
+     Safari op een verouderde positie 'hangen' als de adresbalk uitschuift. */
 }
 .nav button {
   flex: 1;
