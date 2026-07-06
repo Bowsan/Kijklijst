@@ -369,6 +369,49 @@ export function guessService(title: Title, profile: Profile | undefined, overrid
   return title.providers[0]; // bij benadering een dienst die hem wel aanbiedt
 }
 
+/** "Jouw jaar in series": statistieken over de beoordelingen van dit kalenderjaar.
+ *  Benadering: we gaan uit van het moment waarop je de beoordeling (laatst) bijwerkte. */
+export function yearStats(snap: Snapshot, userId: string, year: number) {
+  const start = new Date(year, 0, 1).getTime();
+  const end = new Date(year + 1, 0, 1).getTime();
+  const mine = snap.ratings.filter(
+    (r) => r.user_id === userId && r.score != null && r.updated_at >= start && r.updated_at < end,
+  );
+  if (mine.length === 0) return null;
+
+  let hours = 0;
+  const genreCount = new Map<string, number>();
+  let best: { title: Title; score: number } | null = null;
+  let clash: { title: Title; friend: Profile; mine: number; theirs: number; diff: number } | null = null;
+
+  const friendIds = new Set(followingIds(snap, userId));
+  for (const r of mine) {
+    const t = titleById(snap, r.title_id);
+    if (!t) continue;
+    hours += watchHours(t, r);
+    for (const g of t.genres) genreCount.set(g, (genreCount.get(g) || 0) + 1);
+    if (!best || (r.score as number) > best.score) best = { title: t, score: r.score as number };
+    // Grootste meningsverschil met een gevolgde vriend.
+    for (const other of snap.ratings) {
+      if (other.title_id !== r.title_id || other.score == null || !friendIds.has(other.user_id)) continue;
+      const diff = Math.abs((r.score as number) - (other.score as number));
+      if (!clash || diff > clash.diff) {
+        const friend = profileById(snap, other.user_id);
+        if (friend) clash = { title: t, friend, mine: r.score as number, theirs: other.score as number, diff };
+      }
+    }
+  }
+
+  const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  return {
+    count: mine.length,
+    hours: Math.round(hours),
+    topGenre,
+    best,
+    clash: clash && clash.diff >= 2 ? clash : null, // alleen tonen bij een echt verschil
+  };
+}
+
 /** Kijkstatistieken per streamingdienst voor een gebruiker. */
 export function serviceStats(snap: Snapshot, userId: string): { service: string; count: number; hours: number }[] {
   const profile = profileById(snap, userId);

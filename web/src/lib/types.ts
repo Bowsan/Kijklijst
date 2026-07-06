@@ -88,6 +88,13 @@ export interface Comment {
   created_at: number;
 }
 
+export interface CommentReaction {
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: number;
+}
+
 export interface Snapshot {
   profiles: Profile[];
   titles: Title[];
@@ -97,6 +104,7 @@ export interface Snapshot {
   activity: Activity[];
   follows: Follow[];
   comments: Comment[];
+  comment_reactions: CommentReaction[];
 }
 
 export interface SearchResult {

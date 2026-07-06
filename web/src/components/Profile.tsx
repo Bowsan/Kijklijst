@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { saveProfile, saveRating, refreshTitles } from '../lib/api';
+import { saveProfile, saveRating, refreshTitles, enablePush, disablePush, isPushEnabled } from '../lib/api';
 import { setBlind, logout, type Theme } from '../lib/identity';
 import { profileById, serviceOptions } from '../lib/compute';
 import Avatar from './Avatar';
@@ -112,6 +112,29 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
   const [importing, setImporting] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Pushmeldingen: per apparaat aan/uit.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { isPushEnabled().then(setPushOn).catch(() => {}); }, []);
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      if (pushOn) {
+        await disablePush();
+        setPushOn(false);
+        toast('Pushmeldingen uit');
+      } else {
+        const ok = await enablePush();
+        setPushOn(ok);
+        toast(ok ? 'Pushmeldingen aan 🎉' : 'Meldingen niet toegestaan door je browser');
+      }
+    } catch (e: any) {
+      toast(e.message || 'Instellen mislukt');
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const doRefresh = async () => {
     setRefreshing(true);
@@ -234,6 +257,20 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
           <button
             className={`switch ${blind ? 'on' : ''}`}
             onClick={() => { const v = !blind; setBlind(v); setBlindState(v); }}
+          >
+            <span className="knob" />
+          </button>
+        </div>
+        <div className="toggle" style={{ marginTop: 6 }}>
+          <div>
+            <div>Pushmeldingen</div>
+            <div className="muted" style={{ fontSize: 12 }}>Krijg op dit apparaat een melding bij berichten, tips en nieuwe seizoenen.</div>
+          </div>
+          <button
+            className={`switch ${pushOn ? 'on' : ''}`}
+            disabled={pushBusy}
+            aria-label={pushOn ? 'Pushmeldingen uitzetten' : 'Pushmeldingen aanzetten'}
+            onClick={togglePush}
           >
             <span className="knob" />
           </button>

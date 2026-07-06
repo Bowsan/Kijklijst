@@ -12,6 +12,7 @@ import { tvmazeByImdb, type EnrichData } from './tvmaze.js';
 import { addClient, broadcast } from './events.js';
 import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
+import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -34,6 +35,19 @@ function logActivity(type: string, user_id: string, title_id: number | null, met
   db.prepare(
     'INSERT INTO activity (id, type, user_id, title_id, meta, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(randomUUID(), type, user_id, title_id, JSON.stringify(meta), Date.now());
+}
+
+// Hulpjes voor pushmeldingen: naam opzoeken + wie een serie op de lijst heeft.
+function nameOf(uid: string): string {
+  const p: any = db.prepare('SELECT name FROM profiles WHERE id = ?').get(uid);
+  return p?.name || 'Iemand';
+}
+function titleNameOf(tmdbId: number): string {
+  const t: any = db.prepare('SELECT name FROM titles WHERE tmdb_id = ?').get(tmdbId);
+  return t?.name || 'een serie';
+}
+function listersOf(tmdbId: number): string[] {
+  return (db.prepare('SELECT user_id FROM ratings WHERE title_id = ?').all(tmdbId) as any[]).map((r) => r.user_id);
 }
 
 // ---------- Health ----------
@@ -397,6 +411,10 @@ app.post('/api/recommendation', async (req, res) => {
 
     logActivity('recommend', uid, Number(tmdb_id), { to_user });
     broadcast('state', 1);
+    sendPushTo([to_user], {
+      title: 'Op de Bank',
+      body: `💌 ${nameOf(uid)} raadt je ${titleNameOf(Number(tmdb_id))} aan`,
+    });
     res.json({ ok: true, id });
   } catch (err: any) {
     res.status(502).json({ error: err.message });
@@ -425,6 +443,11 @@ app.post('/api/comment', (req, res) => {
   db.prepare('INSERT INTO comments (id, title_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)')
     .run(id, Number(tmdb_id), uid, text.trim().slice(0, 1000), Date.now());
   broadcast('state', 1);
+  // Pushmelding voor iedereen (behalve de schrijver) die deze serie op de lijst heeft.
+  sendPushTo(
+    listersOf(Number(tmdb_id)).filter((u) => u !== uid),
+    { title: 'Op de Bank', body: `💬 Bericht van ${nameOf(uid)} bij ${titleNameOf(Number(tmdb_id))}` },
+  );
   res.json({ ok: true, id });
 });
 
@@ -433,7 +456,56 @@ app.delete('/api/comment/:id', (req, res) => {
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
   // Alleen je eigen bericht mag je weghalen.
   db.prepare('DELETE FROM comments WHERE id = ? AND user_id = ?').run(req.params.id, uid);
+  db.prepare('DELETE FROM comment_reactions WHERE comment_id = ?').run(req.params.id);
   broadcast('state', 1);
+  res.json({ ok: true });
+});
+
+// Emoji-reactie op een prikbordbericht (aan/uit per gebruiker).
+app.post('/api/comment/:id/reaction', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const emoji = typeof req.body?.emoji === 'string' ? req.body.emoji.slice(0, 8) : '';
+  if (!emoji) return res.status(400).json({ error: 'emoji vereist' });
+  const exists = db.prepare('SELECT 1 FROM comments WHERE id = ?').get(req.params.id);
+  if (!exists) return res.status(404).json({ error: 'bericht niet gevonden' });
+
+  const had = db.prepare('SELECT 1 FROM comment_reactions WHERE comment_id = ? AND user_id = ? AND emoji = ?')
+    .get(req.params.id, uid, emoji);
+  if (had) {
+    db.prepare('DELETE FROM comment_reactions WHERE comment_id = ? AND user_id = ? AND emoji = ?')
+      .run(req.params.id, uid, emoji);
+  } else {
+    db.prepare('INSERT INTO comment_reactions (comment_id, user_id, emoji, created_at) VALUES (?, ?, ?, ?)')
+      .run(req.params.id, uid, emoji, Date.now());
+  }
+  broadcast('state', 1);
+  res.json({ ok: true });
+});
+
+// ---------- Web push ----------
+app.get('/api/push/pubkey', (_req, res) => {
+  const key = pushPublicKey();
+  if (!key) return res.status(503).json({ error: 'push niet beschikbaar' });
+  res.json({ key });
+});
+
+app.post('/api/push/subscribe', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  try {
+    saveSubscription(uid, req.body?.subscription);
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.post('/api/push/unsubscribe', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const endpoint = req.body?.endpoint;
+  if (typeof endpoint === 'string') removeSubscription(endpoint);
   res.json({ ok: true });
 });
 
@@ -592,6 +664,10 @@ async function refreshTitle(tmdbId: number): Promise<boolean> {
   if (gainedSeason) {
     // Systeem-event (geen gebruiker) — verschijnt in de activiteitenlog.
     logActivity('new_season', '', tmdbId, { from: oldSeasons.length, to: d.seasons.length });
+    sendPushTo(listersOf(tmdbId), {
+      title: 'Op de Bank',
+      body: `🎉 ${d.name} heeft een nieuw seizoen (seizoen ${d.seasons.length})`,
+    });
   }
   return gainedSeason;
 }
@@ -642,6 +718,8 @@ app.listen(PORT, () => {
   }
   // Dagelijkse back-up van de database (bewaart de laatste 14 dagen).
   scheduleBackups();
+  // Web push initialiseren (VAPID-sleutels op het data-volume).
+  initPush();
   // Bestaande base64-afbeeldingen eenmalig naar bestanden verplaatsen.
   try { migrateDataUrisToFiles(); } catch (e: any) { console.warn('Uploads-migratie mislukt:', e?.message || e); }
   // Niet awaiten: op de achtergrond laten lopen.

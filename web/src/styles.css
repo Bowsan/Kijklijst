@@ -677,6 +677,24 @@ input, textarea, select {
 }
 .subtabs button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 
+/* Emoji-reacties op prikbordberichten. */
+.comment-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.creact {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 13px; padding: 2px 7px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2);
+}
+.creact .cnt { font-size: 11px; font-weight: 700; color: var(--muted); }
+.creact.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.creact.on .cnt { color: var(--accent); }
+.creact.idle { opacity: 0.45; }
+.creact.idle:active { opacity: 1; }
+
+/* Jaaroverzicht op het dashboard. */
+.year-card { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface)); }
+.year-rows { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+
 /* Skeleton-laadstatus: pulserende vlakken op de plek van echte inhoud. */
 .skel {
   background: var(--surface-2);
