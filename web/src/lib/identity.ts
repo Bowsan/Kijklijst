@@ -13,11 +13,12 @@ export function setActivitySeen(ts: number): void {
   localStorage.setItem(SEEN_KEY, String(ts));
 }
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'system';
 
 export function getTheme(): Theme {
-  // Standaard lichte modus; alleen wie zelf 'donker' koos, houdt donker.
-  return localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  // Standaard lichte modus; 'system' volgt het apparaat.
+  const v = localStorage.getItem(THEME_KEY);
+  return v === 'dark' || v === 'system' ? v : 'light';
 }
 
 export function setTheme(theme: Theme): void {
@@ -25,12 +26,26 @@ export function setTheme(theme: Theme): void {
   applyTheme(theme);
 }
 
+/** Vertaal de keuze naar wat er daadwerkelijk getoond wordt. */
+export function resolveTheme(theme: Theme): 'dark' | 'light' {
+  if (theme !== 'system') return theme;
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
 // Pas het thema toe op het document (CSS leest dit via [data-theme]).
 export function applyTheme(theme: Theme): void {
-  document.documentElement.dataset.theme = theme;
+  const resolved = resolveTheme(theme);
+  document.documentElement.dataset.theme = resolved;
   // Laat de browser-chrome (statusbalk) meekleuren met het thema.
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'light' ? '#f4f5f7' : '#0f1115');
+  if (meta) meta.setAttribute('content', resolved === 'light' ? '#f4f5f7' : '#0f1115');
+}
+
+// Bij 'system': live meeschakelen als het apparaat van licht/donker wisselt.
+if (typeof window !== 'undefined' && window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+    if (getTheme() === 'system') applyTheme('system');
+  });
 }
 
 export function getUserId(): string {

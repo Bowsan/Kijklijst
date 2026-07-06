@@ -6,7 +6,7 @@ import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
   profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou, serviceOptions,
-  unseenCommentCount,
+  unseenNotificationCount,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -68,6 +68,16 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
   const [showActivity, setShowActivity] = useState(false);
   const [activitySeen, setActivitySeenState] = useState(getActivitySeen());
+
+  // Offline-detectie: toon een banner zolang er geen verbinding is.
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => { setOnline(true); reload(); };
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
 
   // Log/notificaties openen → alles als "gezien" markeren (bolletje verdwijnt).
   const openActivity = () => {
@@ -338,10 +348,31 @@ export default function App() {
   }, []);
 
   const forYouCount = snap ? incomingRecommendations(snap, userId).length + newSeasonForYou(snap, userId).length : 0;
-  const unseenMessages = snap ? unseenCommentCount(snap, userId, activitySeen) : 0;
+  const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
 
-  // Laden
-  if (!snap) return <div className="loading">Laden…</div>;
+  // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
+  if (!snap) {
+    return (
+      <div className="app">
+        <header className="topbar">
+          <h1><span className="logo">🛋️</span> Op de Bank</h1>
+        </header>
+        <div className="page" aria-busy="true" aria-label="Laden">
+          <div className="skel skel-bar" style={{ width: '40%' }} />
+          {[0, 1, 2, 3].map((i) => (
+            <div className="card skel-card" key={i}>
+              <div className="skel skel-poster" />
+              <div style={{ flex: 1 }}>
+                <div className="skel skel-bar" style={{ width: '60%' }} />
+                <div className="skel skel-bar" style={{ width: '35%' }} />
+                <div className="skel skel-bar" style={{ width: '45%' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   // Onboarding als er nog geen profiel met naam is voor dit apparaat.
   if (!me) return <Onboarding onDone={reload} />;
@@ -351,18 +382,20 @@ export default function App() {
       <header className="topbar">
         <h1><span className="logo">🛋️</span> Op de Bank</h1>
         <div className="row" style={{ gap: 4 }}>
-          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren">
+          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren" aria-label="Hele lijst importeren">
             📋
           </button>
-          <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden">
+          <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden" aria-label="Vrienden">
             👥
           </button>
-          <button className="btn ghost" style={{ padding: '6px 10px', position: 'relative' }} onClick={openActivity} title="Activiteit">
+          <button className="btn ghost" style={{ padding: '6px 10px', position: 'relative' }} onClick={openActivity} title="Meldingen" aria-label={unseenMessages > 0 ? `Meldingen, ${unseenMessages} nieuw` : 'Meldingen'}>
             🔔
             {unseenMessages > 0 && <span className="notif-dot" />}
           </button>
         </div>
       </header>
+
+      {!online && <div className="offline-banner" role="status">⚡ Geen verbinding — wijzigingen kunnen nu niet worden opgeslagen</div>}
 
       {/* Meldingen — als overlay over de huidige pagina heen. */}
       {showActivity && (

@@ -81,6 +81,50 @@ export const setTitleMeta = (id: number, meta: { year?: number | null; genres?: 
 // Serie-info handmatig bijwerken bij TMDb (op de achtergrond).
 export const refreshTitles = (): Promise<{ ok: boolean; count: number }> => post('/api/refresh-titles', {});
 export const addComment = (tmdb_id: number, text: string) => post('/api/comment', { tmdb_id, text });
+// Emoji-reactie op een prikbordbericht (aan/uit).
+export const toggleCommentReaction = (id: string, emoji: string) => post(`/api/comment/${id}/reaction`, { emoji });
+
+// ---- Web push: aan/uit per apparaat ----
+function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = atob(b64);
+  const arr = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+export async function enablePush(): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') return false;
+  const res = await fetch('/api/push/pubkey', { headers: headers() });
+  if (!res.ok) return false;
+  const { key } = await res.json();
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(key),
+  });
+  await post('/api/push/subscribe', { subscription: sub.toJSON() });
+  return true;
+}
+
+export async function disablePush(): Promise<void> {
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription();
+  if (sub) {
+    await post('/api/push/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+}
+
+export async function isPushEnabled(): Promise<boolean> {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+  if (Notification.permission !== 'granted') return false;
+  const reg = await navigator.serviceWorker.ready;
+  return !!(await reg.pushManager.getSubscription());
+}
 export async function removeComment(id: string): Promise<any> {
   const res = await fetch(`/api/comment/${id}`, { method: 'DELETE', headers: headers() });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.statusText);

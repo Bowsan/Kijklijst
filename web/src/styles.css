@@ -15,6 +15,12 @@
   --radius: 16px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Spacing-schaal: gebruik deze i.p.v. losse pixelwaarden. */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
 }
 
 /* Light mode — kiesbaar per gebruiker in het profiel. */
@@ -137,8 +143,9 @@ input, textarea, select {
 }
 
 /* ---------- Content ---------- */
-.page { padding: 12px 14px; }
-.page h2 { font-size: 16px; margin: 18px 4px 8px; }
+.page { padding: var(--sp-3) 14px; }
+.page h2 { font-size: 16px; margin: var(--sp-5) var(--sp-1) var(--sp-2); }
+.page h2:first-child { margin-top: var(--sp-2); }
 .muted { color: var(--muted); }
 .center { text-align: center; }
 
@@ -647,6 +654,72 @@ input, textarea, select {
   position: absolute; top: 2px; right: 3px;
   width: 9px; height: 9px; border-radius: 50%;
   background: #e5484d; border: 1.5px solid var(--bar-bg);
+}
+
+/* Offline-banner onder de topbar. */
+.offline-banner {
+  background: color-mix(in srgb, #f5c518 25%, var(--surface));
+  border-bottom: 1px solid color-mix(in srgb, #f5c518 50%, var(--border));
+  color: var(--text);
+  font-size: 13px; text-align: center; padding: 7px 12px;
+}
+
+/* Sub-tabs (segmented control) binnen een pagina. */
+.subtabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border-radius: 12px; padding: 4px;
+  margin-bottom: 14px;
+}
+.subtabs button {
+  flex: 1; padding: 8px 10px; border-radius: 9px;
+  font-size: 14px; font-weight: 600; color: var(--muted);
+}
+.subtabs button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+
+/* Emoji-reacties op prikbordberichten. */
+.comment-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.creact {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 13px; padding: 2px 7px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2);
+}
+.creact .cnt { font-size: 11px; font-weight: 700; color: var(--muted); }
+.creact.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.creact.on .cnt { color: var(--accent); }
+.creact.idle { opacity: 0.45; }
+.creact.idle:active { opacity: 1; }
+
+/* Jaaroverzicht op het dashboard. */
+.year-card { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface)); }
+.year-rows { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+
+/* Skeleton-laadstatus: pulserende vlakken op de plek van echte inhoud. */
+.skel {
+  background: var(--surface-2);
+  border-radius: 8px;
+  animation: skelPulse 1.3s ease-in-out infinite;
+}
+@keyframes skelPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.skel-card { display: flex; gap: 12px; }
+.skel-poster { width: 64px; height: 96px; border-radius: 10px; flex-shrink: 0; }
+.skel-bar { height: 13px; margin-bottom: 9px; }
+
+/* Snelcijfer-knopjes in de onboarding. */
+.quick-score {
+  width: 34px; height: 30px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface-2); color: var(--text);
+  font-weight: 700; font-size: 13px;
+}
+.quick-score:active { background: var(--accent); color: #fff; }
+
+/* Zichtbare focus voor toetsenbordgebruik (alleen bij toetsenbord-navigatie). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ---------- Modal / sheet ---------- */

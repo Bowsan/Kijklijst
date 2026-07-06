@@ -88,6 +88,13 @@ export interface Comment {
   created_at: number;
 }
 
+export interface CommentReaction {
+  comment_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: number;
+}
+
 export interface Snapshot {
   profiles: Profile[];
   titles: Title[];
@@ -97,6 +104,7 @@ export interface Snapshot {
   activity: Activity[];
   follows: Follow[];
   comments: Comment[];
+  comment_reactions: CommentReaction[];
 }
 
 export interface SearchResult {
@@ -124,6 +132,6 @@ export const POSTER_SMALL = 'https://image.tmdb.org/t/p/w185';
 // bronnen (TVmaze) of een geüploade cover leveren een volledige URL of data-URI.
 export function posterUrl(path: string | null | undefined, size: 'base' | 'small' = 'base'): string {
   if (!path) return '';
-  if (path.startsWith('http') || path.startsWith('data:')) return path;
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('/uploads/')) return path;
   return (size === 'small' ? POSTER_SMALL : POSTER_BASE) + path;
 }

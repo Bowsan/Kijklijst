@@ -4,7 +4,7 @@ import { posterUrl } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
-  visibleUserIds, titleById, profileById,
+  visibleUserIds, titleById, profileById, yearStats,
 } from '../lib/compute';
 import Avatar from './Avatar';
 
@@ -59,6 +59,8 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     .filter((fw) => fw.titles.length > 0);
 
   // --- Mijn statistieken ---
+  const currentYear = new Date().getFullYear();
+  const year = useMemo(() => yearStats(snap, userId, currentYear), [snap, userId, currentYear]);
   const myRatings = snap.ratings.filter((r) => r.user_id === userId);
   const totalCount = myRatings.length;
   const finishedCount = myRatings.filter((r) => r.status === 'finished').length;
@@ -180,7 +182,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         </div>
       )}
 
-      <h2 style={{ marginTop: 18 }}>Mijn vrienden kijken</h2>
+      <h2>Mijn vrienden kijken</h2>
       {friends.length === 0 ? (
         <div className="empty">
           <div className="big">👥</div>
@@ -281,6 +283,22 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   onClick={() => onNavigate({ status: 'mine', service: s.service })}
                 />
               ))}
+            </div>
+          )}
+
+          {year && (
+            <div className="card year-card" style={{ marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>✨ Jouw {currentYear} in series</div>
+              <div className="year-rows">
+                <div>📺 <b>{year.count}</b> serie{year.count !== 1 ? 's' : ''} beoordeeld{year.hours > 0 && <> · zo'n <b>{year.hours} uur</b> gekeken</>}</div>
+                {year.topGenre && <div>🏷️ Meest gekeken genre: <b>{year.topGenre}</b></div>}
+                {year.best && <div>🏆 Hoogste cijfer: <b>{year.best.title.name}</b> ({year.best.score})</div>}
+                {year.clash && (
+                  <div>
+                    ⚔️ Grootste meningsverschil: <b>{year.clash.title.name}</b> — jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>

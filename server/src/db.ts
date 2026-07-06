@@ -95,6 +95,21 @@ db.exec(`
     text        TEXT NOT NULL,
     created_at  INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS comment_reactions (
+    comment_id  TEXT NOT NULL,
+    user_id     TEXT NOT NULL,
+    emoji       TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    PRIMARY KEY (comment_id, user_id, emoji)
+  );
+
+  CREATE TABLE IF NOT EXISTS push_subs (
+    endpoint    TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL,
+    subscription TEXT NOT NULL,
+    created_at  INTEGER NOT NULL
+  );
 `);
 
 // Kolommen toevoegen aan bestaande databases (idempotent).
@@ -218,6 +233,7 @@ export interface Snapshot {
   activity: any[];
   follows: any[];
   comments: any[];
+  comment_reactions: any[];
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -265,7 +281,9 @@ export function getSnapshot(): Snapshot {
 
   const comments = db.prepare('SELECT * FROM comments ORDER BY created_at ASC').all();
 
-  return { profiles, titles, ratings, recommendations, reactions, activity, follows, comments };
+  const comment_reactions = db.prepare('SELECT * FROM comment_reactions').all();
+
+  return { profiles, titles, ratings, recommendations, reactions, activity, follows, comments, comment_reactions };
 }
 
 export { parseJson };

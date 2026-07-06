@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
-import { saveRating, removeRating, addComment, removeComment, clearRatingScore, type RatingUpdate } from '../lib/api';
+import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
+import PosterFallback from './PosterFallback';
+
+// De vaste set emoji voor reacties op prikbordberichten.
+const COMMENT_EMOJI = ['👍', '❤️', '😂', '😮'];
 
 // Leesbare statuswoorden voor de vrienden-status-lijst.
 const FRIEND_STATUS_TEXT: Record<Status, string> = {
@@ -141,6 +145,15 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     }
   };
 
+  const reactToComment = async (id: string, emoji: string) => {
+    try {
+      await toggleCommentReaction(id, emoji);
+      onChange();
+    } catch (e: any) {
+      toast(e.message || 'Reageren mislukt');
+    }
+  };
+
   const watchedSeasons = mine?.seasons || [];
   const toggleSeason = (n: number) => {
     const next = watchedSeasons.includes(n)
@@ -164,7 +177,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
       <div className="title-head" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
         {title.poster_path
           ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" />
-          : <div className="poster" />}
+          : <PosterFallback name={title.name} />}
         <div className="title-meta">
           <h3>{title.name}</h3>
           <div className="title-sub">
@@ -372,6 +385,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="comments">
               {comments.map((c) => {
                 const p = profileById(snap, c.user_id);
+                const reactions = snap.comment_reactions?.filter((r) => r.comment_id === c.id) ?? [];
                 return (
                   <div className="comment" key={c.id}>
                     <Avatar profile={p} id={c.user_id} size="sm" />
@@ -381,6 +395,24 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                         <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
                       </div>
                       <div className="comment-text">{c.text}</div>
+                      {/* Emoji-reacties: tik om aan/uit te zetten. */}
+                      <div className="comment-reactions">
+                        {COMMENT_EMOJI.map((emoji) => {
+                          const who = reactions.filter((r) => r.emoji === emoji);
+                          const mine = who.some((r) => r.user_id === userId);
+                          if (who.length === 0 && c.user_id === userId) return null; // eigen bericht: alleen tonen wat anderen gaven
+                          return (
+                            <button
+                              key={emoji}
+                              className={`creact ${mine ? 'on' : ''} ${who.length === 0 ? 'idle' : ''}`}
+                              aria-label={`Reageer met ${emoji}`}
+                              onClick={() => reactToComment(c.id, emoji)}
+                            >
+                              {emoji}{who.length > 0 && <span className="cnt">{who.length}</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                     {c.user_id === userId && (
                       <button className="btn ghost comment-del" title="Bericht verwijderen" onClick={() => deleteComment(c.id)}>🗑️</button>
