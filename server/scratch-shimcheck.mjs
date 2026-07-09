@@ -1,0 +1,12 @@
+import { chromium } from '/tmp/node_modules/playwright-core/index.mjs';
+const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+const p=await (await b.newContext({viewport:{width:390,height:844}})).newPage();
+await p.addInitScript(()=>{localStorage.setItem('opdebank.userId','user-me');});
+await p.goto('http://localhost:8898/',{waitUntil:'domcontentloaded'});
+await p.waitForTimeout(1500);
+await p.evaluate(()=>{[...document.querySelectorAll('.card-title')].find(t=>t.textContent.includes('Mijn genres'))?.scrollIntoView({block:'center'});});
+await p.waitForTimeout(1000);
+console.log('genre-kaart .in:', await p.evaluate(()=>{const t=[...document.querySelectorAll('.card-title')].find(t=>t.textContent.includes('Mijn genres')); return t?.closest('.card')?.classList.contains('in');}));
+console.log('shimmer animatie:', await p.evaluate(()=>{const t=[...document.querySelectorAll('.card-title')].find(t=>t.textContent.includes('Mijn genres')); const f=t?.closest('.card')?.querySelector('.bar-fill'); return f? getComputedStyle(f,'::after').animationName : 'geen fill';}));
+console.log('fill scaleX:', await p.evaluate(()=>{const t=[...document.querySelectorAll('.card-title')].find(t=>t.textContent.includes('Mijn genres')); const f=t?.closest('.card')?.querySelector('.bar-fill'); return f? getComputedStyle(f).transform : '-';}));
+await b.close();
