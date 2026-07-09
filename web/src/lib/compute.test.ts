@@ -5,6 +5,7 @@ import {
   suggestedProfiles, inactiveFollowableProfiles, hiddenProfiles,
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
+  favoriteActors, sharedFavoriteActor,
   NEW_SEASON_WINDOW,
 } from './compute';
 
@@ -281,6 +282,44 @@ describe('De Bank vergelijkt', () => {
     expect(stats.map((s) => s.profile.id)).toEqual(['me', 'sam']);
     expect(stats[0].pct).toBe(100); // ik: 3 gezien, 0 afgehaakt
     expect(stats[1].pct).toBe(83);  // Sam: 5 gezien, 1 afgehaakt
+  });
+});
+
+// ---- acteurs ----
+
+describe('favoriete acteurs', () => {
+  const s = snap({
+    titles: [
+      title(1, { cast: ['Pedro Pascal', 'Bella Ramsey'] }),
+      title(2, { cast: ['Pedro Pascal', 'Oscar Isaac'] }),
+      title(3, { cast: ['Bella Ramsey'] }),
+      title(10, { cast: ['Pedro Pascal', 'Nieuw Gezicht'] }), // niet door mij beoordeeld
+    ],
+    ratings: [
+      rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 }), rating(3, 'me', { score: 6 }),
+      rating(10, 'sam', { score: 8 }),
+    ],
+  });
+
+  it('favoriteActors: minstens 2 door jou beoordeelde series, hoogste cijfer wint bij gelijk aantal', () => {
+    const got = favoriteActors(s, 'me');
+    expect(got).toEqual([
+      { name: 'Pedro Pascal', count: 2, avg: 8.5 },
+      { name: 'Bella Ramsey', count: 2, avg: 7.5 },
+    ]);
+    // Oscar Isaac (1 serie) en de cast van andermans series tellen niet mee.
+  });
+
+  it('sharedFavoriteActor: favoriet (gem. 7+) die in de tip meespeelt', () => {
+    expect(sharedFavoriteActor(s, 'me', s.titles[3])).toBe('Pedro Pascal');
+    expect(sharedFavoriteActor(s, 'me', title(99, { cast: ['Onbekend'] }))).toBeNull();
+  });
+
+  it('selectTitles: filtert op acteur en zoekt in castnamen', () => {
+    const byActor = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '', actor: 'Pedro Pascal' });
+    expect(byActor.map((t) => t.tmdb_id).sort()).toEqual([1, 2]);
+    const bySearch = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: 'oscar' });
+    expect(bySearch.map((t) => t.tmdb_id)).toEqual([2]);
   });
 });
 
