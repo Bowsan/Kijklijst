@@ -95,15 +95,18 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {newSeasons.length > 0 && (
         <>
           <h2>Nieuw seizoen</h2>
-          {newSeasons.map((title) => (
-            <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <div className="rec-reason">
-                <span className="ric">🎉</span>
-                <span>Er is een nieuw seizoen van <b>{title.name}</b> — jij vond 'm goed!</span>
+          {newSeasons.map((title) => {
+            const score = myRating(snap, title.tmdb_id, userId)?.score;
+            return (
+              <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
+                <div className="rec-reason">
+                  <span className="ric">🎉</span>
+                  <span>Er is een nieuw seizoen van <b>{title.name}</b>{score != null && score >= 7 ? " — jij vond 'm goed!" : ''}</span>
+                </div>
+                <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
               </div>
-              <TitleCard snap={snap} title={title} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
-            </div>
-          ))}
+            );
+          })}
         </>
       )}
 
