@@ -730,7 +730,16 @@ input, textarea, select {
 
 /* Jaaroverzicht op het dashboard. */
 .year-card { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface)); }
-.year-rows { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.year-rows { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+
+/* Icoon-rijen: het icoon staat in een eigen kolom zodat omlopende tekst er
+   niet onderdoor loopt; de titelregel kapt af met puntjes en de toelichting
+   staat altijd op de regel eronder. */
+.icon-row { display: flex; gap: 10px; align-items: flex-start; }
+.icon-row-ico { flex-shrink: 0; width: 20px; text-align: center; line-height: 1.45; }
+.icon-row-body { flex: 1; min-width: 0; }
+.icon-row-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-row-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
 
 /* "De Bank vergelijkt": streng/mild-labels in de jury-kaart. */
 .jury-tag {
@@ -866,7 +875,7 @@ input, textarea, select {
 /* ---------- Dashboard: koppen, kaarttitels, animaties ---------- */
 .dash-h2 { display: flex; align-items: center; gap: 9px; }
 .dash-h2 .h2-ico { font-size: 22px; line-height: 1; }
-.card-title { font-weight: 700; font-size: 15px; margin-bottom: 10px; letter-spacing: -0.01em; }
+.card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; letter-spacing: -0.01em; }
 
 /* Kaarten op het dashboard: gelaagde, zachte schaduw voor diepte. */
 .dash .card { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 16px 36px -28px rgba(0, 0, 0, 0.55); }
