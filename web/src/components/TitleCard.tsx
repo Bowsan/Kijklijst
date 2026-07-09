@@ -244,10 +244,15 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           ) : (
             <>
               {showGroupScore && !hideGroup && avg != null && (
-                <div className="avg">
-                  <span className="num">{avg.toFixed(1)}</span>
-                  <span className="lbl">groep</span>
-                </div>
+                <span className="score-pill group" title="Groepsgemiddelde">
+                  <svg width="15" height="15" viewBox="0 0 16 16" fill="#fff" aria-hidden="true">
+                    <circle cx="5.8" cy="5.4" r="2.5" />
+                    <path d="M1.3 13.2c0-2.4 2-3.9 4.5-3.9s4.5 1.5 4.5 3.9v.3h-9z" />
+                    <circle cx="11.6" cy="6" r="2" />
+                    <path d="M11.4 9.4c1.9.1 3.4 1.3 3.4 3.3v.8h-3.2c.2-1.6-.2-3-1.4-4 .4-.1.8-.1 1.2-.1z" />
+                  </svg>
+                  {avg.toFixed(1).replace('.', ',')}
+                </span>
               )}
               {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
               {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}

@@ -10,10 +10,29 @@ export const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
   dropped: { bg: 'rgba(178,110,110,0.16)', fg: '#b47b7b' },
 };
 
+/** Wit vinkje-in-cirkel voor de gevulde cijfer-pil. */
+export function CheckIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.6" stroke="#fff" strokeWidth="1.6" />
+      <path d="M5.1 8.3l2 2 3.8-4.3" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Gekleurd statuslabel zodat je in één oogopslag ziet hoe een serie op jouw lijst staat. */
 export default function StatusBadge({ status, score }: { status: Status; score?: number | null }) {
+  // Afgezien mét cijfer: gevulde groene pil met vinkje, zoals in iOS-widgets.
+  if (status === 'finished' && score != null) {
+    return (
+      <span className="score-pill" title="Jouw cijfer">
+        <CheckIcon />
+        {score}
+      </span>
+    );
+  }
   const c = STATUS_COLORS[status];
-  const label = status === 'finished' && score != null ? `✅ ${score}` : STATUS_LABELS[status];
+  const label = STATUS_LABELS[status];
   return (
     <span
       style={{
