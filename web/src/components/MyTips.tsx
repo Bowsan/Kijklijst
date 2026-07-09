@@ -65,7 +65,7 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
               <div className="tip-open" onClick={() => onOpenTitle(title!.tmdb_id)} title={`Open ${title!.name}`}>
                 {title!.poster_path
                   ? <img className="tip-poster" src={posterUrl(title!.poster_path, 'small')} alt="" />
-                  : <PosterFallback name={title!.name} width={40} height={60} />}
+                  : <PosterFallback name={title!.name} width={48} height={72} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="tip-title tip-open" onClick={() => onOpenTitle(title!.tmdb_id)}>{title!.name}</div>

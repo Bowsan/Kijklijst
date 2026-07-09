@@ -116,8 +116,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   if (step === 'rate') {
     const done = rated.size;
     return (
-      <div className="onboard">
-        <div className="hero">
+      <div className="onboard onboard-top">
+        <div className="hero compact">
           <div className="big">⭐</div>
           <h1>Ken je deze series?</h1>
           <p className="muted">
@@ -125,12 +125,16 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             {done > 0 && <> Al <b>{done}</b> gedaan!</>}
           </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
+        {/* Knop boven de lijst, zodat overslaan/klaar altijd boven de vouw staat. */}
+        <button className="btn primary full" onClick={onDone}>
+          {done > 0 ? 'Klaar — naar de app' : 'Overslaan'}
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rateTitles.map((t) => (
             <div className="card" key={t.tmdb_id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 10 }}>
               {t.poster_path
-                ? <img src={posterUrl(t.poster_path, 'small')} alt="" style={{ width: 36, height: 54, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                : <div className="poster" style={{ width: 36, height: 54 }} />}
+                ? <img src={posterUrl(t.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                : <div className="poster" style={{ width: 44, height: 66 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                 {rated.has(t.tmdb_id) ? (
@@ -146,9 +150,6 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
           ))}
         </div>
-        <button className="btn primary full" onClick={onDone}>
-          {done > 0 ? 'Klaar — naar de app' : 'Overslaan'}
-        </button>
       </div>
     );
   }

@@ -7,7 +7,7 @@ function hueFor(name: string): number {
   return h;
 }
 
-export default function PosterFallback({ name, width = 64, height = 96 }: { name: string; width?: number; height?: number }) {
+export default function PosterFallback({ name, width = 72, height = 108 }: { name: string; width?: number; height?: number }) {
   const hue = hueFor(name || '?');
   return (
     <div

@@ -123,6 +123,7 @@ function addTitleColumns(): void {
   add('tmdb_status', 'TEXT');
   add('refreshed_at', 'INTEGER');
   add('new_season_at', 'INTEGER');
+  add('cast_meta', 'TEXT'); // cast met portretfoto's (gevuld bij refresh)
 }
 addTitleColumns();
 
@@ -258,6 +259,7 @@ export function getSnapshot(): Snapshot {
     seasons: parseJson(t.seasons, []),
     providers: parseJson(t.providers, []),
     cast: parseJson(t.cast, []),
+    cast_meta: parseJson(t.cast_meta, []),
   }));
 
   const ratings = db.prepare('SELECT * FROM ratings').all().map((r: any) => ({
