@@ -231,7 +231,9 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   }, [snap, userId]);
 
   const myServices = useMemo(() => serviceStats(snap, userId).slice(0, 6), [snap, userId]);
-  const myActors = useMemo(() => favoriteActors(snap, userId, 5), [snap, userId]);
+  const myActorsAll = useMemo(() => favoriteActors(snap, userId, 15), [snap, userId]);
+  const [castExpanded, setCastExpanded] = useState(false);
+  const myActors = castExpanded ? myActorsAll : myActorsAll.slice(0, 5);
   const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
   const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
 
@@ -459,6 +461,15 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </span>
                 </button>
               ))}
+              {myActorsAll.length > 5 && (
+                <button
+                  className="btn ghost"
+                  style={{ fontSize: 13, color: 'var(--muted)', padding: '6px 4px', marginTop: 2 }}
+                  onClick={() => setCastExpanded((v) => !v)}
+                >
+                  {castExpanded ? '▴ Minder' : `▾ Meer (top ${myActorsAll.length})`}
+                </button>
+              )}
             </div>
           )}
 

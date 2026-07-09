@@ -112,7 +112,7 @@ input, textarea, select {
 }
 .nav button {
   flex: 1;
-  padding: 10px 4px 8px;
+  padding: 7px 4px 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -121,8 +121,15 @@ input, textarea, select {
   color: var(--muted);
   position: relative;
 }
-.nav button.active { color: var(--accent); }
-.nav button .ico { font-size: 20px; }
+.nav button.active { color: var(--accent); font-weight: 700; }
+/* Actieve tab: duidelijk getinte pill achter het icoon. */
+.nav button .ico {
+  font-size: 20px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 54px; height: 29px; border-radius: 999px;
+  transition: background 0.18s ease;
+}
+.nav button.active .ico { background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .nav .badge {
   position: absolute;
   top: 4px;

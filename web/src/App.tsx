@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
 import { posterUrl } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
 import {
-  profileById, myRating, groupAverage, incomingRecommendations, selectTitles, newSeasonForYou, serviceOptions,
+  profileById, myRating, groupAverage, selectTitles, serviceOptions, forYouBadgeCount,
   unseenNotificationCount,
 } from './lib/compute';
 
@@ -69,6 +69,7 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState('');
   const [showActivity, setShowActivity] = useState(false);
   const [activitySeen, setActivitySeenState] = useState(getActivitySeen());
+  const [forYouSeen, setForYouSeenState] = useState(getForYouSeen());
 
   // Offline-detectie: toon een banner zolang er geen verbinding is.
   const [online, setOnline] = useState(navigator.onLine);
@@ -79,6 +80,14 @@ export default function App() {
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
+
+  // "Voor jou" openen → tips en nieuwe seizoenen als gezien markeren (badge weg).
+  useEffect(() => {
+    if (tab !== 'foryou') return;
+    const now = Date.now();
+    setForYouSeen(now);
+    setForYouSeenState(now);
+  }, [tab]);
 
   // Log/notificaties openen → alles als "gezien" markeren (bolletje verdwijnt).
   const openActivity = () => {
@@ -353,7 +362,7 @@ export default function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const forYouCount = snap ? incomingRecommendations(snap, userId).length + newSeasonForYou(snap, userId).length : 0;
+  const forYouCount = snap ? forYouBadgeCount(snap, userId, forYouSeen) : 0;
   const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
 
   // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
