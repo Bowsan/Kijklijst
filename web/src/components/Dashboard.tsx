@@ -408,25 +408,33 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           <h2 className="dash-h2"><span className="h2-ico">📊</span>Mijn statistieken</h2>
 
           <div className="stat-grid" style={{ marginBottom: 12 }}>
-            <button className="stat-box" onClick={() => onNavigate({ status: 'mine' })}>
-              <span className="stat-ico tint-accent">📚</span>
-              <div className="v"><CountUp value={totalCount} /></div>
-              <div className="k">Series op lijst</div>
+            <button className="stat-box tint-accent" onClick={() => onNavigate({ status: 'mine' })}>
+              <div className="k">Series op de lijst</div>
+              <div className="stat-row">
+                <span className="stat-ico">📚</span>
+                <div className="v"><CountUp value={totalCount} /></div>
+              </div>
             </button>
-            <div className="stat-box">
-              <span className="stat-ico tint-warn">⭐</span>
-              <div className="v">{avgScore != null ? <CountUp value={avgScore} decimals={1} /> : '—'}</div>
+            <div className="stat-box tint-warn">
               <div className="k">Gemiddeld cijfer</div>
+              <div className="stat-row">
+                <span className="stat-ico">⭐</span>
+                <div className="v">{avgScore != null ? <CountUp value={avgScore} decimals={1} /> : '—'}</div>
+              </div>
             </div>
-            <button className="stat-box" onClick={() => onNavigate({ status: 'finished' })}>
-              <span className="stat-ico tint-good">✅</span>
-              <div className="v"><CountUp value={finishedCount} /></div>
+            <button className="stat-box tint-good" onClick={() => onNavigate({ status: 'finished' })}>
               <div className="k">Afgezien</div>
+              <div className="stat-row">
+                <span className="stat-ico">✅</span>
+                <div className="v"><CountUp value={finishedCount} /></div>
+              </div>
             </button>
-            <div className="stat-box">
-              <span className="stat-ico tint-info">⏱️</span>
-              <div className="v">{hours > 0 ? <CountUp value={Math.round(hours)} suffix="u" /> : scoredCount > 0 ? '—' : '—'}</div>
-              <div className="k">Kijkuren (schat)</div>
+            <div className="stat-box tint-info">
+              <div className="k">Kijkuren</div>
+              <div className="stat-row">
+                <span className="stat-ico">⏱️</span>
+                <div className="v">{hours > 0 ? <CountUp value={Math.round(hours)} suffix="u" /> : scoredCount > 0 ? '—' : '—'}</div>
+              </div>
             </div>
           </div>
 
