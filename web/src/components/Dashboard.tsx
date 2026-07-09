@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status, Profile } from '../lib/types';
 import { posterUrl } from '../lib/types';
 import {
@@ -24,6 +24,56 @@ interface Props {
   onAdd: (tmdbId: number) => void;
   onGoFriends: () => void;
   onNavigate: (opts: NavOpts) => void;
+}
+
+const reducedMotion = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+/** Onthul kaarten pas (met stagger) zodra ze in beeld scrollen. */
+function useReveal(ref: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const targets = root.querySelectorAll('.card, .stat-grid, .empty');
+    if (reducedMotion() || !('IntersectionObserver' in window)) {
+      targets.forEach((el) => el.classList.add('in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        let i = 0;
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          (e.target as HTMLElement).style.transitionDelay = `${i++ * 70}ms`;
+          e.target.classList.add('in');
+          io.unobserve(e.target);
+        }
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -6% 0px' },
+    );
+    targets.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [ref]);
+}
+
+/** Teller die soepel naar zijn eindwaarde loopt (ease-out). */
+function CountUp({ value, decimals = 0, suffix = '' }: { value: number; decimals?: number; suffix?: string }) {
+  const [n, setN] = useState(reducedMotion() ? value : 0);
+  useEffect(() => {
+    if (reducedMotion()) { setN(value); return; }
+    let start: number | null = null;
+    let raf = 0;
+    const dur = 900;
+    const step = (t: number) => {
+      if (start == null) start = t;
+      const p = Math.min(1, (t - start) / dur);
+      setN(value * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{n.toFixed(decimals)}{suffix}</>;
 }
 
 function timeAgo(ts: number): string {
@@ -104,7 +154,7 @@ function Donut({ parts, total, onPick }: { parts: DonutPart[]; total: number; on
             return el;
           })}
         </g>
-        <text x="60" y="58" textAnchor="middle" className="donut-num">{total}</text>
+        <text x="60" y="58" textAnchor="middle" className="donut-num"><CountUp value={total} /></text>
         <text x="60" y="74" textAnchor="middle" className="donut-lbl">series</text>
       </svg>
       <div className="donut-legend">
@@ -121,6 +171,9 @@ function Donut({ parts, total, onPick }: { parts: DonutPart[]; total: number; on
 }
 
 export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFriends, onNavigate }: Props) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  useReveal(pageRef);
+
   const myWatching = watchingTitles(snap, userId);
   const friends = followingProfiles(snap, userId);
   const friendsWatching = friends
@@ -268,7 +321,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   ] as DonutPart[]).filter((p) => p.count > 0);
 
   return (
-    <div className="page dash">
+    <div className="page dash" ref={pageRef}>
       <h2 className="dash-h2"><span className="h2-ico">📺</span>Nu aan het kijken</h2>
       {myWatching.length === 0 ? (
         <p className="muted" style={{ margin: '0 4px 8px' }}>Je hebt nog niets als "Mee bezig" gemarkeerd.</p>
@@ -341,24 +394,24 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           <h2 className="dash-h2"><span className="h2-ico">📊</span>Mijn statistieken</h2>
 
           <div className="stat-grid" style={{ marginBottom: 12 }}>
-            <div className="stat-box" style={{ cursor: 'pointer' }} onClick={() => onNavigate({ status: 'mine' })}>
-              <span className="stat-ico">📚</span>
-              <div className="v">{totalCount}</div>
+            <button className="stat-box" onClick={() => onNavigate({ status: 'mine' })}>
+              <span className="stat-ico tint-accent">📚</span>
+              <div className="v"><CountUp value={totalCount} /></div>
               <div className="k">Series op lijst</div>
-            </div>
+            </button>
             <div className="stat-box">
-              <span className="stat-ico">⭐</span>
-              <div className="v">{avgScore != null ? avgScore.toFixed(1) : '—'}</div>
+              <span className="stat-ico tint-warn">⭐</span>
+              <div className="v">{avgScore != null ? <CountUp value={avgScore} decimals={1} /> : '—'}</div>
               <div className="k">Gemiddeld cijfer</div>
             </div>
-            <div className="stat-box" style={{ cursor: 'pointer' }} onClick={() => onNavigate({ status: 'finished' })}>
-              <span className="stat-ico">✅</span>
-              <div className="v">{finishedCount}</div>
+            <button className="stat-box" onClick={() => onNavigate({ status: 'finished' })}>
+              <span className="stat-ico tint-good">✅</span>
+              <div className="v"><CountUp value={finishedCount} /></div>
               <div className="k">Afgezien</div>
-            </div>
+            </button>
             <div className="stat-box">
-              <span className="stat-ico">⏱️</span>
-              <div className="v">{hours > 0 ? `${Math.round(hours)}u` : scoredCount > 0 ? '—' : '—'}</div>
+              <span className="stat-ico tint-info">⏱️</span>
+              <div className="v">{hours > 0 ? <CountUp value={Math.round(hours)} suffix="u" /> : scoredCount > 0 ? '—' : '—'}</div>
               <div className="k">Kijkuren (schat)</div>
             </div>
           </div>
