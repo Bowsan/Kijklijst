@@ -324,13 +324,13 @@ input, textarea, select {
 
 /* ---------- Avatars ---------- */
 .avatar {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   color: #fff;
   object-fit: cover;
@@ -338,7 +338,7 @@ input, textarea, select {
   border: 2px solid var(--surface);
 }
 .avatar.xs { width: 16px; height: 16px; font-size: 8px; }
-.avatar.sm { width: 20px; height: 20px; font-size: 9px; }
+.avatar.sm { width: 28px; height: 28px; font-size: 12px; }
 .avatar.lg { width: 64px; height: 64px; font-size: 24px; }
 
 /* Vriendcijfers als kleine chips op de ingeklapte kaart. */
