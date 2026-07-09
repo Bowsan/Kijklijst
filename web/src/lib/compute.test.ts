@@ -294,11 +294,22 @@ describe('favoriete acteurs', () => {
       title(2, { cast: ['Pedro Pascal', 'Oscar Isaac'] }),
       title(3, { cast: ['Bella Ramsey'] }),
       title(10, { cast: ['Pedro Pascal', 'Nieuw Gezicht'] }), // niet door mij beoordeeld
+      // Reality: de "cast" (presentator) telt niet mee als acteur.
+      title(20, { genres: ['Reality'], cast: ['Ant Middleton', 'Pedro Pascal'] }),
+      title(21, { genres: ['Reality'], cast: ['Ant Middleton'] }),
     ],
     ratings: [
       rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 }), rating(3, 'me', { score: 6 }),
       rating(10, 'sam', { score: 8 }),
+      rating(20, 'me', { score: 8 }), rating(21, 'me', { score: 8 }),
     ],
+  });
+
+  it('favoriteActors: reality-shows tellen niet mee (presentatoren zijn geen cast)', () => {
+    const names = favoriteActors(s, 'me', 15).map((a) => a.name);
+    expect(names).not.toContain('Ant Middleton');
+    // Pedro's reality-optreden telt ook niet mee: nog steeds 2 échte series.
+    expect(favoriteActors(s, 'me', 15).find((a) => a.name === 'Pedro Pascal')?.count).toBe(2);
   });
 
   it('favoriteActors: minstens 2 door jou beoordeelde series, hoogste cijfer wint bij gelijk aantal', () => {
@@ -315,9 +326,9 @@ describe('favoriete acteurs', () => {
     expect(sharedFavoriteActor(s, 'me', title(99, { cast: ['Onbekend'] }))).toBeNull();
   });
 
-  it('selectTitles: filtert op acteur en zoekt in castnamen', () => {
+  it('selectTitles: filtert op acteur (incl. reality-optredens) en zoekt in castnamen', () => {
     const byActor = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '', actor: 'Pedro Pascal' });
-    expect(byActor.map((t) => t.tmdb_id).sort()).toEqual([1, 2]);
+    expect(byActor.map((t) => t.tmdb_id).sort((a, b) => a - b)).toEqual([1, 2, 20]);
     const bySearch = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: 'oscar' });
     expect(bySearch.map((t) => t.tmdb_id)).toEqual([2]);
   });

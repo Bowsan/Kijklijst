@@ -376,6 +376,14 @@ export function incomingRecommendations(snap: Snapshot, userId: string) {
     .sort((a, b) => b.rec.created_at - a.rec.created_at);
 }
 
+/** Badge op de "Voor jou"-tab: alleen tips en nieuwe seizoenen die je nog
+ *  niet zag sinds je de pagina voor het laatst opende. */
+export function forYouBadgeCount(snap: Snapshot, userId: string, since: number): number {
+  const tips = incomingRecommendations(snap, userId).filter((x) => x.rec.created_at > since).length;
+  const seasons = newSeasonForYou(snap, userId).filter((t) => (t.new_season_at ?? 0) > since).length;
+  return tips + seasons;
+}
+
 /** Gok de streamingdienst waarop je een serie keek, op basis van je abonnementen. */
 export function guessService(title: Title, profile: Profile | undefined, override: string | null): string | null {
   if (override) return override;
@@ -522,7 +530,12 @@ export function finisherStats(snap: Snapshot, userId: string): { profile: Profil
   return result.sort((a, b) => b.pct - a.pct);
 }
 
-/** Jouw vaste cast: acteurs die in meerdere series op je lijst spelen,
+// Genres waar de "cast" geen acteurs zijn maar presentatoren/deelnemers
+// (reality zoals SAS, talkshows, nieuws, documentaires) — die tellen niet
+// mee voor je vaste cast.
+const NON_ACTING_GENRES = new Set(['Reality', 'Talk', 'News', 'Documentaire', 'Documentary']);
+
+/** Jouw vaste cast: échte acteurs die in meerdere series op je lijst spelen,
  *  met jouw gemiddelde cijfer voor die series. */
 export function favoriteActors(snap: Snapshot, userId: string, limit = 5): { name: string; count: number; avg: number }[] {
   const byActor = new Map<string, number[]>();
@@ -530,6 +543,7 @@ export function favoriteActors(snap: Snapshot, userId: string, limit = 5): { nam
     if (r.user_id !== userId || r.score == null) continue;
     const t = titleById(snap, r.title_id);
     if (!t) continue;
+    if (t.genres.some((g) => NON_ACTING_GENRES.has(g))) continue;
     for (const name of t.cast) {
       if (!byActor.has(name)) byActor.set(name, []);
       byActor.get(name)!.push(r.score);

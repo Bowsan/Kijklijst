@@ -13,6 +13,15 @@ export function setActivitySeen(ts: number): void {
   localStorage.setItem(SEEN_KEY, String(ts));
 }
 
+// Wanneer je de "Voor jou"-pagina voor het laatst opende — bepaalt de tab-badge.
+const FORYOU_SEEN_KEY = 'opdebank.forYouSeen';
+export function getForYouSeen(): number {
+  return Number(localStorage.getItem(FORYOU_SEEN_KEY) || 0);
+}
+export function setForYouSeen(ts: number): void {
+  localStorage.setItem(FORYOU_SEEN_KEY, String(ts));
+}
+
 export type Theme = 'dark' | 'light' | 'system';
 
 export function getTheme(): Theme {
