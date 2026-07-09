@@ -127,6 +127,20 @@ function TLink({ title, onNavigate }: { title: Title; onNavigate: (o: NavOpts) =
   );
 }
 
+/** Rij met het icoon in een eigen kolom: de titelregel kapt af met puntjes
+    en de toelichting staat altijd op de regel eronder. */
+function IconRow({ ico, line, sub }: { ico: string; line: ReactNode; sub: ReactNode }) {
+  return (
+    <div className="icon-row">
+      <span className="icon-row-ico">{ico}</span>
+      <div className="icon-row-body">
+        <div className="icon-row-line">{line}</div>
+        <div className="icon-row-sub">{sub}</div>
+      </div>
+    </div>
+  );
+}
+
 interface DonutPart { label: string; count: number; color: string; status: Status }
 
 /** Donut voor de lijstverdeling: statuskleuren, 2px-gaten, klikbare legenda. */
@@ -523,9 +537,11 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </div>
                 )}
                 {year.clash && (
-                  <div>
-                    ⚔️ Grootste meningsverschil: <TLink title={year.clash.title} onNavigate={onNavigate} /> — jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}
-                  </div>
+                  <IconRow
+                    ico="⚔️"
+                    line={<>Grootste meningsverschil: <TLink title={year.clash.title} onNavigate={onNavigate} /></>}
+                    sub={<>Jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}</>}
+                  />
                 )}
               </div>
             </div>
@@ -565,14 +581,18 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               <div className="card-title">⚔️ Verdeeld & eensgezind</div>
               <div className="year-rows">
                 {division.divided && (
-                  <div>
-                    🔥 Meest verdeeld: <TLink title={division.divided.title} onNavigate={onNavigate} /> — {nick(division.divided.low.user)} gaf een {division.divided.low.score}, {nick(division.divided.high.user)} een {division.divided.high.score}
-                  </div>
+                  <IconRow
+                    ico="🔥"
+                    line={<>Meest verdeeld: <TLink title={division.divided.title} onNavigate={onNavigate} /></>}
+                    sub={<>{nick(division.divided.low.user)} gaf een {division.divided.low.score}, {nick(division.divided.high.user)} een {division.divided.high.score}</>}
+                  />
                 )}
                 {division.agreed && (
-                  <div>
-                    🤝 Meest eensgezind: <TLink title={division.agreed.title} onNavigate={onNavigate} /> — alle {division.agreed.count} cijfers hooguit {division.agreed.spread === 0 ? 'nul' : division.agreed.spread.toFixed(1).replace('.', ',')} punt uit elkaar
-                  </div>
+                  <IconRow
+                    ico="🤝"
+                    line={<>Meest eensgezind: <TLink title={division.agreed.title} onNavigate={onNavigate} /></>}
+                    sub={<>Alle {division.agreed.count} cijfers hooguit {division.agreed.spread === 0 ? 'nul' : division.agreed.spread.toFixed(1).replace('.', ',')} punt uit elkaar</>}
+                  />
                 )}
               </div>
             </div>
@@ -583,19 +603,25 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               <div className="card-title">🙈 Jouw smaak vs de groep</div>
               <div className="year-rows">
                 {outliers.guilty && (
-                  <div>
-                    💖 Jouw guilty pleasure: <TLink title={outliers.guilty.title} onNavigate={onNavigate} /> — jij gaf een {outliers.guilty.mine}, de rest gemiddeld {outliers.guilty.others.toFixed(1).replace('.', ',')}
-                  </div>
+                  <IconRow
+                    ico="💖"
+                    line={<>Jouw guilty pleasure: <TLink title={outliers.guilty.title} onNavigate={onNavigate} /></>}
+                    sub={<>Jij gaf een {outliers.guilty.mine}, de rest gemiddeld {outliers.guilty.others.toFixed(1).replace('.', ',')}</>}
+                  />
                 )}
                 {outliers.panned && (
-                  <div>
-                    🥶 Alleen jij vond dit niks: <TLink title={outliers.panned.title} onNavigate={onNavigate} /> — jij een {outliers.panned.mine}, de rest {outliers.panned.others.toFixed(1).replace('.', ',')}
-                  </div>
+                  <IconRow
+                    ico="🥶"
+                    line={<>Alleen jij vond dit niks: <TLink title={outliers.panned.title} onNavigate={onNavigate} /></>}
+                    sub={<>Jij een {outliers.panned.mine}, de rest {outliers.panned.others.toFixed(1).replace('.', ',')}</>}
+                  />
                 )}
                 {blindSpot && (
-                  <div>
-                    🕳️ Blinde vlek: <b>{blindSpot.genre}</b> — je vrienden keken al {blindSpot.count} series in dit genre, jij nog geen één
-                  </div>
+                  <IconRow
+                    ico="🕳️"
+                    line={<>Blinde vlek: <b>{blindSpot.genre}</b></>}
+                    sub={<>Je vrienden keken al {blindSpot.count} series in dit genre, jij nog geen één</>}
+                  />
                 )}
               </div>
             </div>
