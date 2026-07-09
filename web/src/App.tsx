@@ -99,6 +99,8 @@ export default function App() {
   const [services, setServices] = useState<string[]>(saved.services);
   const [genres, setGenres] = useState<string[]>(saved.genres);
   const [nameFilter, setNameFilter] = useState<string>('');
+  // Acteurfilter: gezet door op een acteursnaam te tikken (kaart of dashboard).
+  const [actorFilter, setActorFilter] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -138,6 +140,7 @@ export default function App() {
     status?: Status | 'all' | 'mine';
     genre?: string;
     service?: string;
+    actor?: string;
     titleId?: number;
   }) => {
     const s = opts.status;
@@ -146,6 +149,7 @@ export default function App() {
     else { setFriend('me'); setStatus(s); }
     setGenres(opts.genre ? [opts.genre] : []);
     setServices(opts.service ? [opts.service] : []);
+    setActorFilter(opts.actor ?? '');
     setNameFilter('');
     setSearchOpen(false);
     setSortKey('date');
@@ -157,7 +161,7 @@ export default function App() {
   // "Jij" heeft een eigen knop en een vriend-scope toont z'n eigen banner,
   // dus die tellen hier niet mee als paneelfilter.
   const activeFilterCount =
-    services.length + genres.length +
+    services.length + genres.length + (actorFilter ? 1 : 0) +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
@@ -172,7 +176,7 @@ export default function App() {
   };
 
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter]);
+  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter]);
   // (geen koppeling meer tussen status en vriend — die assen staan los van elkaar)
 
   const addTitle = async (tmdbId: number) => {
@@ -284,7 +288,7 @@ export default function App() {
 
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
-    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter });
+    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter, actor: actorFilter || undefined });
 
     list.sort((a, b) => {
       let cmp: number;
@@ -299,7 +303,7 @@ export default function App() {
     });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap, status, friend, services, genres, nameFilter, sortKey, sortDir, userId]);
+  }, [snap, status, friend, services, genres, nameFilter, actorFilter, sortKey, sortDir, userId]);
 
   // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
   // focusTitleId bewust NIET in de deps: anders springt het na het wissen van de
@@ -542,6 +546,9 @@ export default function App() {
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
+              {actorFilter && (
+                <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
+              )}
               {services.map((s) => (
                 <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
               ))}
@@ -565,7 +572,7 @@ export default function App() {
                 <button
                   className="btn"
                   style={{ marginTop: 10 }}
-                  onClick={() => { setStatus('all'); setFriend('me'); setServices([]); setGenres([]); setNameFilter(''); setQuickFilterOpen(false); }}
+                  onClick={() => { setStatus('all'); setFriend('me'); setServices([]); setGenres([]); setNameFilter(''); setActorFilter(''); setQuickFilterOpen(false); }}
                 >
                   Wis filters
                 </button>
@@ -588,6 +595,7 @@ export default function App() {
                     blind={blind}
                     showGroupScore={friend === ''}
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
+                    onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); window.scrollTo({ top: 0 }); }}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}

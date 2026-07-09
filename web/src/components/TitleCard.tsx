@@ -45,13 +45,17 @@ interface Props {
   compareUserId?: string;
   /** Toon de cijfers van je vrienden als kleine chips in de ingeklapte kaart. */
   showFriendScores?: boolean;
+  /** Favoriete acteur die meespeelt — als reden-chip op de ingeklapte kaart. */
+  reasonActor?: string | null;
+  /** Tik op een acteursnaam → lijst filteren op die acteur. */
+  onActor?: (name: string) => void;
   onRecommend: (title: Title) => void;
   onChange: () => void;
   toast: (msg: string) => void;
   initialExpanded?: boolean;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, onRecommend, onChange, toast, initialExpanded = false }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, onRecommend, onChange, toast, initialExpanded = false }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -202,7 +206,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
           {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
-          {(newSeason || seasonsChip || showOthers || totalRecCount > 0) && (
+          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor) && (
             <div className="metarow">
               {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
@@ -211,6 +215,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               )}
               {showOthers && <span className="mchip">👥 {others.length}</span>}
               {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
+              {reasonActor && <span className="mchip actor" title={`Met jouw favoriet ${reasonActor}`}>🎭 {reasonActor}</span>}
             </div>
           )}
           {/* Cijfers van vrienden, direct zichtbaar zonder uitklappen. */}
@@ -399,7 +404,18 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <section className="tc-section">
             <div className="tc-label">Over de serie</div>
             {title.overview && <p className="note">{title.overview}</p>}
-            {title.cast.length > 0 && <p className="title-sub">Met {title.cast.slice(0, 4).join(', ')}</p>}
+            {title.cast.length > 0 && (
+              <p className="title-sub">
+                Met {title.cast.slice(0, 4).map((name, i) => (
+                  <span key={name}>
+                    {i > 0 && ', '}
+                    {onActor
+                      ? <span className="cast-link" role="link" onClick={() => onActor(name)}>{name}</span>
+                      : name}
+                  </span>
+                ))}
+              </p>
+            )}
             <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
               <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
             </a>

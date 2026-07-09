@@ -137,6 +137,8 @@ export interface ListFilters {
   services: string[];
   genres: string[];
   name: string;
+  /** Alleen series waarin deze acteur speelt (exacte naam uit de cast). */
+  actor?: string;
 }
 
 /** Voldoet een beoordeling (van deze persoon, voor deze titel) aan de statusfilter? */
@@ -166,6 +168,8 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
 
   if (f.genres.length) list = list.filter((t) => f.genres.some((g) => t.genres.includes(g)));
 
+  if (f.actor) list = list.filter((t) => t.cast.includes(f.actor!));
+
   if (f.services.length) {
     const me = profileById(snap, userId);
     list = list.filter((t) => {
@@ -174,8 +178,13 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
     });
   }
 
+  // Zoeken binnen de lijst matcht op titel én op acteursnamen uit de cast.
   const q = f.name.trim().toLowerCase();
-  if (q) list = list.filter((t) => t.name.toLowerCase().includes(q));
+  if (q) {
+    list = list.filter(
+      (t) => t.name.toLowerCase().includes(q) || t.cast.some((c) => c.toLowerCase().includes(q)),
+    );
+  }
 
   return list;
 }
@@ -511,6 +520,36 @@ export function finisherStats(snap: Snapshot, userId: string): { profile: Profil
     result.push({ profile: p, pct: Math.round((finished / (finished + dropped)) * 100), finished, dropped });
   }
   return result.sort((a, b) => b.pct - a.pct);
+}
+
+/** Jouw vaste cast: acteurs die in meerdere series op je lijst spelen,
+ *  met jouw gemiddelde cijfer voor die series. */
+export function favoriteActors(snap: Snapshot, userId: string, limit = 5): { name: string; count: number; avg: number }[] {
+  const byActor = new Map<string, number[]>();
+  for (const r of snap.ratings) {
+    if (r.user_id !== userId || r.score == null) continue;
+    const t = titleById(snap, r.title_id);
+    if (!t) continue;
+    for (const name of t.cast) {
+      if (!byActor.has(name)) byActor.set(name, []);
+      byActor.get(name)!.push(r.score);
+    }
+  }
+  return [...byActor.entries()]
+    .filter(([, scores]) => scores.length >= 2) // pas interessant vanaf 2 series
+    .map(([name, scores]) => ({
+      name,
+      count: scores.length,
+      avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+    }))
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, limit);
+}
+
+/** Speelt er een favoriete acteur van deze gebruiker mee in de titel? */
+export function sharedFavoriteActor(snap: Snapshot, userId: string, title: Title): string | null {
+  const favs = favoriteActors(snap, userId, 12).filter((a) => a.avg >= 7);
+  return favs.find((a) => title.cast.includes(a.name))?.name ?? null;
 }
 
 /** "Jouw jaar in series": statistieken over de beoordelingen van dit kalenderjaar.

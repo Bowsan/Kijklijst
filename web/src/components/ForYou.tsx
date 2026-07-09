@@ -3,7 +3,7 @@ import type { Snapshot, Title, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
-  newSeasonForYou, myRating,
+  newSeasonForYou, myRating, sharedFavoriteActor,
 } from '../lib/compute';
 import { dismissRecommendation, discoverNewTv } from '../lib/api';
 import TitleCard from './TitleCard';
@@ -150,7 +150,12 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           </p>
           {freshComputed.map(({ title }) => (
             <div key={title.tmdb_id} style={{ marginBottom: 16 }}>
-              <TitleCard snap={snap} title={title} userId={userId} blind={blind} showFriendScores onRecommend={onRecommend} onChange={onChange} toast={toast} />
+              <TitleCard
+                snap={snap} title={title} userId={userId} blind={blind}
+                showFriendScores
+                reasonActor={sharedFavoriteActor(snap, userId, title)}
+                onRecommend={onRecommend} onChange={onChange} toast={toast}
+              />
             </div>
           ))}
         </>

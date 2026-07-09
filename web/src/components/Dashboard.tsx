@@ -5,7 +5,7 @@ import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
   visibleUserIds, titleById, profileById, yearStats,
-  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
+  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors,
 } from '../lib/compute';
 import Avatar from './Avatar';
 import PosterFallback from './PosterFallback';
@@ -14,6 +14,7 @@ interface NavOpts {
   status?: Status | 'all' | 'mine';
   genre?: string;
   service?: string;
+  actor?: string;
   titleId?: number;
 }
 
@@ -230,6 +231,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   }, [snap, userId]);
 
   const myServices = useMemo(() => serviceStats(snap, userId).slice(0, 6), [snap, userId]);
+  const myActors = useMemo(() => favoriteActors(snap, userId, 5), [snap, userId]);
   const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
   const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
 
@@ -437,6 +439,25 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   color="var(--accent)"
                   onClick={() => onNavigate({ status: 'mine', genre: g.genre })}
                 />
+              ))}
+            </div>
+          )}
+
+          {myActors.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div className="card-title">🎭 Jouw vaste cast</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Acteurs die in meerdere series op je lijst spelen — tik voor hun series.
+              </div>
+              {myActors.map((a) => (
+                <button key={a.name} className="actor-row" onClick={() => onNavigate({ status: 'mine', actor: a.name })}>
+                  <span className="actor-badge">{a.name.trim().charAt(0)}</span>
+                  <span className="actor-name">{a.name}</span>
+                  <span className="actor-stats">
+                    <b>{a.count} series</b>
+                    <span className="val-sub">gem. {a.avg.toFixed(1).replace('.', ',')}</span>
+                  </span>
+                </button>
               ))}
             </div>
           )}
