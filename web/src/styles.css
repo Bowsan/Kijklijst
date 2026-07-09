@@ -818,7 +818,9 @@ input, textarea, select {
 /* ---------- Stats ---------- */
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat-box {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  /* Gedempte, grijsblauwe basistint; per statistiek overschreven via .tint-*. */
+  --tint: #5d7191;
+  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -828,9 +830,15 @@ input, textarea, select {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .stat-box:active { transform: scale(0.98); }
+/* Onder het label: icoon links, getal rechts uitgelijnd. */
+.stat-box .stat-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
 .stat-box .v {
-  font-size: 28px; font-weight: 800; color: var(--text);
+  font-size: 28px; font-weight: 800;
+  color: color-mix(in srgb, var(--tint) 45%, var(--text));
   letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15;
+  text-align: right;
 }
 .stat-box .k {
   font-size: 10.5px; color: var(--muted); font-weight: 600;
@@ -839,12 +847,14 @@ input, textarea, select {
 .stat-box .stat-ico {
   width: 34px; height: 34px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 17px; margin-bottom: 9px;
+  font-size: 17px; flex-shrink: 0;
+  background: color-mix(in srgb, var(--tint) 15%, transparent);
 }
-.tint-accent { background: color-mix(in srgb, var(--accent) 13%, transparent); }
-.tint-good { background: color-mix(in srgb, var(--good) 13%, transparent); }
-.tint-warn { background: color-mix(in srgb, var(--warn) 16%, transparent); }
-.tint-info { background: color-mix(in srgb, var(--info) 13%, transparent); }
+/* Gedempte, weinig verzadigde tinten per statistiek (grijsblauw-familie). */
+.tint-accent { --tint: #5d7191; }
+.tint-good { --tint: #55836d; }
+.tint-warn { --tint: #94804f; }
+.tint-info { --tint: #54789b; }
 
 .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .bar-row .label { width: 100px; font-size: 12px; flex-shrink: 0; }
