@@ -108,12 +108,12 @@ async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any>
   const d = await getTvDetails(tmdbId);
   db.prepare(
     `INSERT INTO titles
-      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, cast_meta, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     d.tmdb_id, d.name, d.year, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
-    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, d.status, Date.now(), addedBy, Date.now()
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), d.imdb_id, d.status, Date.now(), addedBy, Date.now()
   );
   return db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
 }
@@ -650,13 +650,13 @@ async function refreshTitle(tmdbId: number): Promise<boolean> {
   db.prepare(
     `UPDATE titles SET
        name=?, year=?, poster_path=?, genres=?, seasons=?, episode_count=?, runtime=?,
-       providers=?, overview=?, cast=?, imdb_id=COALESCE(?, imdb_id), tmdb_status=?,
+       providers=?, overview=?, cast=?, cast_meta=?, imdb_id=COALESCE(?, imdb_id), tmdb_status=?,
        refreshed_at=?, new_season_at=?
      WHERE tmdb_id=?`
   ).run(
     d.name, d.year, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
-    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), d.imdb_id, d.status,
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), d.imdb_id, d.status,
     now, gainedSeason ? now : existing.new_season_at ?? null,
     tmdbId,
   );
@@ -685,6 +685,15 @@ async function refreshTitles(rows: { tmdb_id: number }[], label: string): Promis
   }
   broadcast('state', 1);
   console.log(`${label} klaar: ${changed} met een nieuw seizoen.`);
+}
+
+// Eenmalig cast-foto's aanvullen voor titels die nog geen cast_meta hebben.
+async function backfillCastMeta(): Promise<void> {
+  if (!process.env.TMDB_API_KEY) return;
+  const rows = db
+    .prepare('SELECT tmdb_id FROM titles WHERE cast_meta IS NULL AND tmdb_id > 0')
+    .all() as { tmdb_id: number }[];
+  if (rows.length) await refreshTitles(rows, 'Cast-foto-backfill');
 }
 
 // Automatisch: alleen nog-lopende (of nog onbekende) series, hooguit 1×/dag.
@@ -722,8 +731,10 @@ app.listen(PORT, () => {
   initPush();
   // Bestaande base64-afbeeldingen eenmalig naar bestanden verplaatsen.
   try { migrateDataUrisToFiles(); } catch (e: any) { console.warn('Uploads-migratie mislukt:', e?.message || e); }
-  // Niet awaiten: op de achtergrond laten lopen.
-  backfillImdbIds().catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e));
+  // Niet awaiten: op de achtergrond laten lopen (na elkaar, rustig getimed).
+  backfillImdbIds()
+    .catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e))
+    .finally(() => backfillCastMeta().catch((e) => console.warn('Cast-backfill mislukt:', e?.message || e)));
   refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
   // Daarna elke 12 uur opnieuw de lopende series checken.
   setInterval(() => {

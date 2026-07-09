@@ -105,6 +105,8 @@ export interface TitleDetails {
   providers: string[];
   overview: string;
   cast: string[];
+  /** Cast met portretfoto (TMDb-pad), voor visuele acteurslijsten. */
+  cast_meta: { name: string; photo: string | null }[];
   imdb_id: string | null;
   status: string | null;
 }
@@ -150,9 +152,9 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
   }
   const providers = canonicalProviders([...providerSet.values()]);
 
-  const cast = (data.aggregate_credits?.cast || [])
-    .slice(0, 8)
-    .map((c: any) => c.name);
+  const castRaw = (data.aggregate_credits?.cast || []).slice(0, 8);
+  const cast = castRaw.map((c: any) => c.name);
+  const cast_meta = castRaw.map((c: any) => ({ name: c.name, photo: c.profile_path || null }));
 
   return {
     tmdb_id: data.id,
@@ -166,6 +168,7 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
     providers,
     overview: data.overview || '',
     cast,
+    cast_meta,
     imdb_id: data.external_ids?.imdb_id || null,
     status: data.status || null,
   };

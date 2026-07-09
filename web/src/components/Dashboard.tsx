@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status, Profile } from '../lib/types';
-import { posterUrl } from '../lib/types';
+import { posterUrl, PERSON_IMG } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
@@ -87,7 +87,7 @@ function timeAgo(ts: number): string {
   return `${Math.floor(h / 24)} d`;
 }
 
-function Thumb({ title, w = 36, h = 54 }: { title: Title; w?: number; h?: number }) {
+function Thumb({ title, w = 44, h = 66 }: { title: Title; w?: number; h?: number }) {
   return title.poster_path
     ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: w, height: h, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
     : <PosterFallback name={title.name} width={w} height={h} />;
@@ -234,6 +234,16 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   const myActorsAll = useMemo(() => favoriteActors(snap, userId, 15), [snap, userId]);
   const [castExpanded, setCastExpanded] = useState(false);
   const myActors = castExpanded ? myActorsAll : myActorsAll.slice(0, 5);
+  // Portretfoto per acteur (uit de cast-metadata van welke serie dan ook).
+  const actorPhotos = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of snap.titles) {
+      for (const c of t.cast_meta ?? []) {
+        if (c.photo && !m.has(c.name)) m.set(c.name, c.photo);
+      }
+    }
+    return m;
+  }, [snap]);
   const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
   const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
 
@@ -385,7 +395,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </div>
                   <div className="feed-text">“{c.text}”</div>
                 </div>
-                <Thumb title={title!} w={32} h={48} />
+                <Thumb title={title!} w={40} h={60} />
               </div>
             ))}
           </div>
@@ -453,7 +463,9 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               </div>
               {myActors.map((a) => (
                 <button key={a.name} className="actor-row" onClick={() => onNavigate({ status: 'mine', actor: a.name })}>
-                  <span className="actor-badge">{a.name.trim().charAt(0)}</span>
+                  {actorPhotos.has(a.name)
+                    ? <img className="actor-photo" src={PERSON_IMG + actorPhotos.get(a.name)} alt="" loading="lazy" />
+                    : <span className="actor-badge">{a.name.trim().charAt(0)}</span>}
                   <span className="actor-name">{a.name}</span>
                   <span className="actor-stats">
                     <b>{a.count} series</b>
@@ -498,7 +510,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 {year.topGenre && <div>🏷️ Meest gekeken genre: <b>{year.topGenre}</b></div>}
                 {year.best && (
                   <div className="year-best" onClick={() => onNavigate({ status: 'all', titleId: year.best!.title.tmdb_id })}>
-                    <Thumb title={year.best.title} w={40} h={60} />
+                    <Thumb title={year.best.title} w={48} h={72} />
                     <div>🏆 Hoogste cijfer:<br /><span className="tlink">{year.best.title.name}</span> <b>({year.best.score})</b></div>
                   </div>
                 )}

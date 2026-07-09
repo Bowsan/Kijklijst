@@ -247,8 +247,8 @@ input, textarea, select {
   font-size: 13px;
 }
 .poster {
-  width: 64px;
-  height: 96px;
+  width: 72px;
+  height: 108px;
   border-radius: 10px;
   object-fit: cover;
   background: var(--surface-2);
@@ -324,13 +324,13 @@ input, textarea, select {
 
 /* ---------- Avatars ---------- */
 .avatar {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 700;
   color: #fff;
   object-fit: cover;
@@ -338,7 +338,7 @@ input, textarea, select {
   border: 2px solid var(--surface);
 }
 .avatar.xs { width: 16px; height: 16px; font-size: 8px; }
-.avatar.sm { width: 28px; height: 28px; font-size: 12px; }
+.avatar.sm { width: 32px; height: 32px; font-size: 13px; }
 .avatar.lg { width: 64px; height: 64px; font-size: 24px; }
 
 /* Vriendcijfers als kleine chips op de ingeklapte kaart. */
@@ -674,7 +674,7 @@ input, textarea, select {
 /* Jouw tips aan vrienden */
 .tip-row { display: flex; gap: 10px; }
 .tip-row:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
-.tip-poster { width: 40px; height: 60px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-2); }
+.tip-poster { width: 48px; height: 72px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-2); }
 .tip-poster.empty { background: var(--surface-2); }
 .tip-title { font-weight: 600; font-size: 14px; }
 .tip-status {
@@ -808,6 +808,12 @@ input, textarea, select {
 .onboard .hero { text-align: center; }
 .onboard .hero .big { font-size: 48px; }
 .onboard .hero h1 { font-size: 26px; margin: 8px 0 4px; }
+/* Lange stappen (zoals cijfers geven) beginnen bovenaan, met de
+   overslaan/klaar-knop boven de vouw en de lijst eronder. */
+.onboard.onboard-top { justify-content: flex-start; padding-top: 24px; }
+.onboard .hero.compact .big { font-size: 32px; }
+.onboard .hero.compact h1 { font-size: 21px; margin: 4px 0 2px; }
+.onboard .hero.compact p { margin: 0; font-size: 14px; }
 
 /* ---------- Stats ---------- */
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -935,10 +941,16 @@ input, textarea, select {
 }
 .actor-row:active { background: var(--surface-2); }
 .actor-badge {
-  width: 30px; height: 30px; border-radius: 50%;
+  width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent); font-weight: 800; font-size: 14px; flex-shrink: 0;
+}
+/* Acteursfoto (TMDb-portret) in plaats van de initiaalbadge. */
+.actor-photo {
+  width: 34px; height: 34px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+  background: var(--surface-2);
 }
 .actor-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .actor-stats { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; flex-shrink: 0; }
