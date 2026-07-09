@@ -119,7 +119,7 @@ describe('nieuw seizoen', () => {
   const fresh = title(1, { seasons: seasons(3), new_season_at: now - 1000 });
   const stale = title(2, { seasons: seasons(3), new_season_at: now - NEW_SEASON_WINDOW - 1000 });
 
-  it('newSeasonForYou: alleen recente nieuwe seizoenen van series die je 7+ gaf', () => {
+  it('newSeasonForYou: recente nieuwe seizoenen van series op je lijst, verouderde niet', () => {
     const s = snap({
       titles: [fresh, stale],
       ratings: [
@@ -130,14 +130,16 @@ describe('nieuw seizoen', () => {
     expect(newSeasonForYou(s, 'me').map((t) => t.tmdb_id)).toEqual([1]);
   });
 
-  it('newSeasonForYou: niet bij een te laag cijfer of alles al gezien', () => {
+  it('newSeasonForYou: ook bij een laag of ontbrekend cijfer, maar niet als alles al gezien is', () => {
     const s = snap({
       titles: [fresh],
       ratings: [rating(1, 'me', { score: 6, seasons: [1] })],
     });
-    expect(newSeasonForYou(s, 'me')).toHaveLength(0);
+    expect(newSeasonForYou(s, 'me').map((t) => t.tmdb_id)).toEqual([1]);
     const s2 = snap({ titles: [fresh], ratings: [rating(1, 'me', { score: 9, seasons: [1, 2, 3] })] });
     expect(newSeasonForYou(s2, 'me')).toHaveLength(0);
+    const s3 = snap({ titles: [fresh], ratings: [] }); // niet op je lijst → geen melding
+    expect(newSeasonForYou(s3, 'me')).toHaveLength(0);
   });
 
   it('hasUnseenNewSeason geldt alleen voor series op je lijst', () => {

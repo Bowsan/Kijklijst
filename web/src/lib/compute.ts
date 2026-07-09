@@ -196,16 +196,14 @@ export function hasUnseenNewSeason(snap: Snapshot, title: Title, userId: string)
   return watchedSeasonCount(title, r) < title.seasons.length;
 }
 
-/** Series met een nieuw seizoen die je 7 of hoger gaf — voor de "Voor jou"-pagina. */
+/** Series op jouw lijst met een recent nieuw seizoen dat je nog niet zag —
+ *  voor de "Voor jou"-pagina. Hoogst beoordeelde eerst. */
 export function newSeasonForYou(snap: Snapshot, userId: string): Title[] {
   return snap.titles
-    .filter((t) => {
-      if (!t.new_season_at || Date.now() - t.new_season_at > NEW_SEASON_WINDOW) return false;
-      const r = myRating(snap, t.tmdb_id, userId);
-      if (!r || r.score == null || r.score < 7) return false;
-      return watchedSeasonCount(t, r) < t.seasons.length;
-    })
-    .sort((a, b) => (b.new_season_at ?? 0) - (a.new_season_at ?? 0));
+    .filter((t) => hasUnseenNewSeason(snap, t, userId))
+    .sort((a, b) =>
+      ((myRating(snap, b.tmdb_id, userId)?.score ?? -1) - (myRating(snap, a.tmdb_id, userId)?.score ?? -1)) ||
+      ((b.new_season_at ?? 0) - (a.new_season_at ?? 0)));
 }
 
 /** Series die een vriend (of jij) op dit moment kijkt. */
