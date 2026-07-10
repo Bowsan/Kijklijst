@@ -74,7 +74,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
 
   const quickRate = async (t: Title, score: number) => {
     try {
-      await saveRating({ tmdb_id: t.tmdb_id, score, status: 'finished' });
+      // Alleen het cijfer — de status ("Gezien" etc.) kiest de gebruiker zelf.
+      await saveRating({ tmdb_id: t.tmdb_id, score });
       setRated((prev) => new Map(prev).set(t.tmdb_id, score));
     } catch { /* stil laten */ }
   };

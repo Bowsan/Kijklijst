@@ -431,7 +431,7 @@ export default function App() {
               <div className="lsp-label" style={{ marginTop: 4 }}>Al op je lijst:</div>
               {myMatches.map((t) => {
                 const r = myRating(snap, t.tmdb_id, userId);
-                const badge: Status | null = r?.status ?? (r?.score != null ? 'finished' : null);
+                const badge: Status | null = r?.status ?? null;
                 return (
                   <button key={t.tmdb_id} className="suggestion" onClick={() => openExisting(t.tmdb_id)}>
                     {t.poster_path ? <img src={posterUrl(t.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
@@ -439,7 +439,7 @@ export default function App() {
                       <div className="s-name">{t.name}</div>
                       <div className="title-sub">{t.year || '—'}</div>
                     </div>
-                    {badge && <StatusBadge status={badge} score={r?.score ?? null} />}
+                    {(badge || r?.score != null) && <StatusBadge status={badge} score={r?.score ?? null} />}
                   </button>
                 );
               })}

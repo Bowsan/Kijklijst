@@ -6,7 +6,7 @@ import { groupAverage, myRating, profileById, guessService, visibleUserIds, foll
 import { NL_SERVICES } from '../lib/services';
 import { scoreColor, isGoldScore } from '../lib/score';
 import Avatar from './Avatar';
-import StatusBadge, { STATUS_COLORS } from './StatusBadge';
+import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
 import PosterFallback from './PosterFallback';
@@ -236,8 +236,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {compareProfile ? (
             // "Als vriend"-weergave: hun cijfer groot, jouw cijfer klein eronder.
             <>
-              {compareBadge
-                ? <StatusBadge status={compareBadge} score={compareRating?.score ?? null} />
+              {(compareBadge || compareRating?.score != null)
+                ? <StatusBadge status={compareBadge ?? null} score={compareRating?.score ?? null} />
                 : <span className="chip" style={{ fontSize: 12 }}>–</span>}
               <span className="compare-mine">
                 jij {mine?.score != null ? mine.score : (myBadge ? '·' : '–')}
@@ -260,8 +260,10 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                   {avg.toFixed(1).replace('.', ',')}
                 </span>
               )}
-              {/* Jouw status op deze serie — gekleurd zodat je het meteen ziet. */}
-              {myBadge && <StatusBadge status={myBadge} score={mine?.score ?? null} />}
+              {/* Jouw cijfer als pil; de status als chip erbij (behalve "Gezien"
+                  mét cijfer — het vinkje in de pil zegt dat al). */}
+              {mine?.score != null && <StatusBadge status={null} score={mine.score} />}
+              {myBadge && (myBadge !== 'finished' || mine?.score == null) && <StatusBadge status={myBadge} score={null} />}
             </>
           )}
         </div>
@@ -275,7 +277,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
 
             <ScoreSlider
               value={mine?.score ?? null}
-              onCommit={(n) => update({ score: n, status: 'finished' })}
+              // Alleen het cijfer opslaan — de status ("Gezien" etc.) kies je zelf.
+              onCommit={(n) => update({ score: n })}
               onClear={async () => {
                 try { await clearRatingScore(title.tmdb_id); onChange(); }
                 catch (e: any) { toast(e.message || 'Wissen mislukt'); }
@@ -283,11 +286,22 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             />
 
             <div className="status-row">
-              {STATUS_ORDER.map((s) => (
-                <button key={s} className={mine?.status === s ? 'sel' : ''} onClick={() => update({ status: s })}>
-                  {STATUS_LABELS[s]}
-                </button>
-              ))}
+              {STATUS_ORDER.map((s) => {
+                const sel = mine?.status === s;
+                const c = STATUS_COLORS[s];
+                return (
+                  <button
+                    key={s}
+                    className={sel ? 'sel' : ''}
+                    // Geselecteerd = dezelfde gekleurde badge-stijl als op de kaart in de lijst.
+                    style={sel ? { background: c.bg, color: c.fg, borderColor: 'transparent', fontWeight: 700 } : undefined}
+                    onClick={() => update({ status: s })}
+                  >
+                    {s === 'finished' && <CheckIcon color={sel ? 'var(--good)' : 'currentColor'} />}
+                    {STATUS_LABELS[s]}
+                  </button>
+                );
+              })}
             </div>
 
             {title.seasons.length > 0 && (
