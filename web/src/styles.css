@@ -279,6 +279,35 @@ input, textarea, select {
 .score-pill svg { display: block; flex-shrink: 0; }
 .score-pill.group { background: #5d7191; }
 
+/* Een 10 is goud: lichte glans die periodiek over de pil veegt. */
+.score-pill { position: relative; overflow: hidden; }
+.score-pill.gold::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(115deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: goldShimmer 2.6s ease-in-out infinite;
+}
+@keyframes goldShimmer {
+  55%, 100% { transform: translateX(100%); }
+}
+/* Gouden 10 in de cijfer-slider: shimmer door het cijfer zelf. */
+.ss-value.gold {
+  background: linear-gradient(100deg, #c9930a 25%, #ffe9a3 45%, #c9930a 65%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: goldTextShimmer 2.2s linear infinite;
+}
+@keyframes goldTextShimmer {
+  to { background-position: -220% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-pill.gold::after { animation: none; content: none; }
+  .ss-value.gold { animation: none; background: none; color: #c9930a; }
+}
+
 /* ---------- Cijferknoppen ---------- */
 .scores { display: flex; gap: 5px; flex-wrap: wrap; }
 .scores button {

@@ -1,5 +1,6 @@
 import type { Status } from '../lib/types';
 import { STATUS_LABELS } from '../lib/types';
+import { scoreColor, isGoldScore } from '../lib/score';
 
 // Kleuren per status — gelijk aan de "Verdeling lijst" op het dashboard.
 export const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
@@ -22,10 +23,14 @@ export function CheckIcon() {
 
 /** Gekleurd statuslabel zodat je in één oogopslag ziet hoe een serie op jouw lijst staat. */
 export default function StatusBadge({ status, score }: { status: Status; score?: number | null }) {
-  // Afgezien mét cijfer: gevulde groene pil met vinkje, zoals in iOS-widgets.
+  // Afgezien mét cijfer: gevulde pil met vinkje, in de kleur van het cijfer.
   if (status === 'finished' && score != null) {
     return (
-      <span className="score-pill" title="Jouw cijfer">
+      <span
+        className={isGoldScore(score) ? 'score-pill gold' : 'score-pill'}
+        style={{ background: scoreColor(score) }}
+        title="Jouw cijfer"
+      >
         <CheckIcon />
         {score}
       </span>
