@@ -4,6 +4,7 @@ import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
+import { scoreColor, isGoldScore } from '../lib/score';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
@@ -224,7 +225,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               {friendScores.map(({ profile, score }) => (
                 <span className="fscore" key={profile.id} title={`${profile.name}: ${score}`}>
                   <Avatar profile={profile} id={profile.id} size="xs" />
-                  <b>{score}</b>
+                  {/* Iets bijgemengd met de tekstkleur zodat donkerrood ook in het donkere thema leesbaar blijft. */}
+                  <b style={{ color: `color-mix(in srgb, ${scoreColor(score)} 72%, var(--text))` }}>{score}</b>
                 </span>
               ))}
             </div>
@@ -244,7 +246,11 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           ) : (
             <>
               {showGroupScore && !hideGroup && avg != null && (
-                <span className="score-pill group" title="Groepsgemiddelde">
+                <span
+                  className={isGoldScore(avg) ? 'score-pill group gold' : 'score-pill group'}
+                  style={{ background: scoreColor(avg) }}
+                  title="Groepsgemiddelde"
+                >
                   <svg width="15" height="15" viewBox="0 0 16 16" fill="#fff" aria-hidden="true">
                     <circle cx="5.8" cy="5.4" r="2.5" />
                     <path d="M1.3 13.2c0-2.4 2-3.9 4.5-3.9s4.5 1.5 4.5 3.9v.3h-9z" />
