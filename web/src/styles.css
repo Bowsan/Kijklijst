@@ -327,6 +327,7 @@ input, textarea, select {
 /* ---------- Status ---------- */
 .status-row { display: flex; gap: 6px; flex-wrap: wrap; }
 .status-row button {
+  display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--surface-2);
@@ -334,7 +335,7 @@ input, textarea, select {
   font-size: 12px;
   color: var(--muted);
 }
-.status-row button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
+/* De geselecteerde status krijgt inline dezelfde badge-kleuren als op de kaart. */
 
 /* ---------- Seizoenen ---------- */
 .seasons { display: flex; gap: 5px; flex-wrap: wrap; }
