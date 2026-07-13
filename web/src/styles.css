@@ -95,6 +95,9 @@ input, textarea, select {
 }
 .topbar h1 { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
 .topbar .logo { font-size: 20px; }
+/* Eigen 3D-iconenset (public/icons) i.p.v. emoji's in kop- en navbalk. */
+.topbar .logo-img { width: 26px; height: 26px; object-fit: contain; vertical-align: -6px; }
+.topbar .topbar-ico { width: 22px; height: 22px; object-fit: contain; display: block; }
 
 /* ---------- Bottom nav ---------- */
 .nav {
@@ -134,6 +137,7 @@ input, textarea, select {
   display: flex; align-items: center; justify-content: center;
   height: 29px;
 }
+.nav button .ico img { width: 25px; height: 25px; object-fit: contain; }
 .nav .badge {
   position: absolute;
   top: 4px;
