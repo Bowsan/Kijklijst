@@ -139,6 +139,8 @@ export interface ListFilters {
   name: string;
   /** Alleen series waarin deze acteur speelt (exacte naam uit de cast). */
   actor?: string;
+  /** Alleen series van deze maker/bedenker (exacte naam uit creators). */
+  creator?: string;
 }
 
 /** Voldoet een beoordeling (van deze persoon, voor deze titel) aan de statusfilter? */
@@ -169,6 +171,8 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
   if (f.genres.length) list = list.filter((t) => f.genres.some((g) => t.genres.includes(g)));
 
   if (f.actor) list = list.filter((t) => t.cast.includes(f.actor!));
+
+  if (f.creator) list = list.filter((t) => (t.creators ?? []).some((c) => c.name === f.creator));
 
   if (f.services.length) {
     const me = profileById(snap, userId);
@@ -589,6 +593,35 @@ export function favoriteCreators(
     }))
     .sort((a, b) => b.count - a.count || b.avg - a.avg)
     .slice(0, limit);
+}
+
+/** Top-tips op basis van je favorieten: series die je nog niet kent waarin
+ *  een favoriete acteur (gem. 7+) speelt of die een favoriete maker bedacht.
+ *  Acteur én maker samen scoort het hoogst; makers wegen iets zwaarder. */
+export function favoriteSuggestions(
+  snap: Snapshot,
+  userId: string,
+  limit = 5,
+): { title: Title; actors: string[]; creators: string[]; score: number }[] {
+  const favActors = favoriteActors(snap, userId, 12).filter((a) => a.avg >= 7);
+  const favCreators = favoriteCreators(snap, userId, 12).filter((c) => c.avg >= 7);
+  if (favActors.length === 0 && favCreators.length === 0) return [];
+  const actorAvg = new Map(favActors.map((a) => [a.name, a.avg]));
+  const creatorAvg = new Map(favCreators.map((c) => [c.name, c.avg]));
+
+  const out: { title: Title; actors: string[]; creators: string[]; score: number }[] = [];
+  for (const t of snap.titles) {
+    if (myRating(snap, t.tmdb_id, userId)) continue; // al op je lijst (welke status dan ook)
+    const actors = t.cast.filter((n) => actorAvg.has(n));
+    const creators = (t.creators ?? []).map((c) => c.name).filter((n) => creatorAvg.has(n));
+    if (actors.length === 0 && creators.length === 0) continue;
+    const score =
+      actors.reduce((s, n) => s + (actorAvg.get(n) ?? 0), 0) +
+      creators.reduce((s, n) => s + (creatorAvg.get(n) ?? 0) * 1.5, 0) +
+      (actors.length > 0 && creators.length > 0 ? 5 : 0); // combi = de beste tip
+    out.push({ title: t, actors, creators, score });
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, limit);
 }
 
 /** Speelt er een favoriete acteur van deze gebruiker mee in de titel? */

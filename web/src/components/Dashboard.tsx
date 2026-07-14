@@ -16,6 +16,7 @@ interface NavOpts {
   genre?: string;
   service?: string;
   actor?: string;
+  creator?: string;
   titleId?: number;
 }
 
@@ -519,10 +520,10 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div className="card-title">🎬 Beste seriemakers</div>
               <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
-                Bedenkers van meerdere series die jij een cijfer gaf.
+                Bedenkers van meerdere series die jij een cijfer gaf — tik voor hun series.
               </div>
               {myCreators.map((c) => (
-                <div key={c.name} className="actor-row">
+                <button key={c.name} className="actor-row" onClick={() => onNavigate({ status: 'mine', creator: c.name })}>
                   {c.photo
                     ? <img className="actor-photo" src={PERSON_IMG + c.photo} alt="" loading="lazy" />
                     : <span className="actor-badge">{c.name.trim().charAt(0)}</span>}
@@ -531,7 +532,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                     <b>{c.count} series</b>
                     <span className="val-sub">gem. {c.avg.toFixed(1).replace('.', ',')}</span>
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           )}
