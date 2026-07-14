@@ -642,15 +642,22 @@ export function yearStats(snap: Snapshot, userId: string, year: number) {
 
   let hours = 0;
   const genreCount = new Map<string, number>();
+  const serviceScores = new Map<string, number[]>();
   let best: { title: Title; score: number } | null = null;
   let clash: { title: Title; friend: Profile; mine: number; theirs: number; diff: number } | null = null;
 
+  const profile = profileById(snap, userId);
   const friendIds = new Set(followingIds(snap, userId));
   for (const r of mine) {
     const t = titleById(snap, r.title_id);
     if (!t) continue;
     hours += watchHours(t, r);
     for (const g of t.genres) genreCount.set(g, (genreCount.get(g) || 0) + 1);
+    const svc = guessService(t, profile, r.service);
+    if (svc) {
+      if (!serviceScores.has(svc)) serviceScores.set(svc, []);
+      serviceScores.get(svc)!.push(r.score as number);
+    }
     if (!best || (r.score as number) > best.score) best = { title: t, score: r.score as number };
     // Grootste meningsverschil met een gevolgde vriend.
     for (const other of snap.ratings) {
@@ -664,11 +671,23 @@ export function yearStats(snap: Snapshot, userId: string, year: number) {
   }
 
   const topGenre = [...genreCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  // Beste streamingdienst: hoogste gemiddelde cijfer, met minimaal 3 series.
+  const bestService = [...serviceScores.entries()]
+    .filter(([, scores]) => scores.length >= 3)
+    .map(([service, scores]) => ({
+      service,
+      count: scores.length,
+      avg: scores.reduce((a, b) => a + b, 0) / scores.length,
+    }))
+    .sort((a, b) => b.avg - a.avg || b.count - a.count)[0] ?? null;
+
   return {
     count: mine.length,
     hours: Math.round(hours),
     topGenre,
     best,
+    bestService,
     clash: clash && clash.diff >= 2 ? clash : null, // alleen tonen bij een echt verschil
   };
 }

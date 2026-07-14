@@ -912,14 +912,16 @@ input, textarea, select {
 .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .bar-row .label { width: 100px; font-size: 12px; flex-shrink: 0; }
 /* Dienstlogo (TMDb) vóór de naam in de streamingdiensten-balkjes. */
-.svc-cell { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.svc-logo { width: 20px; height: 20px; border-radius: 5px; object-fit: cover; flex-shrink: 0; }
+.svc-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.svc-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
 .svc-fallback {
   display: flex; align-items: center; justify-content: center;
   background: var(--surface-2); color: var(--muted);
-  font-weight: 700; font-size: 11px;
+  font-weight: 700; font-size: 16px;
 }
 .svc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Rijen met een dienstlogo krijgen een bredere labelkolom. */
+.bar-row .label:has(.svc-cell) { width: 145px; }
 /* Inline-variant: klein logo dat in lopende tekst/chips vóór de naam staat. */
 .svc-inline {
   border-radius: 4px; object-fit: cover; flex-shrink: 0;
@@ -1036,6 +1038,13 @@ input, textarea, select {
 /* "Van jouw favorieten": compacte tip-rijen met reden-chips. */
 .fav-sug { display: flex; gap: 10px; align-items: center; }
 .fav-sug .metarow { flex-wrap: wrap; }
+
+/* "Top-15 bekijken"-knop onder cast/makers: rustig, met lucht eromheen. */
+.more-btn {
+  color: var(--muted);
+  font-size: 13px; padding: 8px 4px;
+  margin: 10px 0 4px;
+}
 
 /* Klikbare acteursnaam op de kaart + acteur-reden-chip. */
 .cast-link { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 45%, transparent); text-underline-offset: 2px; cursor: pointer; }
