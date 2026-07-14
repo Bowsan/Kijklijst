@@ -560,6 +560,37 @@ export function favoriteActors(snap: Snapshot, userId: string, limit = 5): { nam
     .slice(0, limit);
 }
 
+/** Beste seriemakers (bedenkers/producenten): makers van meerdere series die
+ *  jij beoordeelde, gesorteerd op aantal series en gemiddeld cijfer. */
+export function favoriteCreators(
+  snap: Snapshot,
+  userId: string,
+  limit = 5,
+): { name: string; photo: string | null; count: number; avg: number }[] {
+  const byCreator = new Map<string, { photo: string | null; scores: number[] }>();
+  for (const r of snap.ratings) {
+    if (r.user_id !== userId || r.score == null) continue;
+    const t = titleById(snap, r.title_id);
+    if (!t) continue;
+    for (const c of t.creators ?? []) {
+      if (!byCreator.has(c.name)) byCreator.set(c.name, { photo: c.photo, scores: [] });
+      const e = byCreator.get(c.name)!;
+      if (!e.photo && c.photo) e.photo = c.photo;
+      e.scores.push(r.score);
+    }
+  }
+  return [...byCreator.entries()]
+    .filter(([, e]) => e.scores.length >= 2) // pas interessant vanaf 2 series
+    .map(([name, e]) => ({
+      name,
+      photo: e.photo,
+      count: e.scores.length,
+      avg: e.scores.reduce((a, b) => a + b, 0) / e.scores.length,
+    }))
+    .sort((a, b) => b.count - a.count || b.avg - a.avg)
+    .slice(0, limit);
+}
+
 /** Speelt er een favoriete acteur van deze gebruiker mee in de titel? */
 export function sharedFavoriteActor(snap: Snapshot, userId: string, title: Title): string | null {
   const favs = favoriteActors(snap, userId, 12).filter((a) => a.avg >= 7);

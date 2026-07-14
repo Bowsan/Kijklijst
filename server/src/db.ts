@@ -110,6 +110,12 @@ db.exec(`
     subscription TEXT NOT NULL,
     created_at  INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS service_logos (
+    name        TEXT PRIMARY KEY,
+    logo_path   TEXT NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
 `);
 
 // Kolommen toevoegen aan bestaande databases (idempotent).
@@ -124,6 +130,7 @@ function addTitleColumns(): void {
   add('refreshed_at', 'INTEGER');
   add('new_season_at', 'INTEGER');
   add('cast_meta', 'TEXT'); // cast met portretfoto's (gevuld bij refresh)
+  add('creators', 'TEXT'); // bedenkers/makers met portretfoto's (gevuld bij refresh)
 }
 addTitleColumns();
 
@@ -235,6 +242,7 @@ export interface Snapshot {
   follows: any[];
   comments: any[];
   comment_reactions: any[];
+  service_logos: any[];
 }
 
 function parseJson<T>(value: string | null | undefined, fallback: T): T {
@@ -260,6 +268,7 @@ export function getSnapshot(): Snapshot {
     providers: parseJson(t.providers, []),
     cast: parseJson(t.cast, []),
     cast_meta: parseJson(t.cast_meta, []),
+    creators: parseJson(t.creators, []),
   }));
 
   const ratings = db.prepare('SELECT * FROM ratings').all().map((r: any) => ({
@@ -285,7 +294,9 @@ export function getSnapshot(): Snapshot {
 
   const comment_reactions = db.prepare('SELECT * FROM comment_reactions').all();
 
-  return { profiles, titles, ratings, recommendations, reactions, activity, follows, comments, comment_reactions };
+  const service_logos = db.prepare('SELECT name, logo_path FROM service_logos').all();
+
+  return { profiles, titles, ratings, recommendations, reactions, activity, follows, comments, comment_reactions, service_logos };
 }
 
 export { parseJson };
