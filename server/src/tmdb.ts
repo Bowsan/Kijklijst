@@ -93,6 +93,87 @@ export async function getNewTv(): Promise<SearchResult[]> {
   return results;
 }
 
+// Genres die we niet als tip willen aanraden op basis van personen.
+const SKIP_GENRE_IDS = new Set([10763 /* news */, 10764 /* reality */, 10767 /* talk */]);
+
+export interface PersonSuggestion {
+  tmdb_id: number;
+  name: string;
+  year: number | null;
+  poster_path: string | null;
+  overview: string;
+  /** Favoriete acteurs die hierin spelen. */
+  actors: string[];
+  /** Favoriete makers die dit bedachten/maakten. */
+  creators: string[];
+  popularity: number;
+}
+
+// Cache per persoon (12 uur): zoeken + tv-credits zijn twee calls per naam.
+const personCache = new Map<string, { at: number; shows: any[] }>();
+const PERSON_TTL = 12 * 3600 * 1000;
+
+async function personTvShows(name: string, kind: 'actor' | 'creator'): Promise<any[]> {
+  const key = `${kind}:${name.toLowerCase()}`;
+  const hit = personCache.get(key);
+  if (hit && Date.now() - hit.at < PERSON_TTL) return hit.shows;
+
+  const search = await tmdb('/search/person', { query: name, include_adult: 'false' });
+  const person = (search.results || [])[0];
+  if (!person) { personCache.set(key, { at: Date.now(), shows: [] }); return []; }
+
+  const credits = await tmdb(`/person/${person.id}/tv_credits`);
+  const raw = kind === 'actor' ? (credits.cast || []) : (credits.crew || []);
+  const shows = raw.filter((s: any) =>
+    (s.vote_count || 0) >= 10 &&
+    !(s.genre_ids || []).some((g: number) => SKIP_GENRE_IDS.has(g)) &&
+    // Voor makers alleen scheppende rollen, geen gastklusjes.
+    (kind === 'actor' || /creator|executive producer|producer|writer|director/i.test(s.job || '')),
+  );
+  personCache.set(key, { at: Date.now(), shows });
+  return shows;
+}
+
+/** Series (TMDb-breed) waarin favoriete acteurs spelen of van favoriete
+ *  makers — voor de "Van jouw favorieten"-tips buiten de eigen groepslijst. */
+export async function discoverByPeople(actors: string[], creators: string[]): Promise<PersonSuggestion[]> {
+  const out = new Map<number, PersonSuggestion>();
+  const add = (s: any, person: string, kind: 'actor' | 'creator') => {
+    let e = out.get(s.id);
+    if (!e) {
+      e = {
+        tmdb_id: s.id,
+        name: s.name,
+        year: s.first_air_date ? Number(s.first_air_date.slice(0, 4)) : null,
+        poster_path: s.poster_path || null,
+        overview: s.overview || '',
+        actors: [],
+        creators: [],
+        popularity: s.popularity || 0,
+      };
+      out.set(s.id, e);
+    }
+    const list = kind === 'actor' ? e.actors : e.creators;
+    if (!list.includes(person)) list.push(person);
+  };
+
+  for (const name of actors.slice(0, 3)) {
+    try { for (const s of await personTvShows(name, 'actor')) add(s, name, 'actor'); }
+    catch { /* persoon overslaan bij fout */ }
+  }
+  for (const name of creators.slice(0, 3)) {
+    try { for (const s of await personTvShows(name, 'creator')) add(s, name, 'creator'); }
+    catch { /* persoon overslaan bij fout */ }
+  }
+
+  // Meer redenen (acteur + maker) eerst, daarna populariteit.
+  return [...out.values()]
+    .sort((a, b) =>
+      (b.actors.length + b.creators.length) - (a.actors.length + a.creators.length) ||
+      b.popularity - a.popularity)
+    .slice(0, 25);
+}
+
 export interface TitleDetails {
   tmdb_id: number;
   name: string;

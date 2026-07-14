@@ -33,6 +33,26 @@ export async function discoverNewTv(): Promise<SearchResult[]> {
   return res.json();
 }
 
+export interface PersonSuggestion {
+  tmdb_id: number;
+  name: string;
+  year: number | null;
+  poster_path: string | null;
+  overview: string;
+  actors: string[];
+  creators: string[];
+  popularity: number;
+}
+
+// Series (TMDb-breed) met jouw favoriete acteurs/makers, voor "Van jouw favorieten".
+export async function discoverByPeople(actors: string[], creators: string[]): Promise<PersonSuggestion[]> {
+  if (actors.length === 0 && creators.length === 0) return [];
+  const qs = new URLSearchParams({ actors: actors.join(','), creators: creators.join(',') });
+  const res = await fetch(`/api/tmdb/people?${qs}`, { headers: headers() });
+  if (!res.ok) return [];
+  return res.json();
+}
+
 export async function fetchTitleDetails(id: number): Promise<Title> {
   const res = await fetch(`/api/tmdb/tv/${id}`, { headers: headers() });
   if (!res.ok) throw new Error('kon details niet laden');
