@@ -4,8 +4,9 @@ import { posterUrl } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
   newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
+  favoriteActors, favoriteCreators,
 } from '../lib/compute';
-import { dismissRecommendation, discoverNewTv } from '../lib/api';
+import { dismissRecommendation, discoverNewTv, discoverByPeople, type PersonSuggestion } from '../lib/api';
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
 
@@ -85,7 +86,33 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
   const freshComputed = computed.filter((c) => !wishlistIds.has(c.title.tmdb_id));
 
   // Top 5 op basis van je favoriete acteurs en makers (combinatie scoort het hoogst).
+  // Eerst kandidaten uit de eigen groepslijst; is dat er weinig (bijv. omdat je
+  // alles al beoordeeld hebt), dan vullen we aan met TMDb-series van je favorieten.
   const favSuggests = ready ? favoriteSuggestions(snap, userId, 5) : [];
+  const favActorNames = ready
+    ? favoriteActors(snap, userId, 12).filter((a) => a.avg >= 7).slice(0, 3).map((a) => a.name)
+    : [];
+  const favCreatorNames = ready
+    ? favoriteCreators(snap, userId, 12).filter((c) => c.avg >= 7).slice(0, 3).map((c) => c.name)
+    : [];
+  const [peopleTips, setPeopleTips] = useState<PersonSuggestion[]>([]);
+  useEffect(() => {
+    let alive = true;
+    discoverByPeople(favActorNames, favCreatorNames)
+      .then((r) => { if (alive) setPeopleTips(r); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [favActorNames.join(','), favCreatorNames.join(',')]);
+
+  const favRows = [
+    ...favSuggests.map(({ title, actors, creators }) => ({
+      tmdb_id: title.tmdb_id, name: title.name, poster_path: title.poster_path, actors, creators,
+    })),
+    ...peopleTips
+      .filter((p) => !snap.titles.some((t) => t.tmdb_id === p.tmdb_id))
+      .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, poster_path: p.poster_path, actors: p.actors, creators: p.creators })),
+  ].slice(0, 5);
 
   const dismiss = async (id: string) => {
     await dismissRecommendation(id);
@@ -145,29 +172,29 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       )}
 
       {/* Top 5 met jouw favoriete acteurs en makers — nog niet op je lijst */}
-      {favSuggests.length > 0 && (
+      {favRows.length > 0 && (
         <>
           <h2>Van jouw favorieten</h2>
           <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 12px' }}>
             Series die je nog niet kent, met jouw favoriete acteurs of van jouw favoriete makers.
           </p>
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
-            {favSuggests.map(({ title, actors, creators }) => (
-              <div key={title.tmdb_id} className="fav-sug">
-                {title.poster_path
-                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
-                  : <PosterFallback name={title.name} width={44} height={66} />}
+            {favRows.map((row) => (
+              <div key={row.tmdb_id} className="fav-sug">
+                {row.poster_path
+                  ? <img src={posterUrl(row.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+                  : <PosterFallback name={row.name} width={44} height={66} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{title.name}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{row.name}</div>
                   <div className="metarow" style={{ marginTop: 4 }}>
-                    {creators.map((n) => <span className="mchip actor" key={`c-${n}`} title={`Gemaakt door jouw favoriet ${n}`}>🎬 {n}</span>)}
-                    {actors.map((n) => <span className="mchip actor" key={`a-${n}`} title={`Met jouw favoriet ${n}`}>🎭 {n}</span>)}
+                    {row.creators.map((n) => <span className="mchip actor" key={`c-${n}`} title={`Gemaakt door jouw favoriet ${n}`}>🎬 {n}</span>)}
+                    {row.actors.map((n) => <span className="mchip actor" key={`a-${n}`} title={`Met jouw favoriet ${n}`}>🎭 {n}</span>)}
                   </div>
                 </div>
                 <button
                   className="btn ghost"
                   style={{ padding: '4px 10px', flexShrink: 0, fontSize: 16 }}
-                  onClick={() => onAdd(title.tmdb_id)}
+                  onClick={() => onAdd(row.tmdb_id)}
                   title="Aan mijn lijst toevoegen"
                 >+</button>
               </div>

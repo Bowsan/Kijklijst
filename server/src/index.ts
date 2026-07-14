@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { db, getSnapshot, parseJson } from './db.js';
-import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb } from './tmdb.js';
+import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb, discoverByPeople } from './tmdb.js';
 import { tvmazeByImdb, type EnrichData } from './tvmaze.js';
 import { addClient, broadcast } from './events.js';
 import { scheduleBackups } from './backup.js';
@@ -89,6 +89,17 @@ app.get('/api/tmdb/new', async (_req, res) => {
     res.json(await getNewTv());
   } catch (err: any) {
     res.status(502).json({ error: err.message });
+  }
+});
+
+// Series (TMDb-breed) met favoriete acteurs/makers — voor "Van jouw favorieten".
+app.get('/api/tmdb/people', async (req, res) => {
+  if (!process.env.TMDB_API_KEY) return res.json([]);
+  const parse = (v: unknown) => String(v || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
+  try {
+    res.json(await discoverByPeople(parse(req.query.actors), parse(req.query.creators)));
+  } catch {
+    res.json([]); // tips zijn nice-to-have: liever leeg dan een fout
   }
 });
 
