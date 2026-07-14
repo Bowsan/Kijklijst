@@ -5,6 +5,7 @@ import { saveRating, removeRating, addComment, removeComment, clearRatingScore, 
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import { scoreColor, isGoldScore } from '../lib/score';
+import ServiceLogo from './ServiceLogo';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
@@ -201,7 +202,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           <h3>{title.name}</h3>
           <div className="title-sub">
             {title.year || '—'}
-            {currentService ? ` · ${currentService}` : ''}
+            {currentService && <> · <ServiceLogo snap={snap} name={currentService} size={14} />{currentService}</>}
           </div>
           {title.genres.length > 0 && (
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>

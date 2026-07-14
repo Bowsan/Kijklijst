@@ -2,6 +2,7 @@ import type { Snapshot } from '../lib/types';
 import { selectTitles, followingProfiles, type StatusValue } from '../lib/compute';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
+import ServiceLogo from './ServiceLogo';
 
 interface Props {
   snap: Snapshot;
@@ -75,7 +76,7 @@ export default function FilterSheet({
             )}
             {allServices.map((s) => (
               <button key={s} className={`chip-toggle ${services.includes(s) ? 'on' : ''}`} onClick={() => onToggleService(s)}>
-                {s}
+                <ServiceLogo snap={snap} name={s} />{s}
               </button>
             ))}
           </div>
