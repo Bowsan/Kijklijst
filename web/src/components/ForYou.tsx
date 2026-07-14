@@ -3,7 +3,7 @@ import type { Snapshot, Title, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
-  newSeasonForYou, myRating, sharedFavoriteActor,
+  newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
 } from '../lib/compute';
 import { dismissRecommendation, discoverNewTv } from '../lib/api';
 import TitleCard from './TitleCard';
@@ -84,6 +84,9 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
   const wishlistIds = new Set(wishlist.map((t) => t.tmdb_id));
   const freshComputed = computed.filter((c) => !wishlistIds.has(c.title.tmdb_id));
 
+  // Top 5 op basis van je favoriete acteurs en makers (combinatie scoort het hoogst).
+  const favSuggests = ready ? favoriteSuggestions(snap, userId, 5) : [];
+
   const dismiss = async (id: string) => {
     await dismissRecommendation(id);
     onChange();
@@ -139,6 +142,38 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           <p>Je hebt <b>{count}</b> van de {MIN_RATINGS_FOR_PROFILE} series beoordeeld.</p>
           <p className="muted">Geef nog {MIN_RATINGS_FOR_PROFILE - count} cijfer{MIN_RATINGS_FOR_PROFILE - count === 1 ? '' : 's'} en je persoonlijke tips gaan vanzelf branden.</p>
         </div>
+      )}
+
+      {/* Top 5 met jouw favoriete acteurs en makers — nog niet op je lijst */}
+      {favSuggests.length > 0 && (
+        <>
+          <h2>Van jouw favorieten</h2>
+          <p className="muted" style={{ fontSize: 13, margin: '-4px 4px 12px' }}>
+            Series die je nog niet kent, met jouw favoriete acteurs of van jouw favoriete makers.
+          </p>
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
+            {favSuggests.map(({ title, actors, creators }) => (
+              <div key={title.tmdb_id} className="fav-sug">
+                {title.poster_path
+                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
+                  : <PosterFallback name={title.name} width={44} height={66} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{title.name}</div>
+                  <div className="metarow" style={{ marginTop: 4 }}>
+                    {creators.map((n) => <span className="mchip actor" key={`c-${n}`} title={`Gemaakt door jouw favoriet ${n}`}>🎬 {n}</span>)}
+                    {actors.map((n) => <span className="mchip actor" key={`a-${n}`} title={`Met jouw favoriet ${n}`}>🎭 {n}</span>)}
+                  </div>
+                </div>
+                <button
+                  className="btn ghost"
+                  style={{ padding: '4px 10px', flexShrink: 0, fontSize: 16 }}
+                  onClick={() => onAdd(title.tmdb_id)}
+                  title="Aan mijn lijst toevoegen"
+                >+</button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Berekende tips op basis van je smaak + groepscijfers (zonder cijfers per serie) */}

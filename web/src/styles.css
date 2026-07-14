@@ -1033,6 +1033,10 @@ input, textarea, select {
 .actor-stats { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; flex-shrink: 0; }
 .actor-stats b { font-size: 13px; }
 
+/* "Van jouw favorieten": compacte tip-rijen met reden-chips. */
+.fav-sug { display: flex; gap: 10px; align-items: center; }
+.fav-sug .metarow { flex-wrap: wrap; }
+
 /* Klikbare acteursnaam op de kaart + acteur-reden-chip. */
 .cast-link { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 45%, transparent); text-underline-offset: 2px; cursor: pointer; }
 .cast-link:active { color: var(--accent); }

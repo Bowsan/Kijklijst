@@ -5,7 +5,7 @@ import {
   suggestedProfiles, inactiveFollowableProfiles, hiddenProfiles,
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
-  favoriteActors, sharedFavoriteActor, favoriteCreators,
+  favoriteActors, sharedFavoriteActor, favoriteCreators, favoriteSuggestions,
   NEW_SEASON_WINDOW,
 } from './compute';
 
@@ -339,6 +339,31 @@ describe('favoriete acteurs', () => {
       { name: 'Vince Gilligan', photo: '/vince.jpg', count: 2, avg: 8.5 },
       { name: 'Peter Gould', photo: null, count: 2, avg: 7 },
     ]);
+  });
+
+  it('favoriteSuggestions: combi acteur+maker wint; series op je lijst doen niet mee', () => {
+    const fs = snap({
+      titles: [
+        title(1, { cast: ['Pedro Pascal'] }),
+        title(2, { cast: ['Pedro Pascal'] }),
+        title(3, { creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(4, { creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(5, { cast: ['Pedro Pascal'], creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(6, { cast: ['Pedro Pascal'] }),
+        title(7, { creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(8, { cast: ['Onbekend'] }),
+        title(9, { cast: ['Pedro Pascal'] }),
+      ],
+      ratings: [
+        rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 }),
+        rating(3, 'me', { score: 8 }), rating(4, 'me', { score: 7 }),
+        rating(9, 'me', { status: 'want' }), // al op je lijst → geen tip
+      ],
+    });
+    const got = favoriteSuggestions(fs, 'me');
+    expect(got.map((x) => x.title.tmdb_id)).toEqual([5, 7, 6]);
+    expect(got[0].actors).toEqual(['Pedro Pascal']);
+    expect(got[0].creators).toEqual(['Vince Gilligan']);
   });
 
   it('sharedFavoriteActor: favoriet (gem. 7+) die in de tip meespeelt', () => {

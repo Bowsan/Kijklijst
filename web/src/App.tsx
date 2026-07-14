@@ -110,6 +110,8 @@ export default function App() {
   const [nameFilter, setNameFilter] = useState<string>('');
   // Acteurfilter: gezet door op een acteursnaam te tikken (kaart of dashboard).
   const [actorFilter, setActorFilter] = useState<string>('');
+  // Makersfilter: gezet door op een seriemaker te tikken op het dashboard.
+  const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -150,6 +152,7 @@ export default function App() {
     genre?: string;
     service?: string;
     actor?: string;
+    creator?: string;
     titleId?: number;
   }) => {
     const s = opts.status;
@@ -159,6 +162,7 @@ export default function App() {
     setGenres(opts.genre ? [opts.genre] : []);
     setServices(opts.service ? [opts.service] : []);
     setActorFilter(opts.actor ?? '');
+    setCreatorFilter(opts.creator ?? '');
     setNameFilter('');
     setSearchOpen(false);
     setSortKey('date');
@@ -170,7 +174,7 @@ export default function App() {
   // "Jij" heeft een eigen knop en een vriend-scope toont z'n eigen banner,
   // dus die tellen hier niet mee als paneelfilter.
   const activeFilterCount =
-    services.length + genres.length + (actorFilter ? 1 : 0) +
+    services.length + genres.length + (actorFilter ? 1 : 0) + (creatorFilter ? 1 : 0) +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
@@ -185,7 +189,7 @@ export default function App() {
   };
 
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter]);
+  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter, creatorFilter]);
   // (geen koppeling meer tussen status en vriend — die assen staan los van elkaar)
 
   const addTitle = async (tmdbId: number) => {
@@ -297,7 +301,7 @@ export default function App() {
 
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
-    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter, actor: actorFilter || undefined });
+    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter, actor: actorFilter || undefined, creator: creatorFilter || undefined });
 
     list.sort((a, b) => {
       let cmp: number;
@@ -312,7 +316,7 @@ export default function App() {
     });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap, status, friend, services, genres, nameFilter, actorFilter, sortKey, sortDir, userId]);
+  }, [snap, status, friend, services, genres, nameFilter, actorFilter, creatorFilter, sortKey, sortDir, userId]);
 
   // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
   // focusTitleId bewust NIET in de deps: anders springt het na het wissen van de
@@ -557,6 +561,9 @@ export default function App() {
             <div className="active-chips">
               {actorFilter && (
                 <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
+              )}
+              {creatorFilter && (
+                <button className="active-chip" onClick={() => setCreatorFilter('')}>🎬 {creatorFilter} ✕</button>
               )}
               {services.map((s) => (
                 <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
