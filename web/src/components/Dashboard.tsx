@@ -261,7 +261,9 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     return m;
   }, [snap]);
   // Beste seriemakers (bedenkers met meerdere beoordeelde series).
-  const myCreators = useMemo(() => favoriteCreators(snap, userId, 5), [snap, userId]);
+  const myCreatorsAll = useMemo(() => favoriteCreators(snap, userId, 15), [snap, userId]);
+  const [makersExpanded, setMakersExpanded] = useState(false);
+  const myCreators = makersExpanded ? myCreatorsAll : myCreatorsAll.slice(0, 5);
   // Dienstlogo's (TMDb-paden), verzameld door de server bij het verversen.
   const svcLogos = useMemo(
     () => new Map((snap.service_logos ?? []).map((l) => [l.name, l.logo_path])),
@@ -506,11 +508,10 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               ))}
               {myActorsAll.length > 5 && (
                 <button
-                  className="btn ghost"
-                  style={{ fontSize: 13, color: 'var(--muted)', padding: '6px 4px', marginTop: 2 }}
+                  className="btn ghost more-btn"
                   onClick={() => setCastExpanded((v) => !v)}
                 >
-                  {castExpanded ? '▴ Minder' : `▾ Meer (top ${myActorsAll.length})`}
+                  {castExpanded ? '▴ Minder' : 'Top-15 bekijken'}
                 </button>
               )}
             </div>
@@ -534,6 +535,14 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </span>
                 </button>
               ))}
+              {myCreatorsAll.length > 5 && (
+                <button
+                  className="btn ghost more-btn"
+                  onClick={() => setMakersExpanded((v) => !v)}
+                >
+                  {makersExpanded ? '▴ Minder' : 'Top-15 bekijken'}
+                </button>
+              )}
             </div>
           )}
 
@@ -575,9 +584,18 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </div>
                 </div>
               )}
-              {year.topGenre && (
+              {(year.topGenre || year.bestService) && (
                 <div className="year-chips">
-                  <span className="chip">🏷️ Meest gekeken genre: <b>{year.topGenre}</b></span>
+                  {year.bestService && (
+                    <span className="chip">
+                      🥇 Beste dienst:{' '}
+                      {svcLogos.has(year.bestService.service) && (
+                        <img className="svc-inline" src={serviceLogoUrl(svcLogos.get(year.bestService.service)!)} alt="" style={{ width: 15, height: 15 }} loading="lazy" />
+                      )}
+                      <b>{year.bestService.service}</b> · gem. {year.bestService.avg.toFixed(1).replace('.', ',')}
+                    </span>
+                  )}
+                  {year.topGenre && <span className="chip">🏷️ Meest gekeken genre: <b>{year.topGenre}</b></span>}
                 </div>
               )}
               {year.clash && (
@@ -744,7 +762,19 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div className="card-title">Populaire diensten</div>
               {groupServiceCounts.map((s) => (
-                <BarRow key={s.service} label={s.service} value={s.count} max={maxGroupService} val={<b>{s.count}×</b>} color="var(--accent-2)" onClick={() => onNavigate({ status: 'all', service: s.service })} />
+                <BarRow
+                  key={s.service}
+                  label={
+                    <span className="svc-cell">
+                      {svcLogos.has(s.service)
+                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" loading="lazy" />
+                        : <span className="svc-logo svc-fallback">{s.service.trim().charAt(0)}</span>}
+                      <span className="svc-name">{s.service}</span>
+                    </span>
+                  }
+                  value={s.count} max={maxGroupService} val={<b>{s.count}×</b>} color="var(--accent-2)"
+                  onClick={() => onNavigate({ status: 'all', service: s.service })}
+                />
               ))}
             </div>
           )}
