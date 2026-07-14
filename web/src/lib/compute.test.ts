@@ -5,7 +5,7 @@ import {
   suggestedProfiles, inactiveFollowableProfiles, hiddenProfiles,
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
-  favoriteActors, sharedFavoriteActor,
+  favoriteActors, sharedFavoriteActor, favoriteCreators,
   NEW_SEASON_WINDOW,
 } from './compute';
 
@@ -319,6 +319,26 @@ describe('favoriete acteurs', () => {
       { name: 'Bella Ramsey', count: 2, avg: 7.5 },
     ]);
     // Oscar Isaac (1 serie) en de cast van andermans series tellen niet mee.
+  });
+
+  it('favoriteCreators: makers met 2+ beoordeelde series, met foto uit welke serie dan ook', () => {
+    const cs = snap({
+      titles: [
+        title(1, { creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(2, { creators: [{ name: 'Vince Gilligan', photo: '/vince.jpg' }, { name: 'Peter Gould', photo: null }] }),
+        title(3, { creators: [{ name: 'Peter Gould', photo: null }] }),
+        title(4, { creators: [{ name: 'Eenmalig', photo: null }] }),
+      ],
+      ratings: [
+        rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 }),
+        rating(3, 'me', { score: 6 }), rating(4, 'me', { score: 10 }),
+        rating(4, 'sam', { score: 10 }),
+      ],
+    });
+    expect(favoriteCreators(cs, 'me')).toEqual([
+      { name: 'Vince Gilligan', photo: '/vince.jpg', count: 2, avg: 8.5 },
+      { name: 'Peter Gould', photo: null, count: 2, avg: 7 },
+    ]);
   });
 
   it('sharedFavoriteActor: favoriet (gem. 7+) die in de tip meespeelt', () => {

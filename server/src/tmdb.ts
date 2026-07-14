@@ -1,4 +1,4 @@
-import { canonicalProviders } from './providers.js';
+import { canonicalProvider, canonicalProviders } from './providers.js';
 
 const API = 'https://api.themoviedb.org/3';
 const LANGUAGE = process.env.TMDB_LANGUAGE || 'nl-NL';
@@ -107,6 +107,10 @@ export interface TitleDetails {
   cast: string[];
   /** Cast met portretfoto (TMDb-pad), voor visuele acteurslijsten. */
   cast_meta: { name: string; photo: string | null }[];
+  /** Bedenkers/makers van de serie (TMDb created_by), met portretfoto. */
+  creators: { name: string; photo: string | null }[];
+  /** Logo's (TMDb-pad) van de gevonden streamingdiensten, op canonieke naam. */
+  provider_logos: { name: string; logo: string }[];
   imdb_id: string | null;
   status: string | null;
 }
@@ -147,14 +151,23 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
 
   const nlProviders = data['watch/providers']?.results?.[REGION];
   const providerSet = new Map<number, string>();
+  const logoByName = new Map<string, string>();
   for (const kind of ['flatrate', 'free', 'ads'] as const) {
-    for (const p of nlProviders?.[kind] || []) providerSet.set(p.provider_id, p.provider_name);
+    for (const p of nlProviders?.[kind] || []) {
+      providerSet.set(p.provider_id, p.provider_name);
+      const canon = canonicalProvider(p.provider_name);
+      if (canon && p.logo_path && !logoByName.has(canon)) logoByName.set(canon, p.logo_path);
+    }
   }
   const providers = canonicalProviders([...providerSet.values()]);
+  const provider_logos = [...logoByName.entries()].map(([name, logo]) => ({ name, logo }));
 
   const castRaw = (data.aggregate_credits?.cast || []).slice(0, 8);
   const cast = castRaw.map((c: any) => c.name);
   const cast_meta = castRaw.map((c: any) => ({ name: c.name, photo: c.profile_path || null }));
+  const creators = (data.created_by || [])
+    .slice(0, 6)
+    .map((c: any) => ({ name: c.name, photo: c.profile_path || null }));
 
   return {
     tmdb_id: data.id,
@@ -169,6 +182,8 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
     overview: data.overview || '',
     cast,
     cast_meta,
+    creators,
+    provider_logos,
     imdb_id: data.external_ids?.imdb_id || null,
     status: data.status || null,
   };

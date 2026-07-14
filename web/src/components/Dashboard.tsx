@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status, Profile } from '../lib/types';
-import { posterUrl, PERSON_IMG } from '../lib/types';
+import { posterUrl, PERSON_IMG, serviceLogoUrl } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
   visibleUserIds, titleById, profileById, yearStats,
-  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors,
+  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors, favoriteCreators,
 } from '../lib/compute';
 import Avatar from './Avatar';
+import StatusBadge from './StatusBadge';
 import PosterFallback from './PosterFallback';
 
 interface NavOpts {
@@ -106,7 +107,7 @@ function TitleRow({ title, right, onClick }: { title: Title; right?: ReactNode; 
   );
 }
 
-function BarRow({ label, value, max, val, color, onClick }: { label: string; value: number; max: number; val: ReactNode; color?: string; onClick?: () => void }) {
+function BarRow({ label, value, max, val, color, onClick }: { label: ReactNode; value: number; max: number; val: ReactNode; color?: string; onClick?: () => void }) {
   return (
     <div className="bar-row" onClick={onClick} style={onClick ? { cursor: 'pointer' } : undefined}>
       <div className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
@@ -258,6 +259,13 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     }
     return m;
   }, [snap]);
+  // Beste seriemakers (bedenkers met meerdere beoordeelde series).
+  const myCreators = useMemo(() => favoriteCreators(snap, userId, 5), [snap, userId]);
+  // Dienstlogo's (TMDb-paden), verzameld door de server bij het verversen.
+  const svcLogos = useMemo(
+    () => new Map((snap.service_logos ?? []).map((l) => [l.name, l.logo_path])),
+    [snap],
+  );
   const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
   const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
 
@@ -507,13 +515,41 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             </div>
           )}
 
+          {myCreators.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div className="card-title">🎬 Beste seriemakers</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Bedenkers van meerdere series die jij een cijfer gaf.
+              </div>
+              {myCreators.map((c) => (
+                <div key={c.name} className="actor-row">
+                  {c.photo
+                    ? <img className="actor-photo" src={PERSON_IMG + c.photo} alt="" loading="lazy" />
+                    : <span className="actor-badge">{c.name.trim().charAt(0)}</span>}
+                  <span className="actor-name">{c.name}</span>
+                  <span className="actor-stats">
+                    <b>{c.count} series</b>
+                    <span className="val-sub">gem. {c.avg.toFixed(1).replace('.', ',')}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {myServices.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
               <div className="card-title">Streamingdiensten</div>
               {myServices.map((s) => (
                 <BarRow
                   key={s.service}
-                  label={s.service}
+                  label={
+                    <span className="svc-cell">
+                      {svcLogos.has(s.service)
+                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" loading="lazy" />
+                        : <span className="svc-logo svc-fallback">{s.service.trim().charAt(0)}</span>}
+                      <span className="svc-name">{s.service}</span>
+                    </span>
+                  }
                   value={s.count}
                   max={maxServiceCount}
                   val={<b>{s.count}×</b>}
@@ -527,23 +563,29 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           {year && (
             <div className="card year-card" style={{ marginBottom: 12 }}>
               <div className="card-title">✨ Jouw {currentYear} in series</div>
-              <div className="year-rows">
-                <div>📺 <b>{year.count}</b> serie{year.count !== 1 ? 's' : ''} beoordeeld{year.hours > 0 && <> · zo'n <b>{year.hours} uur</b> gekeken</>}</div>
-                {year.topGenre && <div>🏷️ Meest gekeken genre: <b>{year.topGenre}</b></div>}
-                {year.best && (
-                  <div className="year-best" onClick={() => onNavigate({ status: 'all', titleId: year.best!.title.tmdb_id })}>
-                    <Thumb title={year.best.title} w={48} h={72} />
-                    <div>🏆 Hoogste cijfer:<br /><span className="tlink">{year.best.title.name}</span> <b>({year.best.score})</b></div>
+              {/* Hoogste cijfer als visuele held; aantallen/uren staan al bij de statistieken. */}
+              {year.best && (
+                <div className="year-hero" onClick={() => onNavigate({ status: 'all', titleId: year.best!.title.tmdb_id })}>
+                  <Thumb title={year.best.title} w={64} h={96} />
+                  <div className="yh-body">
+                    <div className="yh-label">🏆 Jouw hoogste cijfer</div>
+                    <div className="yh-name">{year.best.title.name}</div>
+                    <StatusBadge status={null} score={year.best.score} />
                   </div>
-                )}
-                {year.clash && (
-                  <IconRow
-                    ico="⚔️"
-                    line={<>Grootste meningsverschil: <TLink title={year.clash.title} onNavigate={onNavigate} /></>}
-                    sub={<>Jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}</>}
-                  />
-                )}
-              </div>
+                </div>
+              )}
+              {year.topGenre && (
+                <div className="year-chips">
+                  <span className="chip">🏷️ Meest gekeken genre: <b>{year.topGenre}</b></span>
+                </div>
+              )}
+              {year.clash && (
+                <IconRow
+                  ico="⚔️"
+                  line={<>Grootste meningsverschil: <TLink title={year.clash.title} onNavigate={onNavigate} /></>}
+                  sub={<>Jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}</>}
+                />
+              )}
             </div>
           )}
         </>

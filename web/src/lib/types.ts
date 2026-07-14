@@ -30,6 +30,8 @@ export interface Title {
   overview: string | null;
   cast: string[];
   cast_meta?: { name: string; photo: string | null }[];
+  /** Bedenkers/makers van de serie (TMDb created_by). */
+  creators?: { name: string; photo: string | null }[];
   imdb_id?: string | null;
   tmdb_status?: string | null;
   refreshed_at?: number | null;
@@ -96,6 +98,11 @@ export interface CommentReaction {
   created_at: number;
 }
 
+export interface ServiceLogo {
+  name: string;
+  logo_path: string;
+}
+
 export interface Snapshot {
   profiles: Profile[];
   titles: Title[];
@@ -106,6 +113,7 @@ export interface Snapshot {
   follows: Follow[];
   comments: Comment[];
   comment_reactions: CommentReaction[];
+  service_logos?: ServiceLogo[];
 }
 
 export interface SearchResult {
@@ -129,6 +137,13 @@ export const STATUS_ORDER: Status[] = ['finished', 'watching', 'want', 'dropped'
 export const POSTER_BASE = 'https://image.tmdb.org/t/p/w342';
 export const POSTER_SMALL = 'https://image.tmdb.org/t/p/w185';
 export const PERSON_IMG = 'https://image.tmdb.org/t/p/w185';
+export const SERVICE_LOGO_IMG = 'https://image.tmdb.org/t/p/w92';
+
+/** Logo-URL van een streamingdienst: TMDb-pad, of een volledige/eigen URL. */
+export function serviceLogoUrl(path: string): string {
+  if (path.startsWith('http') || path.startsWith('/uploads/')) return path;
+  return SERVICE_LOGO_IMG + path;
+}
 
 // Bouw de juiste poster-URL. TMDb levert een pad (bijv. "/abc.jpg"); andere
 // bronnen (TVmaze) of een geüploade cover leveren een volledige URL of data-URI.

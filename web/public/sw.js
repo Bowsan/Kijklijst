@@ -1,6 +1,9 @@
 // Service worker: navigaties gaan network-first (nieuwe versies komen direct
-// door na een deploy), assets cache-first (die hebben een hash in de naam).
-const CACHE = 'opdebank-v2';
+// door na een deploy), assets cache-first (die hebben een hash in de naam) en
+// afbeeldingen (posters, portretten, uploads) in een eigen langlevende cache.
+const CACHE = 'opdebank-v3';
+const IMG_CACHE = 'opdebank-img-v1';
+const IMG_MAX = 400; // hard plafond zodat de cache niet eindeloos groeit
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -9,15 +12,47 @@ self.addEventListener('install', (e) => {
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== IMG_CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
+
+// Covers en portretten veranderen vrijwel nooit: cache-first, dus na één keer
+// laden komen ze direct uit de cache in plaats van steeds opnieuw van TMDb.
+async function imageFirst(req) {
+  const cache = await caches.open(IMG_CACHE);
+  const hit = await cache.match(req.url, { ignoreVary: true });
+  if (hit) return hit;
+  // Probeer met CORS (TMDb staat dat toe): niet-opake responses tellen veel
+  // lichter mee voor de opslagquota dan opake.
+  let res = null;
+  try { res = await fetch(new Request(req.url, { mode: 'cors' })); } catch { /* val terug */ }
+  if (!res || !(res.ok || res.type === 'opaque')) {
+    try { res = await fetch(req); } catch { return hit || Response.error(); }
+  }
+  if (res && (res.ok || res.type === 'opaque')) {
+    cache.put(req.url, res.clone()).then(async () => {
+      const keys = await cache.keys();
+      if (keys.length > IMG_MAX) {
+        for (const k of keys.slice(0, keys.length - IMG_MAX)) await cache.delete(k);
+      }
+    }).catch(() => {});
+  }
+  return res;
+}
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   // API en realtime nooit cachen.
   if (url.pathname.startsWith('/api/')) return;
   if (e.request.method !== 'GET') return;
+
+  // Afbeeldingen: TMDb (posters, portretten, dienstlogo's) en eigen uploads.
+  if (url.hostname === 'image.tmdb.org' || (url.origin === self.location.origin && url.pathname.startsWith('/uploads/'))) {
+    e.respondWith(imageFirst(e.request));
+    return;
+  }
 
   // Navigaties (index.html): eerst het netwerk, cache alleen als offline-terugval.
   if (e.request.mode === 'navigate') {
