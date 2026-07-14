@@ -920,6 +920,11 @@ input, textarea, select {
   font-weight: 700; font-size: 11px;
 }
 .svc-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Inline-variant: klein logo dat in lopende tekst/chips vóór de naam staat. */
+.svc-inline {
+  border-radius: 4px; object-fit: cover; flex-shrink: 0;
+  display: inline-block; vertical-align: -2.5px; margin-right: 4px;
+}
 .bar-track { flex: 1; height: 10px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
 .bar-fill { height: 100%; background: var(--accent); border-radius: 5px; position: relative; overflow: hidden; }
 .bar-row .val { font-size: 12px; color: var(--text); min-width: 58px; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }

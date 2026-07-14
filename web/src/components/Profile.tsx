@@ -4,6 +4,7 @@ import { saveProfile, saveRating, refreshTitles, enablePush, disablePush, isPush
 import { setBlind, logout, type Theme } from '../lib/identity';
 import { profileById, serviceOptions } from '../lib/compute';
 import Avatar from './Avatar';
+import ServiceLogo from './ServiceLogo';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -232,7 +233,9 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
       <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>Optioneel — helpt de app raden waar je een serie keek.</p>
       <div className="service-grid">
         {serviceOptions(snap).map((s) => (
-          <button key={s} className={services.includes(s) ? 'sel' : ''} onClick={() => toggleService(s)}>{s}</button>
+          <button key={s} className={services.includes(s) ? 'sel' : ''} onClick={() => toggleService(s)}>
+            <ServiceLogo snap={snap} name={s} />{s}
+          </button>
         ))}
       </div>
 

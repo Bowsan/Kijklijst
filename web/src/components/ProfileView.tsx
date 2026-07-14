@@ -7,6 +7,7 @@ import {
 import { followUser, unfollowUser } from '../lib/api';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
+import ServiceLogo from './ServiceLogo';
 
 interface Props {
   snap: Snapshot;
@@ -74,7 +75,11 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
 
       {services.length > 0 && (
         <div className="genres" style={{ marginTop: 12 }}>
-          {services.map((s) => <span className="chip" key={s.service}>{s.service} · {s.count}×</span>)}
+          {services.map((s) => (
+            <span className="chip" key={s.service}>
+              <ServiceLogo snap={snap} name={s.service} size={13} />{s.service} · {s.count}×
+            </span>
+          ))}
         </div>
       )}
 
@@ -145,7 +150,10 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
                     : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
-                    <div className="title-sub">{title.year || '—'}{title.providers[0] ? ` · ${title.providers[0]}` : ''}</div>
+                    <div className="title-sub">
+                      {title.year || '—'}
+                      {title.providers[0] && <> · <ServiceLogo snap={snap} name={title.providers[0]} size={13} />{title.providers[0]}</>}
+                    </div>
                   </div>
                   {rating.score != null
                     ? <span className="badge-score sel" style={{ flexShrink: 0 }}>{rating.score}</span>
