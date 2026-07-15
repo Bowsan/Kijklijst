@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
 import { posterUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
@@ -318,6 +318,32 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snap, status, friend, services, genres, nameFilter, actorFilter, creatorFilter, sortKey, sortDir, userId]);
 
+  // Kaarten die open staan om te bewerken. Zolang er één open is, bevriezen we
+  // de lijstvolgorde en -selectie: een statuswijziging laat de kaart dan niet
+  // direct verspringen of verdwijnen. Pas bij het sluiten (of een filter-/
+  // sorteerwijziging) schikt de lijst zich opnieuw.
+  const [editingIds, setEditingIds] = useState<Set<number>>(new Set());
+  const onEditToggle = useCallback((id: number, open: boolean) => {
+    setEditingIds((prev) => {
+      if (prev.has(id) === open) return prev;
+      const next = new Set(prev);
+      if (open) next.add(id); else next.delete(id);
+      return next;
+    });
+  }, []);
+  const editing = editingIds.size > 0;
+  const frozenListRef = useRef<Title[] | null>(null);
+  useEffect(() => { frozenListRef.current = null; }, [status, friend, services, genres, nameFilter, actorFilter, creatorFilter, sortKey, sortDir, tab]);
+  useEffect(() => { if (!editing) frozenListRef.current = null; }, [editing]);
+
+  let listTitles = visibleTitles;
+  if (editing && snap) {
+    if (!frozenListRef.current) frozenListRef.current = visibleTitles;
+    // Bevroren volgorde, maar wél met de verste titeldata uit de snapshot.
+    const byId = new Map(snap.titles.map((t) => [t.tmdb_id, t]));
+    listTitles = frozenListRef.current.map((t) => byId.get(t.tmdb_id) ?? t);
+  }
+
   // Bij navigeren naar de lijst zonder specifieke serie: naar de bovenkant springen.
   // focusTitleId bewust NIET in de deps: anders springt het na het wissen van de
   // focus alsnog naar boven, terwijl we juist bij de gekozen serie willen blijven.
@@ -602,7 +628,7 @@ export default function App() {
             )
           ) : (
             <>
-              {visibleTitles.slice(0, listPage * PAGE_SIZE).map((t) => (
+              {listTitles.slice(0, listPage * PAGE_SIZE).map((t) => (
                 <div key={t.tmdb_id} id={`title-${t.tmdb_id}`}>
                   <TitleCard
                     snap={snap}
@@ -616,12 +642,13 @@ export default function App() {
                     onChange={reload}
                     toast={toast}
                     initialExpanded={t.tmdb_id === justAddedId || t.tmdb_id === focusTitleId}
+                    onEditToggle={onEditToggle}
                   />
                 </div>
               ))}
-              {visibleTitles.length > listPage * PAGE_SIZE && (
+              {listTitles.length > listPage * PAGE_SIZE && (
                 <div ref={loadMoreRef} className="load-more">
-                  Nog {visibleTitles.length - listPage * PAGE_SIZE} series — scroll om te laden…
+                  Nog {listTitles.length - listPage * PAGE_SIZE} series — scroll om te laden…
                 </div>
               )}
             </>
