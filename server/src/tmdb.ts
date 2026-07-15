@@ -47,8 +47,7 @@ export async function searchTv(query: string): Promise<SearchResult[]> {
   if (!query.trim()) return [];
   const data = await tmdb('/search/tv', { query, include_adult: 'false' });
   return (data.results || [])
-    // Series met poster bovenaan, maar series zónder poster niet meer weggooien —
-    // anders missen minder bekende titels volledig uit de suggesties.
+    // Poster eerst, maar posterloze titels wél tonen (anders missen kleine series).
     .sort((a: any, b: any) => (b.poster_path ? 1 : 0) - (a.poster_path ? 1 : 0))
     .slice(0, 15)
     .map((r: any) => ({
