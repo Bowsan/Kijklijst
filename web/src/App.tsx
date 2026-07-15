@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult } from './lib/types';
-import { posterUrl } from './lib/types';
+import { posterUrl, serviceLogoUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
@@ -133,6 +133,19 @@ export default function App() {
     const unsub = subscribe(reload);
     return unsub;
   }, []);
+
+  // Dienstlogo's alvast voorladen: het zijn er maar een paar en piepklein.
+  // Ze belanden zo meteen in de afbeeldingencache van de service worker en
+  // verschijnen daarna overal direct, zonder zichtbaar na-laden.
+  const warmedLogos = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const l of snap?.service_logos ?? []) {
+      if (warmedLogos.current.has(l.logo_path)) continue;
+      warmedLogos.current.add(l.logo_path);
+      const img = new Image();
+      img.src = serviceLogoUrl(l.logo_path);
+    }
+  }, [snap]);
 
   // Filterkeuzes onthouden tussen bezoeken (status bewust niet).
   useEffect(() => {
