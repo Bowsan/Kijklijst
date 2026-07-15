@@ -23,8 +23,7 @@ export function CheckIcon({ color = '#fff' }: { color?: string }) {
 
 /** Gekleurd statuslabel zodat je in één oogopslag ziet hoe een serie op jouw lijst staat. */
 export default function StatusBadge({ status, score }: { status: Status | null; score?: number | null }) {
-  // Mét cijfer: gevulde pil met vinkje, in de kleur van het cijfer
-  // (los van de status — een cijfer zet een serie niet meer op "Gezien").
+  // Mét cijfer: gevulde pil in de cijferkleur (status staat hier los van).
   if (score != null) {
     return (
       <span

@@ -10,6 +10,7 @@ import {
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
+import { TopBar, NavBar, type Tab } from './components/Chrome';
 import ListSearchBar from './components/ListSearchBar';
 import StatusBadge from './components/StatusBadge';
 import Avatar from './components/Avatar';
@@ -27,7 +28,6 @@ import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
 import ManualAddSheet from './components/ManualAddSheet';
 
-type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 type StatusTab = 'all' | 'want' | 'watching' | 'finished';
 type StatusValue = StatusTab | 'dropped' | 'notdone';
 
@@ -119,7 +119,7 @@ export default function App() {
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
-  // Paginering: in stappen laden tijdens scrollen (geen harde limiet meer).
+  // Paginering: in stappen bijladen tijdens het scrollen.
   const PAGE_SIZE = 30;
   const [listPage, setListPage] = useState(1);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -203,7 +203,6 @@ export default function App() {
 
   // Pagina resetten bij filterwijziging
   useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter, creatorFilter]);
-  // (geen koppeling meer tussen status en vriend — die assen staan los van elkaar)
 
   const addTitle = async (tmdbId: number) => {
     if (snap && myRating(snap, tmdbId, userId)) {
@@ -437,21 +436,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <h1><img className="logo-img" src="/icons/logo-bank.png" alt="" /> Op de Bank</h1>
-        <div className="row" style={{ gap: 4 }}>
-          <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={() => setShowImport(true)} title="Hele lijst importeren" aria-label="Hele lijst importeren">
-            <img className="topbar-ico" src="/icons/top-import.png" alt="" />
-          </button>
-          <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={() => setTab('friends')} title="Vrienden" aria-label="Vrienden">
-            <img className="topbar-ico" src="/icons/top-friends.png" alt="" />
-          </button>
-          <button className="btn ghost" style={{ padding: '6px 10px', position: 'relative' }} onClick={openActivity} title="Meldingen" aria-label={unseenMessages > 0 ? `Meldingen, ${unseenMessages} nieuw` : 'Meldingen'}>
-            <img className="topbar-ico" src="/icons/top-bell.png" alt="" />
-            {unseenMessages > 0 && <span className="notif-dot" />}
-          </button>
-        </div>
-      </header>
+      <TopBar
+        tab={tab}
+        unseen={unseenMessages}
+        onImport={() => setShowImport(true)}
+        onFriends={() => setTab('friends')}
+        onActivity={openActivity}
+      />
 
       {!online && <div className="offline-banner" role="status">⚡ Geen verbinding — wijzigingen kunnen nu niet worden opgeslagen</div>}
 
@@ -710,22 +701,7 @@ export default function App() {
         <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} theme={theme} setTheme={changeTheme} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
-      {/* Onderste navigatie */}
-      <nav className="nav">
-        <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => setTab('dashboard')}>
-          <span className="ico"><img src="/icons/nav-home.png" alt="" /></span>Dashboard
-        </button>
-        <button className={tab === 'list' ? 'active' : ''} onClick={() => setTab('list')}>
-          <span className="ico"><img src="/icons/logo-bank.png" alt="" /></span>Lijst
-        </button>
-        <button className={tab === 'foryou' ? 'active' : ''} onClick={() => setTab('foryou')}>
-          <span className="ico"><img src="/icons/nav-foryou.png" alt="" /></span>Voor jou
-          {forYouCount > 0 && <span className="badge">{forYouCount}</span>}
-        </button>
-        <button className={tab === 'profile' ? 'active' : ''} onClick={() => setTab('profile')}>
-          <span className="ico"><img src="/icons/nav-profile.png" alt="" /></span>Profiel
-        </button>
-      </nav>
+      <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />
 
       {/* Sheets */}
       {showFilterSheet && (
