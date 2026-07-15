@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
@@ -55,9 +55,11 @@ interface Props {
   onChange: () => void;
   toast: (msg: string) => void;
   initialExpanded?: boolean;
+  /** Meldt open/dicht, zodat de lijst tijdens het bewerken kan bevriezen. */
+  onEditToggle?: (tmdbId: number, open: boolean) => void;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, onRecommend, onChange, toast, initialExpanded = false }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -114,6 +116,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const initIsCustom = !!initService && !title.providers.includes(initService) && !NL_SERVICES.includes(initService);
 
   const [expanded, setExpanded] = useState(initialExpanded);
+  // Open/dicht doorgeven (incl. opruimen bij unmount), voor de lijst-bevriezing.
+  useEffect(() => {
+    if (!onEditToggle) return;
+    onEditToggle(title.tmdb_id, expanded);
+    return () => onEditToggle(title.tmdb_id, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expanded]);
   const [serviceMode, setServiceMode] = useState<'select' | 'custom'>(initIsCustom ? 'custom' : 'select');
   const [serviceInput, setServiceInput] = useState(initService);
   const [confirmDelete, setConfirmDelete] = useState(false);
