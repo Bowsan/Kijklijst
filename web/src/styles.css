@@ -1042,6 +1042,19 @@ input, textarea, select {
 .fav-sug { display: flex; gap: 10px; align-items: center; }
 .fav-sug .metarow { flex-wrap: wrap; }
 
+/* Smaakmatch-ranglijst: medaille, avatar, naam + balk, percentage rechts. */
+.match-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; text-align: left;
+  padding: 7px 4px; border-radius: 10px;
+}
+.match-row:active { background: var(--surface-2); }
+.match-rank { width: 24px; text-align: center; font-size: 15px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.match-body { flex: 1; min-width: 0; }
+.match-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.match-pct { font-size: 15px; color: var(--accent); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
 /* "Top-15 bekijken"-knop onder cast/makers: rustig, met lucht eromheen. */
 .more-btn {
   color: var(--muted);
