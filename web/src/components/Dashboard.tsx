@@ -5,7 +5,7 @@ import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
   visibleUserIds, titleById, profileById, yearStats,
-  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors, favoriteCreators,
+  juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors, favoriteCreators, tasteMates,
 } from '../lib/compute';
 import Avatar from './Avatar';
 import StatusBadge from './StatusBadge';
@@ -207,10 +207,16 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   const outliers = useMemo(() => tasteOutliers(snap, userId), [snap, userId]);
   const blindSpot = useMemo(() => blindSpotGenre(snap, userId), [snap, userId]);
   const finishers = useMemo(() => finisherStats(snap, userId), [snap, userId]);
+  // Smaakmatch-ranglijst: gevolgde vrienden, minimaal 3 gedeelde beoordeelde series.
+  const tasteRank = useMemo(() => {
+    const followed = new Set(followingProfiles(snap, userId).map((p) => p.id));
+    return tasteMates(snap, userId).filter((m) => followed.has(m.profile.id) && m.shared >= 3).slice(0, 5);
+  }, [snap, userId]);
   const nick = (p: Profile) => (p.id === userId ? 'Jij' : p.name);
   const hasCompare =
     jury.length >= 2 || division.divided != null || division.agreed != null ||
-    outliers.guilty != null || outliers.panned != null || blindSpot != null || finishers.length >= 2;
+    outliers.guilty != null || outliers.panned != null || blindSpot != null || finishers.length >= 2 ||
+    tasteRank.length > 0;
 
   const myRatings = snap.ratings.filter((r) => r.user_id === userId);
   const totalCount = myRatings.length;
@@ -614,6 +620,27 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
       {hasCompare && (
         <>
           <h2 className="dash-h2"><span className="h2-ico">🛋️</span>De Bank vergelijkt</h2>
+
+          {tasteRank.length > 0 && (
+            <div className="card" style={{ marginBottom: 12 }}>
+              <div className="card-title">💘 Beste smaakmatch</div>
+              <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+                Hoe dichter jullie cijfers bij elkaar liggen op dezelfde series, hoe hoger de match.
+              </div>
+              {tasteRank.map((m, i) => (
+                <button key={m.profile.id} className="match-row" onClick={() => onOpenProfile(m.profile.id)}>
+                  <span className="match-rank">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}</span>
+                  <Avatar profile={m.profile} id={m.profile.id} size="sm" />
+                  <div className="match-body">
+                    <div className="match-name">{m.profile.name}</div>
+                    <div className="bar-track"><div className="bar-fill" style={{ width: `${m.match}%`, background: 'var(--accent)' }} /></div>
+                    <div className="match-sub">{m.shared} gedeelde series</div>
+                  </div>
+                  <b className="match-pct">{m.match}%</b>
+                </button>
+              ))}
+            </div>
+          )}
 
           {jury.length >= 2 && (
             <div className="card" style={{ marginBottom: 12 }}>
