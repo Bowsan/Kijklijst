@@ -371,6 +371,19 @@ describe('favoriete acteurs', () => {
     expect(sharedFavoriteActor(s, 'me', title(99, { cast: ['Onbekend'] }))).toBeNull();
   });
 
+  it('selectTitles: filtert op maker (exacte naam uit creators)', () => {
+    const cs = snap({
+      titles: [
+        title(1, { creators: [{ name: 'Vince Gilligan', photo: null }] }),
+        title(2, { creators: [{ name: 'Iemand Anders', photo: null }] }),
+        title(3), // geen makers-info
+      ],
+      ratings: [rating(1, 'me', { score: 8 }), rating(2, 'me', { score: 7 }), rating(3, 'me', { score: 6 })],
+    });
+    const got = selectTitles(cs, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '', creator: 'Vince Gilligan' });
+    expect(got.map((t) => t.tmdb_id)).toEqual([1]);
+  });
+
   it('selectTitles: filtert op acteur (incl. reality-optredens) en zoekt in castnamen', () => {
     const byActor = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '', actor: 'Pedro Pascal' });
     expect(byActor.map((t) => t.tmdb_id).sort((a, b) => a - b)).toEqual([1, 2, 20]);
