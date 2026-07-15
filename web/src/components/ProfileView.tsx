@@ -1,10 +1,11 @@
+import { useMemo, useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { posterUrl, STATUS_LABELS } from '../lib/types';
 import {
   profileById, favoriteTitles, listedTitles, totalWatchHours, ratedCount, serviceStats,
-  isFollowing, myRating,
+  isFollowing, myRating, titleById,
 } from '../lib/compute';
-import { followUser, unfollowUser } from '../lib/api';
+import { followUser, unfollowUser, sendRecommendation } from '../lib/api';
 import Sheet from './Sheet';
 import Avatar from './Avatar';
 import ServiceLogo from './ServiceLogo';
@@ -47,6 +48,35 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
   const hours = Math.round(totalWatchHours(snap, profileId));
   const rated = ratedCount(snap, profileId);
   const services = serviceStats(snap, profileId).slice(0, 3);
+  const firstName = profile?.name?.split(' ')[0] || 'deze vriend';
+
+  // "Raad [naam] iets aan": jouw beoordeelde series die deze vriend nog niet
+  // op de lijst heeft (en die je hem/haar nog niet tipte), hoogste cijfer eerst.
+  const [recMode, setRecMode] = useState(false);
+  const [sentIds, setSentIds] = useState<Set<number>>(new Set());
+  const recCandidates = useMemo(() => {
+    if (isMe) return [];
+    return snap.ratings
+      .filter((r) => r.user_id === userId && r.score != null)
+      .map((r) => ({ title: titleById(snap, r.title_id), score: r.score as number }))
+      .filter((x): x is { title: NonNullable<typeof x.title>; score: number } =>
+        x.title != null
+        && !snap.ratings.some((r2) => r2.title_id === x.title!.tmdb_id && r2.user_id === profileId)
+        && (sentIds.has(x.title!.tmdb_id)
+          || !snap.recommendations.some((rec) => rec.title_id === x.title!.tmdb_id && rec.from_user === userId && rec.to_user === profileId)))
+      .sort((a, b) => b.score - a.score);
+  }, [snap, userId, profileId, isMe, sentIds]);
+
+  const sendTip = async (tmdbId: number) => {
+    try {
+      await sendRecommendation({ to_user: profileId, tmdb_id: tmdbId });
+      setSentIds((prev) => new Set(prev).add(tmdbId));
+      onChange();
+      toast(`Aangeraden aan ${firstName} 💌`);
+    } catch (e: any) {
+      toast(e.message || 'Aanraden mislukt');
+    }
+  };
 
   const toggleFollow = async () => {
     try {
@@ -85,8 +115,52 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
 
       {!isMe && fullList.length > 0 && (
         <button className="btn full" style={{ marginTop: 14 }} onClick={() => onViewList(profileId)}>
-          📋 Bekijk lijst als {profile?.name?.split(' ')[0] || 'deze vriend'}
+          📋 Bekijk lijst als {firstName}
         </button>
+      )}
+
+      {!isMe && (
+        <button className="btn full" style={{ marginTop: 8 }} onClick={() => setRecMode((v) => !v)}>
+          💌 Raad {firstName} iets aan
+        </button>
+      )}
+
+      {recMode && !isMe && (
+        <>
+          <h3 style={{ marginTop: 18 }}>Series om aan te raden</h3>
+          <p className="muted" style={{ fontSize: 13, margin: '0 0 8px' }}>
+            Jouw beoordeelde series die nog niet op de lijst van {firstName} staan — hoogste cijfer eerst.
+          </p>
+          {recCandidates.length === 0 ? (
+            <p className="muted" style={{ fontSize: 13 }}>
+              Niets te tippen: {firstName} heeft al je beoordeelde series al op de lijst.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recCandidates.map(({ title, score }) => (
+                <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
+                  {title.poster_path
+                    ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
+                    <div className="title-sub">{title.year || '—'}</div>
+                  </div>
+                  <span className="badge-score sel" style={{ flexShrink: 0 }}>{score}</span>
+                  {sentIds.has(title.tmdb_id)
+                    ? <span className="muted" style={{ fontSize: 12, flexShrink: 0 }}>✓ Verstuurd</span>
+                    : (
+                      <button
+                        className="btn primary"
+                        style={{ padding: '5px 10px', fontSize: 12, flexShrink: 0 }}
+                        onClick={(e) => { e.stopPropagation(); sendTip(title.tmdb_id); }}
+                      >💌 Stuur</button>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <h3 style={{ marginTop: 18 }}>Favoriete series</h3>
