@@ -12,7 +12,7 @@ export default function ServiceLogo({ snap, name, size = 15 }: { snap: Snapshot;
       src={serviceLogoUrl(path)}
       alt=""
       style={{ width: size, height: size }}
-      loading="lazy"
+      decoding="async"
     />
   );
 }

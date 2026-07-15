@@ -916,7 +916,7 @@ input, textarea, select {
 .bar-row .label { width: 100px; font-size: 12px; flex-shrink: 0; }
 /* Dienstlogo (TMDb) vóór de naam in de streamingdiensten-balkjes. */
 .svc-cell { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.svc-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+.svc-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: var(--surface-2); }
 .svc-fallback {
   display: flex; align-items: center; justify-content: center;
   background: var(--surface-2); color: var(--muted);

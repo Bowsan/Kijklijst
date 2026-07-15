@@ -561,7 +561,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   label={
                     <span className="svc-cell">
                       {svcLogos.has(s.service)
-                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" loading="lazy" />
+                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" decoding="async" />
                         : <span className="svc-logo svc-fallback">{s.service.trim().charAt(0)}</span>}
                       <span className="svc-name">{s.service}</span>
                     </span>
@@ -596,7 +596,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                     <span className="chip">
                       🥇 Beste dienst:{' '}
                       {svcLogos.has(year.bestService.service) && (
-                        <img className="svc-inline" src={serviceLogoUrl(svcLogos.get(year.bestService.service)!)} alt="" style={{ width: 15, height: 15 }} loading="lazy" />
+                        <img className="svc-inline" src={serviceLogoUrl(svcLogos.get(year.bestService.service)!)} alt="" style={{ width: 15, height: 15 }} decoding="async" />
                       )}
                       <b>{year.bestService.service}</b> · gem. {year.bestService.avg.toFixed(1).replace('.', ',')}
                     </span>
@@ -794,7 +794,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   label={
                     <span className="svc-cell">
                       {svcLogos.has(s.service)
-                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" loading="lazy" />
+                        ? <img className="svc-logo" src={serviceLogoUrl(svcLogos.get(s.service)!)} alt="" decoding="async" />
                         : <span className="svc-logo svc-fallback">{s.service.trim().charAt(0)}</span>}
                       <span className="svc-name">{s.service}</span>
                     </span>
