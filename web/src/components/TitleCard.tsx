@@ -5,6 +5,7 @@ import { saveRating, removeRating, addComment, removeComment, clearRatingScore, 
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import { scoreColor, isGoldScore } from '../lib/score';
+import { fmt1, fmtDate, fmtDateTime } from '../lib/format';
 import ServiceLogo from './ServiceLogo';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
@@ -22,20 +23,6 @@ const FRIEND_STATUS_TEXT: Record<Status, string> = {
   want: 'Wishlist',
   dropped: 'Afgehaakt',
 };
-
-function fmtDateTime(ts: number): string {
-  const d = new Date(ts);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const time = d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-  if (sameDay) return time;
-  const date = d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' });
-  return `${date} ${time}`;
-}
-
-function fmtDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 interface Props {
   snap: Snapshot;
@@ -267,7 +254,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                     <circle cx="11.6" cy="6" r="2" />
                     <path d="M11.4 9.4c1.9.1 3.4 1.3 3.4 3.3v.8h-3.2c.2-1.6-.2-3-1.4-4 .4-.1.8-.1 1.2-.1z" />
                   </svg>
-                  {avg.toFixed(1).replace('.', ',')}
+                  {fmt1(avg)}
                 </span>
               )}
               {/* Jouw cijfer als pil; de status als chip erbij (behalve "Gezien"

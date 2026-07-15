@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { posterUrl, STATUS_LABELS } from '../lib/types';
+import { STATUS_LABELS } from '../lib/types';
 import {
   profileById, favoriteTitles, listedTitles, totalWatchHours, ratedCount, serviceStats,
   isFollowing, myRating, titleById,
 } from '../lib/compute';
 import { followUser, unfollowUser, sendRecommendation } from '../lib/api';
 import Sheet from './Sheet';
+import Thumb from './Thumb';
 import Avatar from './Avatar';
 import ServiceLogo from './ServiceLogo';
 
@@ -139,9 +140,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {recCandidates.map(({ title, score }) => (
                 <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
-                  {title.poster_path
-                    ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                  <Thumb path={title.poster_path} name={title.name} radius={4} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                     <div className="title-sub">{title.year || '—'}</div>
@@ -172,9 +171,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
             const haveIt = !!myRating(snap, title.tmdb_id, userId);
             return (
               <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
-                {title.poster_path
-                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                <Thumb path={title.poster_path} name={title.name} radius={4} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                   <div className="title-sub">{title.year || '—'}</div>
@@ -195,9 +192,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {biggestDiffs.map(({ title, theirScore, myScore, diff }) => (
               <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
-                {title.poster_path
-                  ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                  : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                <Thumb path={title.poster_path} name={title.name} radius={4} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                   <div className="title-sub">
@@ -219,9 +214,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
               const haveIt = !!myRating(snap, title.tmdb_id, userId);
               return (
                 <div key={title.tmdb_id} className="pv-row" onClick={() => onOpenTitle(title.tmdb_id)}>
-                  {title.poster_path
-                    ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }} />
-                    : <div style={{ width: 44, height: 66, borderRadius: 4, background: 'var(--surface-2)', flexShrink: 0 }} />}
+                  <Thumb path={title.poster_path} name={title.name} radius={4} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
                     <div className="title-sub">

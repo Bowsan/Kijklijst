@@ -9,6 +9,7 @@ import {
 import { dismissRecommendation, discoverNewTv, discoverByPeople, type PersonSuggestion } from '../lib/api';
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
+import Thumb from './Thumb';
 
 interface Props {
   snap: Snapshot;
@@ -181,9 +182,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
           <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 16 }}>
             {favRows.map((row) => (
               <div key={row.tmdb_id} className="fav-sug">
-                {row.poster_path
-                  ? <img src={posterUrl(row.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} loading="lazy" />
-                  : <PosterFallback name={row.name} width={44} height={66} />}
+                <Thumb path={row.poster_path} name={row.name} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{row.name}</div>
                   <div className="metarow" style={{ marginTop: 4 }}>

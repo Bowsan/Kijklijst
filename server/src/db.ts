@@ -11,6 +11,9 @@ mkdirSync(dirname(DATABASE_PATH), { recursive: true });
 export const db = new Database(DATABASE_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
+// Wacht kort op een lock (bijv. tijdens een back-up) in plaats van direct
+// SQLITE_BUSY te gooien.
+db.pragma('busy_timeout = 5000');
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS profiles (
