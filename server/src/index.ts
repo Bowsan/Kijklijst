@@ -595,7 +595,9 @@ const webDist = join(__dirname, '..', 'public');
 if (existsSync(webDist)) {
   app.use(express.static(webDist));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/')) return next();
+    // Een ontbrekende upload moet 404 geven, niet de app-schil (de service
+    // worker zou die HTML anders als "afbeelding" cachen).
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) return next();
     res.sendFile(join(webDist, 'index.html'));
   });
 }

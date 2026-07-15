@@ -2,7 +2,9 @@
 // door na een deploy), assets cache-first (die hebben een hash in de naam) en
 // afbeeldingen (posters, portretten, uploads) in een eigen langlevende cache.
 const CACHE = 'opdebank-v3';
-const IMG_CACHE = 'opdebank-img-v1';
+// v2: opaque responses worden niet meer gecachet (status onbekend → een
+// mislukte fetch kon als "poster" blijven hangen); oude cache wordt geleegd.
+const IMG_CACHE = 'opdebank-img-v2';
 const IMG_MAX = 400; // hard plafond zodat de cache niet eindeloos groeit
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
@@ -20,26 +22,27 @@ self.addEventListener('activate', (e) => {
 
 // Covers en portretten veranderen vrijwel nooit: cache-first, dus na één keer
 // laden komen ze direct uit de cache in plaats van steeds opnieuw van TMDb.
+// Alleen aantoonbaar gelukte (CORS-)responses gaan de cache in: van een opaque
+// response is de status onbekend, en een gecachete misser blijft anders eeuwig
+// een kapotte poster.
 async function imageFirst(req) {
   const cache = await caches.open(IMG_CACHE);
   const hit = await cache.match(req.url, { ignoreVary: true });
   if (hit) return hit;
-  // Probeer met CORS (TMDb staat dat toe): niet-opake responses tellen veel
-  // lichter mee voor de opslagquota dan opake.
   let res = null;
   try { res = await fetch(new Request(req.url, { mode: 'cors' })); } catch { /* val terug */ }
-  if (!res || !(res.ok || res.type === 'opaque')) {
-    try { res = await fetch(req); } catch { return hit || Response.error(); }
-  }
-  if (res && (res.ok || res.type === 'opaque')) {
+  if (res && res.ok && (res.headers.get('content-type') || '').startsWith('image/')) {
     cache.put(req.url, res.clone()).then(async () => {
       const keys = await cache.keys();
       if (keys.length > IMG_MAX) {
         for (const k of keys.slice(0, keys.length - IMG_MAX)) await cache.delete(k);
       }
     }).catch(() => {});
+    return res;
   }
-  return res;
+  // CORS mislukt (bijv. tijdelijk netwerkprobleem): geef het originele verzoek
+  // door zonder te cachen, zodat een volgende poging gewoon opnieuw probeert.
+  try { return await fetch(req); } catch { return Response.error(); }
 }
 
 self.addEventListener('fetch', (e) => {
