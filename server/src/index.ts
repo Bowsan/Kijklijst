@@ -17,6 +17,15 @@ import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPush
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
 
+// Vangnet: een vergeten .catch() of een fout in een timer mag de server niet
+// stilletjes slopen — loggen en doordraaien (de data staat veilig in SQLite).
+process.on('unhandledRejection', (reason) => {
+  console.error('Onafgehandelde promise-fout:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Onverwachte fout:', err);
+});
+
 const app = express();
 app.use(cors());
 app.use(compression());

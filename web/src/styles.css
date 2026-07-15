@@ -830,6 +830,7 @@ input, textarea, select {
   justify-content: center;
 }
 .sheet {
+  position: relative;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
   width: 100%;
@@ -840,7 +841,6 @@ input, textarea, select {
   animation: slideUp 0.22s ease;
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.sheet { position: relative; }
 .sheet h3 { margin: 0 0 12px; padding-right: 40px; }
 .sheet-handle { width: 44px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 14px; cursor: pointer; }
 .sheet-close {

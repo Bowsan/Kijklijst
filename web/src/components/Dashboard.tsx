@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status, Profile } from '../lib/types';
-import { posterUrl, PERSON_IMG, serviceLogoUrl } from '../lib/types';
+import { PERSON_IMG, serviceLogoUrl } from '../lib/types';
 import {
   followingProfiles, watchingTitles, myRating,
   serviceStats, totalWatchHours, ratedCount,
   visibleUserIds, titleById, profileById, yearStats,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats, favoriteActors, favoriteCreators, tasteMates,
 } from '../lib/compute';
+import { fmt1, timeAgo } from '../lib/format';
+import Thumb from './Thumb';
 import Avatar from './Avatar';
 import StatusBadge from './StatusBadge';
-import PosterFallback from './PosterFallback';
 
 interface NavOpts {
   status?: Status | 'all' | 'mine';
@@ -79,26 +80,11 @@ function CountUp({ value, decimals = 0, suffix = '' }: { value: number; decimals
   return <>{n.toFixed(decimals)}{suffix}</>;
 }
 
-function timeAgo(ts: number): string {
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return 'net';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} u`;
-  return `${Math.floor(h / 24)} d`;
-}
-
-function Thumb({ title, w = 44, h = 66 }: { title: Title; w?: number; h?: number }) {
-  return title.poster_path
-    ? <img src={posterUrl(title.poster_path, 'small')} alt="" style={{ width: w, height: h, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-    : <PosterFallback name={title.name} width={w} height={h} />;
-}
 
 function TitleRow({ title, right, onClick }: { title: Title; right?: ReactNode; onClick?: () => void }) {
   return (
     <div className="row" style={{ gap: 10, alignItems: 'center', padding: '4px 0' }}>
-      <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', flexShrink: 0 }}><Thumb title={title} /></div>
+      <div onClick={onClick} style={{ cursor: onClick ? 'pointer' : 'default', flexShrink: 0 }}><Thumb path={title.poster_path} name={title.name} /></div>
       <div style={{ flex: 1, minWidth: 0, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
         <div style={{ fontWeight: 500, fontSize: 14 }}>{title.name}</div>
         <div className="title-sub">{title.year || '—'}</div>
@@ -426,7 +412,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   </div>
                   <div className="feed-text">“{c.text}”</div>
                 </div>
-                <Thumb title={title!} w={40} h={60} />
+                <Thumb path={title!.poster_path} name={title!.name} w={40} h={60} />
               </div>
             ))}
           </div>
@@ -508,7 +494,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   <span className="actor-name">{a.name}</span>
                   <span className="actor-stats">
                     <b>{a.count} series</b>
-                    <span className="val-sub">gem. {a.avg.toFixed(1).replace('.', ',')}</span>
+                    <span className="val-sub">gem. {fmt1(a.avg)}</span>
                   </span>
                 </button>
               ))}
@@ -537,7 +523,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   <span className="actor-name">{c.name}</span>
                   <span className="actor-stats">
                     <b>{c.count} series</b>
-                    <span className="val-sub">gem. {c.avg.toFixed(1).replace('.', ',')}</span>
+                    <span className="val-sub">gem. {fmt1(c.avg)}</span>
                   </span>
                 </button>
               ))}
@@ -582,7 +568,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
               {/* Hoogste cijfer als visuele held; aantallen/uren staan al bij de statistieken. */}
               {year.best && (
                 <div className="year-hero" onClick={() => onNavigate({ status: 'all', titleId: year.best!.title.tmdb_id })}>
-                  <Thumb title={year.best.title} w={64} h={96} />
+                  <Thumb path={year.best.title.poster_path} name={year.best.title.name} w={64} h={96} />
                   <div className="yh-body">
                     <div className="yh-label">🏆 Jouw hoogste cijfer</div>
                     <div className="yh-name">{year.best.title.name}</div>
@@ -598,7 +584,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                       {svcLogos.has(year.bestService.service) && (
                         <img className="svc-inline" src={serviceLogoUrl(svcLogos.get(year.bestService.service)!)} alt="" style={{ width: 15, height: 15 }} decoding="async" />
                       )}
-                      <b>{year.bestService.service}</b> · gem. {year.bestService.avg.toFixed(1).replace('.', ',')}
+                      <b>{year.bestService.service}</b> · gem. {fmt1(year.bestService.avg)}
                     </span>
                   )}
                   {year.topGenre && <span className="chip">🏷️ Meest gekeken genre: <b>{year.topGenre}</b></span>}
@@ -657,7 +643,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                     {i === jury.length - 1 && <span className="jury-tag mild">mildste</span>}
                   </div>
                   <span style={{ fontWeight: 700, fontSize: 14, color: j.delta <= 0 ? '#b47b7b' : 'var(--good)' }}>
-                    {j.delta > 0 ? '+' : '−'}{Math.abs(j.delta).toFixed(1).replace('.', ',')}
+                    {j.delta > 0 ? '+' : '−'}{fmt1(Math.abs(j.delta))}
                   </span>
                 </div>
               ))}
@@ -679,7 +665,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   <IconRow
                     ico="🤝"
                     line={<>Meest eensgezind: <TLink title={division.agreed.title} onNavigate={onNavigate} /></>}
-                    sub={<>Alle {division.agreed.count} cijfers hooguit {division.agreed.spread === 0 ? 'nul' : division.agreed.spread.toFixed(1).replace('.', ',')} punt uit elkaar</>}
+                    sub={<>Alle {division.agreed.count} cijfers hooguit {division.agreed.spread === 0 ? 'nul' : fmt1(division.agreed.spread)} punt uit elkaar</>}
                   />
                 )}
               </div>
@@ -694,14 +680,14 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   <IconRow
                     ico="💖"
                     line={<>Jouw guilty pleasure: <TLink title={outliers.guilty.title} onNavigate={onNavigate} /></>}
-                    sub={<>Jij gaf een {outliers.guilty.mine}, de rest gemiddeld {outliers.guilty.others.toFixed(1).replace('.', ',')}</>}
+                    sub={<>Jij gaf een {outliers.guilty.mine}, de rest gemiddeld {fmt1(outliers.guilty.others)}</>}
                   />
                 )}
                 {outliers.panned && (
                   <IconRow
                     ico="🥶"
                     line={<>Alleen jij vond dit niks: <TLink title={outliers.panned.title} onNavigate={onNavigate} /></>}
-                    sub={<>Jij een {outliers.panned.mine}, de rest {outliers.panned.others.toFixed(1).replace('.', ',')}</>}
+                    sub={<>Jij een {outliers.panned.mine}, de rest {fmt1(outliers.panned.others)}</>}
                   />
                 )}
                 {blindSpot && (
@@ -751,7 +737,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 {groupTitleStats.map(({ title, listCount, avg }) => (
                   <button key={title.tmdb_id} className="pstrip-item" onClick={() => onNavigate({ status: 'all', titleId: title.tmdb_id })}>
                     <div className="pstrip-poster">
-                      <Thumb title={title} w={76} h={114} />
+                      <Thumb path={title.poster_path} name={title.name} w={76} h={114} />
                       {avg != null && <span className="pstrip-score">{avg.toFixed(1)}</span>}
                     </div>
                     <div className="pstrip-name">{title.name}</div>

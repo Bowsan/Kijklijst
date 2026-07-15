@@ -21,7 +21,7 @@ export function serviceOptions(snap: Snapshot): string[] {
 }
 
 /** Id's van de mensen die deze gebruiker volgt. */
-export function followingIds(snap: Snapshot, userId: string): string[] {
+function followingIds(snap: Snapshot, userId: string): string[] {
   return snap.follows.filter((f) => f.follower === userId).map((f) => f.followee);
 }
 
@@ -248,7 +248,7 @@ export function favoriteTitles(snap: Snapshot, userId: string, limit = 5): { tit
     .slice(0, limit);
 }
 
-export function ratingsFor(snap: Snapshot, titleId: number): Rating[] {
+function ratingsFor(snap: Snapshot, titleId: number): Rating[] {
   return snap.ratings.filter((r) => r.title_id === titleId && r.score != null);
 }
 
@@ -276,7 +276,7 @@ export function ratedCount(snap: Snapshot, userId: string): number {
 }
 
 /** Geschatte kijkuren voor een gebruiker bij een titel, op basis van aangevinkte seizoenen. */
-export function watchHours(title: Title, rating: Rating | undefined): number {
+function watchHours(title: Title, rating: Rating | undefined): number {
   if (!title.runtime || !rating || !rating.seasons?.length) return 0;
   const minutes = title.seasons
     .filter((s) => rating.seasons.includes(s.season_number))

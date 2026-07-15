@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { Snapshot, Title, Profile } from '../lib/types';
-import { posterUrl } from '../lib/types';
 import { saveProfile, identify, fetchState, followUser, saveRating } from '../lib/api';
 import { setUserId, getUserId } from '../lib/identity';
 import { MIN_RATINGS_FOR_PROFILE } from '../lib/compute';
 import Avatar from './Avatar';
+import Thumb from './Thumb';
 
 // Onboarding in drie korte stappen: naam → vrienden volgen → een paar cijfers.
 // De laatste twee stappen zijn overslaanbaar; doel is dat een nieuwe gebruiker
@@ -133,9 +133,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rateTitles.map((t) => (
             <div className="card" key={t.tmdb_id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 10 }}>
-              {t.poster_path
-                ? <img src={posterUrl(t.poster_path, 'small')} alt="" style={{ width: 44, height: 66, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-                : <div className="poster" style={{ width: 44, height: 66 }} />}
+              <Thumb path={t.poster_path} name={t.name} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                 {rated.has(t.tmdb_id) ? (

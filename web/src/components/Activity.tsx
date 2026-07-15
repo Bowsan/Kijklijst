@@ -1,17 +1,7 @@
 import type { Snapshot, Comment } from '../lib/types';
 import { profileById, titleById, commentsOnMyList } from '../lib/compute';
 import Avatar from './Avatar';
-
-function timeAgo(ts: number): string {
-  const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return 'net';
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h} u`;
-  const d = Math.floor(h / 24);
-  return `${d} d`;
-}
+import { timeAgo } from '../lib/format';
 
 interface Props {
   snap: Snapshot;
