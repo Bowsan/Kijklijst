@@ -46,6 +46,9 @@ const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
   { key: 'rating', label: 'Hoogste rating', dir: 'desc' },
 ];
 
+// Het scroll-element van de app (zie styles.css): #root, niet het document.
+const scroller = () => document.getElementById('root');
+
 function sortLabel(key: SortKey, dir: SortDir): string {
   if (key === 'name') return dir === 'asc' ? 'A–Z' : 'Z–A';
   if (key === 'rating') return dir === 'desc' ? 'Hoogste' : 'Laagste';
@@ -361,7 +364,7 @@ export default function App() {
   // focus alsnog naar boven, terwijl we juist bij de gekozen serie willen blijven.
   useEffect(() => {
     if (tab !== 'list' || focusTitleId != null) return;
-    window.scrollTo({ top: 0 });
+    scroller()?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, status, genres, services, friend]);
 
@@ -398,10 +401,12 @@ export default function App() {
   // "Terug naar boven"-knop tonen zodra je een eind naar beneden hebt gescrold.
   const [showScrollTop, setShowScrollTop] = useState(false);
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 500);
-    window.addEventListener('scroll', onScroll, { passive: true });
+    const el = scroller();
+    if (!el) return;
+    const onScroll = () => setShowScrollTop(el.scrollTop > 500);
+    el.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
   const forYouCount = snap ? forYouBadgeCount(snap, userId, forYouSeen) : 0;
@@ -641,7 +646,7 @@ export default function App() {
                     blind={blind}
                     showGroupScore={friend === ''}
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
-                    onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); window.scrollTo({ top: 0 }); }}
+                    onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); scroller()?.scrollTo({ top: 0 }); }}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -675,7 +680,7 @@ export default function App() {
 
       {/* Terug naar boven */}
       {showScrollTop && !searchOpen && (
-        <button className="scroll-top" aria-label="Terug naar boven" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>↑</button>
+        <button className="scroll-top" aria-label="Terug naar boven" onClick={() => scroller()?.scrollTo({ top: 0, behavior: 'smooth' })}>↑</button>
       )}
 
       {tab === 'dashboard' && (
