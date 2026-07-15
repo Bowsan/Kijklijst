@@ -25,12 +25,13 @@ interface Props {
 // IMDb-link en een knop om 'm op de wishlist te zetten.
 function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: number) => void }) {
   const [open, setOpen] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
   const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${item.name} ${item.year || ''}`.trim())}&s=tt&ttype=tv`;
   return (
     <div className="card discover-card">
       <div className="title-head">
-        {item.poster_path
-          ? <img className="poster" src={posterUrl(item.poster_path)} alt="" loading="lazy" />
+        {item.poster_path && !posterFailed
+          ? <img className="poster" src={posterUrl(item.poster_path)} alt="" loading="lazy" onError={() => setPosterFailed(true)} />
           : <PosterFallback name={item.name} />}
         <div className="title-meta">
           <h3>{item.name}</h3>

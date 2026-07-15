@@ -103,6 +103,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const initIsCustom = !!initService && !title.providers.includes(initService) && !NL_SERVICES.includes(initService);
 
   const [expanded, setExpanded] = useState(initialExpanded);
+  // Laadt de poster niet (netwerk/TMDb)? Dan de initiaal-placeholder tonen.
+  const [posterFailed, setPosterFailed] = useState(false);
   // Open/dicht doorgeven (incl. opruimen bij unmount), voor de lijst-bevriezing.
   useEffect(() => {
     if (!onEditToggle) return;
@@ -191,8 +193,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     <div className="card title-card">
       {/* Compact header — klikken klapt uit/in */}
       <div className="title-head" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
-        {title.poster_path
-          ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" />
+        {title.poster_path && !posterFailed
+          ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" onError={() => setPosterFailed(true)} />
           : <PosterFallback name={title.name} />}
         <div className="title-meta">
           <h3>{title.name}</h3>

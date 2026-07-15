@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import type { Snapshot } from '../lib/types';
-import { posterUrl } from '../lib/types';
 import { sentRecommendations, type TipStatus } from '../lib/compute';
 import { withdrawRecommendation, setRecommendationNote } from '../lib/api';
 import Avatar from './Avatar';
-import PosterFallback from './PosterFallback';
+import Thumb from './Thumb';
 
 interface Props {
   snap: Snapshot;
@@ -63,9 +62,7 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
             <div key={rec.id} className="tip-row">
               {/* Klik op poster of titel → naar de serie (bv. om opnieuw aan te raden). */}
               <div className="tip-open" onClick={() => onOpenTitle(title!.tmdb_id)} title={`Open ${title!.name}`}>
-                {title!.poster_path
-                  ? <img className="tip-poster" src={posterUrl(title!.poster_path, 'small')} alt="" />
-                  : <PosterFallback name={title!.name} width={48} height={72} />}
+                <Thumb path={title!.poster_path} name={title!.name} w={48} h={72} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="tip-title tip-open" onClick={() => onOpenTitle(title!.tmdb_id)}>{title!.name}</div>
