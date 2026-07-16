@@ -95,31 +95,40 @@ export async function getNewTv(): Promise<SearchResult[]> {
 // Genres die we niet als tip willen aanraden op basis van personen.
 const SKIP_GENRE_IDS = new Set([10763 /* news */, 10764 /* reality */, 10767 /* talk */]);
 
+export interface SuggestPerson {
+  name: string;
+  photo: string | null;
+}
+
 export interface PersonSuggestion {
   tmdb_id: number;
   name: string;
   year: number | null;
   poster_path: string | null;
   overview: string;
-  /** Favoriete acteurs die hierin spelen. */
-  actors: string[];
-  /** Favoriete makers die dit bedachten/maakten. */
-  creators: string[];
+  /** Favoriete acteurs die hierin spelen, met portretfoto. */
+  actors: SuggestPerson[];
+  /** Favoriete makers die dit bedachten/maakten, met portretfoto. */
+  creators: SuggestPerson[];
   popularity: number;
 }
 
 // Cache per persoon (12 uur): zoeken + tv-credits zijn twee calls per naam.
-const personCache = new Map<string, { at: number; shows: any[] }>();
+const personCache = new Map<string, { at: number; photo: string | null; shows: any[] }>();
 const PERSON_TTL = 12 * 3600 * 1000;
 
-async function personTvShows(name: string, kind: 'actor' | 'creator'): Promise<any[]> {
+async function personTvShows(name: string, kind: 'actor' | 'creator'): Promise<{ photo: string | null; shows: any[] }> {
   const key = `${kind}:${name.toLowerCase()}`;
   const hit = personCache.get(key);
-  if (hit && Date.now() - hit.at < PERSON_TTL) return hit.shows;
+  if (hit && Date.now() - hit.at < PERSON_TTL) return hit;
 
   const search = await tmdb('/search/person', { query: name, include_adult: 'false' });
   const person = (search.results || [])[0];
-  if (!person) { personCache.set(key, { at: Date.now(), shows: [] }); return []; }
+  if (!person) {
+    const empty = { at: Date.now(), photo: null, shows: [] };
+    personCache.set(key, empty);
+    return empty;
+  }
 
   const credits = await tmdb(`/person/${person.id}/tv_credits`);
   const raw = kind === 'actor' ? (credits.cast || []) : (credits.crew || []);
@@ -129,15 +138,16 @@ async function personTvShows(name: string, kind: 'actor' | 'creator'): Promise<a
     // Voor makers alleen scheppende rollen, geen gastklusjes.
     (kind === 'actor' || /creator|executive producer|producer|writer|director/i.test(s.job || '')),
   );
-  personCache.set(key, { at: Date.now(), shows });
-  return shows;
+  const entry = { at: Date.now(), photo: person.profile_path || null, shows };
+  personCache.set(key, entry);
+  return entry;
 }
 
 /** Series (TMDb-breed) waarin favoriete acteurs spelen of van favoriete
  *  makers — voor de "Van jouw favorieten"-tips buiten de eigen groepslijst. */
 export async function discoverByPeople(actors: string[], creators: string[]): Promise<PersonSuggestion[]> {
   const out = new Map<number, PersonSuggestion>();
-  const add = (s: any, person: string, kind: 'actor' | 'creator') => {
+  const add = (s: any, person: SuggestPerson, kind: 'actor' | 'creator') => {
     let e = out.get(s.id);
     if (!e) {
       e = {
@@ -153,16 +163,20 @@ export async function discoverByPeople(actors: string[], creators: string[]): Pr
       out.set(s.id, e);
     }
     const list = kind === 'actor' ? e.actors : e.creators;
-    if (!list.includes(person)) list.push(person);
+    if (!list.some((p) => p.name === person.name)) list.push(person);
   };
 
   for (const name of actors.slice(0, 3)) {
-    try { for (const s of await personTvShows(name, 'actor')) add(s, name, 'actor'); }
-    catch { /* persoon overslaan bij fout */ }
+    try {
+      const { photo, shows } = await personTvShows(name, 'actor');
+      for (const s of shows) add(s, { name, photo }, 'actor');
+    } catch { /* persoon overslaan bij fout */ }
   }
   for (const name of creators.slice(0, 3)) {
-    try { for (const s of await personTvShows(name, 'creator')) add(s, name, 'creator'); }
-    catch { /* persoon overslaan bij fout */ }
+    try {
+      const { photo, shows } = await personTvShows(name, 'creator');
+      for (const s of shows) add(s, { name, photo }, 'creator');
+    } catch { /* persoon overslaan bij fout */ }
   }
 
   // Meer redenen (acteur + maker) eerst, daarna populariteit.
