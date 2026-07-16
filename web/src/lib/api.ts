@@ -33,14 +33,19 @@ export async function discoverNewTv(): Promise<SearchResult[]> {
   return res.json();
 }
 
+export interface SuggestPerson {
+  name: string;
+  photo: string | null;
+}
+
 export interface PersonSuggestion {
   tmdb_id: number;
   name: string;
   year: number | null;
   poster_path: string | null;
   overview: string;
-  actors: string[];
-  creators: string[];
+  actors: SuggestPerson[];
+  creators: SuggestPerson[];
   popularity: number;
 }
 
