@@ -129,12 +129,12 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
 
       {groupServiceCounts.length > 0 && (
         <div className="card" style={{ marginBottom: 12 }}>
-          <div className="card-title">Populaire diensten</div>
+          <div className="card-title with-unit">Populaire diensten<span className="col-unit">seizoenen</span></div>
           {groupServiceCounts.map((s) => (
             <BarRow
               key={s.service}
               label={<SvcLabel name={s.service} svcLogos={svcLogos} />}
-              value={s.count} max={maxGroupService} val={<b>{s.count} seizoen{s.count === 1 ? '' : 'en'}</b>} color="var(--accent-2)"
+              value={s.count} max={maxGroupService} val={<b>{s.count}</b>} color="var(--accent-2)"
               onClick={() => onNavigate({ status: 'all', service: s.service })}
             />
           ))}

@@ -343,14 +343,14 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
           {myServices.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div className="card-title">Streamingdiensten</div>
+              <div className="card-title with-unit">Streamingdiensten<span className="col-unit">seizoenen</span></div>
               {myServices.map((s) => (
                 <BarRow
                   key={s.service}
                   label={<SvcLabel name={s.service} svcLogos={svcLogos} />}
                   value={s.seasons}
                   max={maxServiceCount}
-                  val={<b>{s.seasons} seizoen{s.seasons === 1 ? '' : 'en'}</b>}
+                  val={<b>{s.seasons}</b>}
                   color="var(--good)"
                   onClick={() => onNavigate({ status: 'mine', service: s.service })}
                 />
