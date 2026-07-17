@@ -25,12 +25,21 @@ self.addEventListener('activate', (e) => {
 // Alleen aantoonbaar gelukte (CORS-)responses gaan de cache in: van een opaque
 // response is de status onbekend, en een gecachete misser blijft anders eeuwig
 // een kapotte poster.
+// Fetch met tijdslimiet: een hangende TMDb-verbinding houdt anders eindeloos
+// een lege poster vast — de onError van het <img> vuurt dan nooit en de
+// terugval-placeholder verschijnt niet.
+function fetchTimeout(req, ms) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(req, { signal: ctrl.signal }).finally(() => clearTimeout(t));
+}
+
 async function imageFirst(req) {
   const cache = await caches.open(IMG_CACHE);
   const hit = await cache.match(req.url, { ignoreVary: true });
   if (hit) return hit;
   let res = null;
-  try { res = await fetch(new Request(req.url, { mode: 'cors' })); } catch { /* val terug */ }
+  try { res = await fetchTimeout(new Request(req.url, { mode: 'cors' }), 8000); } catch { /* val terug */ }
   if (res && res.ok && (res.headers.get('content-type') || '').startsWith('image/')) {
     cache.put(req.url, res.clone()).then(async () => {
       const keys = await cache.keys();
@@ -42,7 +51,7 @@ async function imageFirst(req) {
   }
   // CORS mislukt (bijv. tijdelijk netwerkprobleem): geef het originele verzoek
   // door zonder te cachen, zodat een volgende poging gewoon opnieuw probeert.
-  try { return await fetch(req); } catch { return Response.error(); }
+  try { return await fetchTimeout(req, 5000); } catch { return Response.error(); }
 }
 
 self.addEventListener('fetch', (e) => {
