@@ -1,16 +1,17 @@
 import { useMemo, useState } from 'react';
 import type { Snapshot, Title, Profile } from '../lib/types';
-import { saveProfile, identify, fetchState, followUser, saveRating } from '../lib/api';
+import { saveProfile, identify, fetchState, followUser, saveRating, enablePush } from '../lib/api';
 import { setUserId, getUserId } from '../lib/identity';
 import { MIN_RATINGS_FOR_PROFILE } from '../lib/compute';
+import { isStandalone, canPromptInstall, promptInstall, isIos, setAskPushLater } from '../lib/install';
 import Avatar from './Avatar';
 import Thumb from './Thumb';
 
-// Onboarding in drie korte stappen: naam → vrienden volgen → een paar cijfers.
-// De laatste twee stappen zijn overslaanbaar; doel is dat een nieuwe gebruiker
-// meteen een gevulde app én werkende tips heeft.
+// Onboarding in korte stappen: naam → vrienden volgen → een paar cijfers →
+// app op het beginscherm → meldingen. De stappen na de naam zijn overslaanbaar;
+// doel is dat een nieuwe gebruiker meteen een gevulde, werkende app heeft.
 
-type Step = 'name' | 'friends' | 'rate';
+type Step = 'name' | 'friends' | 'rate' | 'install' | 'push';
 
 export default function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState<Step>('name');
@@ -37,7 +38,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       const others = s ? followableProfiles(s) : [];
       if (others.length > 0) setStep('friends');
       else if (s && popularTitles(s).length > 0) setStep('rate');
-      else onDone();
+      else goInstall();
     } catch {
       /* naam-stap opnieuw proberen */
     } finally {
@@ -83,6 +84,41 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   const others = snap ? followableProfiles(snap) : [];
   const rateTitles = useMemo(() => (snap ? popularTitles(snap) : []), [snap]);
 
+  // Vaste laatste stap: app op het beginscherm. Draait de app daar al, dan
+  // meteen door naar het meldingen-voorstel.
+  const goInstall = () => setStep(isStandalone() ? 'push' : 'install');
+
+  // Native installatieprompt (Chrome/Android); bij acceptatie → meldingen.
+  const [installBusy, setInstallBusy] = useState(false);
+  const doInstall = async () => {
+    setInstallBusy(true);
+    try {
+      const accepted = await promptInstall();
+      if (accepted) setStep('push');
+    } finally {
+      setInstallBusy(false);
+    }
+  };
+
+  // iOS: de installatie gebeurt buiten de app om; onthoud dat we bij de eerste
+  // start vanaf het beginscherm alsnog meldingen moeten voorstellen.
+  const iosInstalled = () => {
+    setAskPushLater();
+    onDone();
+  };
+
+  const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'failed'>('idle');
+  const doPush = async () => {
+    setPushState('busy');
+    try {
+      const ok = await enablePush();
+      setPushState(ok ? 'on' : 'failed');
+      if (ok) setTimeout(onDone, 900);
+    } catch {
+      setPushState('failed');
+    }
+  };
+
   if (step === 'friends') {
     return (
       <div className="onboard">
@@ -106,7 +142,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
         <button
           className="btn primary full"
-          onClick={() => (rateTitles.length > 0 ? setStep('rate') : onDone())}
+          onClick={() => (rateTitles.length > 0 ? setStep('rate') : goInstall())}
         >
           {followed.size > 0 ? 'Verder' : 'Overslaan'}
         </button>
@@ -127,8 +163,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
           </p>
         </div>
         {/* Knop boven de lijst, zodat overslaan/klaar altijd boven de vouw staat. */}
-        <button className="btn primary full" onClick={onDone}>
-          {done > 0 ? 'Klaar — naar de app' : 'Overslaan'}
+        <button className="btn primary full" onClick={goInstall}>
+          {done > 0 ? 'Verder' : 'Overslaan'}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rateTitles.map((t) => (
@@ -149,6 +185,81 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (step === 'install') {
+    return (
+      <div className="onboard">
+        <div className="hero">
+          <div className="big">📲</div>
+          <h1>Zet 'm op je beginscherm</h1>
+          <p className="muted">
+            Dan opent Op de Bank als een echte app — sneller, op volledig scherm en met meldingen van je vrienden.
+          </p>
+        </div>
+        {canPromptInstall() ? (
+          <button className="btn primary full" disabled={installBusy} onClick={doInstall}>
+            📲 Op beginscherm zetten
+          </button>
+        ) : (
+          <>
+            <div className="card" style={{ fontSize: 14, lineHeight: 1.7 }}>
+              {isIos() ? (
+                <>
+                  <b>Zo doe je dat op iPhone/iPad:</b>
+                  <ol style={{ margin: '6px 0 0', paddingLeft: 20 }}>
+                    <li>Tik onderin op de <b>Deel-knop</b> (vierkantje met pijl omhoog)</li>
+                    <li>Kies <b>"Zet op beginscherm"</b></li>
+                    <li>Tik op <b>Voeg toe</b> en open de app voortaan vanaf je beginscherm</li>
+                  </ol>
+                </>
+              ) : (
+                <>
+                  <b>Zo doe je dat:</b>
+                  <ol style={{ margin: '6px 0 0', paddingLeft: 20 }}>
+                    <li>Open het <b>menu van je browser</b> (⋮ of Deel-knop)</li>
+                    <li>Kies <b>"App installeren"</b> of <b>"Zet op beginscherm"</b></li>
+                  </ol>
+                </>
+              )}
+            </div>
+            <button className="btn primary full" onClick={iosInstalled}>
+              ✓ Staat op mijn beginscherm
+            </button>
+          </>
+        )}
+        <button className="btn ghost full" style={{ marginTop: 4 }} onClick={onDone}>Overslaan</button>
+      </div>
+    );
+  }
+
+  if (step === 'push') {
+    return (
+      <div className="onboard">
+        <div className="hero">
+          <div className="big">🔔</div>
+          <h1>Meldingen aanzetten?</h1>
+          <p className="muted">
+            Krijg een seintje bij nieuwe tips, berichten en reacties van je vrienden. Niet vaker dan nodig.
+          </p>
+        </div>
+        {pushState === 'on' ? (
+          <p className="center" style={{ color: 'var(--good)', fontWeight: 600 }}>✓ Meldingen staan aan!</p>
+        ) : (
+          <>
+            <button className="btn primary full" disabled={pushState === 'busy'} onClick={doPush}>
+              🔔 Zet meldingen aan
+            </button>
+            {pushState === 'failed' && (
+              <p className="muted center" style={{ fontSize: 13 }}>
+                Dat lukte niet — je kunt het later nog eens proberen via je profiel.
+              </p>
+            )}
+            <button className="btn ghost full" style={{ marginTop: 4 }} onClick={onDone}>Niet nu</button>
+          </>
+        )}
       </div>
     );
   }
