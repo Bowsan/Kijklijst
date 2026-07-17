@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { applyTheme, getTheme } from './lib/identity';
+// Vroeg importeren: vangt de `beforeinstallprompt` van Chrome/Android af.
+import './lib/install';
 import './styles.css';
 
 // Thema meteen toepassen, vóór de eerste render, om een flits te voorkomen.

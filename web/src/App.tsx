@@ -3,7 +3,8 @@ import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types
 import { posterUrl, serviceLogoUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
-import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages } from './lib/api';
+import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
+import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
 import {
   profileById, myRating, groupAverage, selectTitles, serviceOptions, forYouBadgeCount,
   unseenNotificationCount,
@@ -423,6 +424,26 @@ export default function App() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Na de onboarding-instructie "zet op je beginscherm" (iOS): bij de eerste
+  // start vanaf het beginscherm alsnog éénmalig meldingen voorstellen.
+  const [showPushAsk, setShowPushAsk] = useState(false);
+  useEffect(() => {
+    if (!isStandalone() || !shouldAskPush()) return;
+    if (!('Notification' in window) || Notification.permission === 'denied') { clearAskPush(); return; }
+    isPushEnabled().then((on) => {
+      if (on) clearAskPush();
+      else setShowPushAsk(true);
+    }).catch(() => {});
+  }, []);
+  const answerPushAsk = async (yes: boolean) => {
+    clearAskPush();
+    setShowPushAsk(false);
+    if (yes) {
+      const ok = await enablePush().catch(() => false);
+      toast(ok ? 'Meldingen staan aan 🔔' : 'Meldingen aanzetten lukte niet — probeer het via je profiel');
+    }
+  };
+
   // iOS-toetsenbordhoogte bijhouden in --kb-inset: de zoekbalk blijft erboven
   // staan en de zoekresultaten krijgen genoeg extra scrollruimte.
   useEffect(() => {
@@ -764,6 +785,18 @@ export default function App() {
       {/* Tijdens zoeken/toevoegen verbergen we de balk: hij is dan overbodig en
           neemt ruimte weg van de zoekresultaten. */}
       {!searchOpen && <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />}
+
+      {/* Eénmalig voorstel om meldingen aan te zetten (eerste start vanaf beginscherm). */}
+      {showPushAsk && (
+        <Sheet title="🔔 Meldingen aanzetten?" onClose={() => answerPushAsk(false)}>
+          <p className="muted" style={{ fontSize: 14, marginTop: 0 }}>
+            Mooi, de app staat op je beginscherm! Wil je een seintje krijgen bij nieuwe tips,
+            berichten en reacties van je vrienden?
+          </p>
+          <button className="btn primary full" onClick={() => answerPushAsk(true)}>🔔 Zet meldingen aan</button>
+          <button className="btn ghost full" style={{ marginTop: 8 }} onClick={() => answerPushAsk(false)}>Niet nu</button>
+        </Sheet>
+      )}
 
       {chatTarget && snap && (
         <ChatSheet
