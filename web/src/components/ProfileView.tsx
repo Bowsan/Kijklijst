@@ -24,10 +24,14 @@ interface Props {
   onOpenTitle: (tmdbId: number) => void;
   /** Toon de hele lijst "als" deze vriend, gesorteerd op diens cijfer. */
   onViewList: (profileId: string) => void;
+  /** Open het chatgesprek met deze vriend. */
+  onChat: (profileId: string) => void;
+  /** Ongelezen berichten van deze vriend. */
+  chatUnread: number;
   toast: (m: string) => void;
 }
 
-export default function ProfileView({ snap, profileId, userId, onClose, onChange, onAdd, onOpenTitle, onViewList, toast }: Props) {
+export default function ProfileView({ snap, profileId, userId, onClose, onChange, onAdd, onOpenTitle, onViewList, onChat, chatUnread, toast }: Props) {
   const profile = profileById(snap, profileId);
   const isMe = profileId === userId;
   const following = isFollowing(snap, userId, profileId);
@@ -123,6 +127,13 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
       {!isMe && (
         <button className="btn full" style={{ marginTop: 8 }} onClick={() => setRecMode((v) => !v)}>
           💌 Raad {firstName} iets aan
+        </button>
+      )}
+
+      {!isMe && (
+        <button className="btn full" style={{ marginTop: 8 }} onClick={() => onChat(profileId)}>
+          💬 Stuur {firstName} een bericht
+          {chatUnread > 0 && <span className="unread-badge" style={{ marginLeft: 6 }}>{chatUnread}</span>}
         </button>
       )}
 

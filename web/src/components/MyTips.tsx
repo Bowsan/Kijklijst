@@ -23,8 +23,21 @@ const STATUS_META: Record<TipStatus, { label: string; color: string }> = {
   pending: { label: 'Nog niks mee gedaan', color: 'var(--warn)' },
 };
 
+// Reactietekst van de ontvanger bij een tip.
+const RESPONSE_TEXT: Record<string, string> = {
+  thanks: '“Thanks, ziet er leuk uit!”',
+  meh: '“Mwah, niet echt iets voor mij.”',
+};
+
 export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: Props) {
   const tips = sentRecommendations(snap, userId);
+  // Per vriend groeperen: kopje met naam, daaronder de tips aan die vriend.
+  const byFriend: { to: NonNullable<(typeof tips)[number]['to']>; items: typeof tips }[] = [];
+  for (const t of tips) {
+    const group = byFriend.find((g) => g.to.id === t.to!.id);
+    if (group) group.items.push(t);
+    else byFriend.push({ to: t.to!, items: [t] });
+  }
   const [editingId, setEditingId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -55,8 +68,15 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
       <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>
         Series die je aan vrienden aanraadde — met wat zij ermee deden.
       </p>
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {tips.map(({ rec, to, title, status }) => {
+      {byFriend.map(({ to, items }) => (
+      <div key={to.id} style={{ marginBottom: 14 }}>
+        <div className="row" style={{ gap: 8, margin: '0 4px 8px' }}>
+          <Avatar profile={to} id={to.id} size="sm" />
+          <span style={{ fontWeight: 600 }}>{to.name}</span>
+          <span className="muted" style={{ fontSize: 12 }}>· {items.length} tip{items.length === 1 ? '' : 's'}</span>
+        </div>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {items.map(({ rec, title, status }) => {
           const meta = STATUS_META[status];
           return (
             <div key={rec.id} className="tip-row">
@@ -66,11 +86,10 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="tip-title tip-open" onClick={() => onOpenTitle(title!.tmdb_id)}>{title!.name}</div>
-                <div className="row" style={{ gap: 6, margin: '3px 0' }}>
-                  <Avatar profile={to} id={rec.to_user} size="sm" />
-                  <span className="muted" style={{ fontSize: 13 }}>aan {to!.name}</span>
-                </div>
                 <span className="tip-status" style={{ color: meta.color, borderColor: meta.color }}>{meta.label}</span>
+                {rec.response && RESPONSE_TEXT[rec.response] && (
+                  <div className="tip-note">💬 {RESPONSE_TEXT[rec.response]}</div>
+                )}
 
                 {editingId === rec.id ? (
                   <div style={{ marginTop: 8 }}>
@@ -111,7 +130,9 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
             </div>
           );
         })}
+        </div>
       </div>
+      ))}
     </>
   );
 }

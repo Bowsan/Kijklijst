@@ -1046,6 +1046,47 @@ input, textarea, select {
 .actor-stats { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; flex-shrink: 0; }
 .actor-stats b { font-size: 13px; }
 
+/* ---------- Chat (1-op-1 berichten) ---------- */
+.chat-thread {
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 200px; max-height: 55vh; overflow-y: auto;
+  padding: 4px 0 10px;
+}
+.chat-row { display: flex; align-items: flex-end; gap: 6px; }
+.chat-row.mine { justify-content: flex-end; }
+.chat-bubble {
+  max-width: 78%;
+  background: var(--surface-2);
+  border-radius: 16px 16px 16px 4px;
+  padding: 8px 12px 5px;
+}
+.chat-bubble.mine {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  border-radius: 16px 16px 4px 16px;
+}
+.chat-text { font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+.chat-time { font-size: 10px; color: var(--muted); text-align: right; margin-top: 2px; }
+.chat-input { display: flex; gap: 8px; margin-top: 4px; }
+.chat-input input { flex: 1; }
+
+/* Ongelezen-teller (berichten) op knoppen en vriendenrijen. */
+.unread-badge {
+  background: var(--accent-grad); color: #fff;
+  font-size: 11px; font-weight: 700;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 5px; flex-shrink: 0;
+}
+.topbar-badge { position: absolute; top: -4px; right: -4px; }
+
+/* Reactieknoppen onder een ontvangen tip. */
+.tip-respond { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.tip-respond button {
+  border: 1px solid var(--border); background: var(--surface);
+  border-radius: 999px; padding: 6px 12px; font-size: 13px;
+}
+.tip-respond button.sel { border-color: var(--accent); color: var(--accent); font-weight: 600; background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+
 /* "Van jouw favorieten": chips met portretfoto van de favoriete acteur/maker. */
 .fav-people { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .person-chip {

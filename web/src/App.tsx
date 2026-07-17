@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Snapshot, Title, Status, SearchResult } from './lib/types';
+import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
-import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb } from './lib/api';
+import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages } from './lib/api';
 import {
   profileById, myRating, groupAverage, selectTitles, serviceOptions, forYouBadgeCount,
   unseenNotificationCount,
@@ -27,6 +27,7 @@ import RecommendSheet from './components/RecommendSheet';
 import ImportSheet from './components/ImportSheet';
 import ShareSheet from './components/ShareSheet';
 import ManualAddSheet from './components/ManualAddSheet';
+import ChatSheet from './components/ChatSheet';
 
 type StatusTab = 'all' | 'want' | 'watching' | 'finished';
 type StatusValue = StatusTab | 'dropped' | 'notdone';
@@ -129,7 +130,15 @@ export default function App() {
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
   const [focusTitleId, setFocusTitleId] = useState<number | null>(null);
 
-  const reload = () => fetchState().then(setSnap).catch(() => {});
+  // Privéberichten staan niet in de gedeelde snapshot; apart ophalen,
+  // maar wel op hetzelfde ritme verversen (de SSE-ping triggert reload).
+  const [messages, setMessages] = useState<Message[]>([]);
+  const reloadMessages = () => fetchMessages().then(setMessages).catch(() => {});
+  const reload = () => {
+    fetchState().then(setSnap).catch(() => {});
+    reloadMessages();
+  };
+  const [chatTarget, setChatTarget] = useState<string | null>(null);
 
   useEffect(() => {
     reload();
@@ -411,6 +420,8 @@ export default function App() {
 
   const forYouCount = snap ? forYouBadgeCount(snap, userId, forYouSeen) : 0;
   const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
+  const unreadChats = messages.filter((m) => m.to_user === userId && m.read_at == null).length;
+  const unreadFrom = (id: string) => messages.filter((m) => m.from_user === id && m.to_user === userId && m.read_at == null).length;
 
   // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
   if (!snap) {
@@ -444,6 +455,7 @@ export default function App() {
       <TopBar
         tab={tab}
         unseen={unseenMessages}
+        chatUnread={unreadChats}
         onImport={() => setShowImport(true)}
         onFriends={() => setTab('friends')}
         onActivity={openActivity}
@@ -645,6 +657,7 @@ export default function App() {
                     userId={userId}
                     blind={blind}
                     showGroupScore={friend === ''}
+                    showWanters={status === 'want' && friend === ''}
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
                     onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); scroller()?.scrollTo({ top: 0 }); }}
                     onRecommend={setRecommendTarget}
@@ -708,6 +721,18 @@ export default function App() {
 
       <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />
 
+      {chatTarget && snap && (
+        <ChatSheet
+          snap={snap}
+          userId={userId}
+          withId={chatTarget}
+          messages={messages}
+          onRefresh={reloadMessages}
+          onClose={() => setChatTarget(null)}
+          toast={toast}
+        />
+      )}
+
       {/* Sheets */}
       {showFilterSheet && (
         <FilterSheet
@@ -763,6 +788,8 @@ export default function App() {
             setSortKey('rating'); setSortDir('desc');
             setTab('list');
           }}
+          onChat={(id) => { setProfileTarget(null); setChatTarget(id); }}
+          chatUnread={profileTarget ? unreadFrom(profileTarget) : 0}
           toast={toast}
         />
       )}

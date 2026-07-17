@@ -6,7 +6,7 @@ import {
   newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
   favoriteActors, favoriteCreators,
 } from '../lib/compute';
-import { dismissRecommendation, discoverNewTv, discoverByPeople, type PersonSuggestion, type SuggestPerson } from '../lib/api';
+import { dismissRecommendation, respondRecommendation, discoverNewTv, discoverByPeople, type PersonSuggestion, type SuggestPerson } from '../lib/api';
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
 
@@ -184,6 +184,17 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
     onChange();
   };
 
+  // Snelle reactie op een tip; nogmaals tikken haalt de reactie weer weg.
+  const respond = async (id: string, current: string | null | undefined, r: 'thanks' | 'meh') => {
+    try {
+      await respondRecommendation(id, current === r ? null : r);
+      onChange();
+      if (current !== r) toast('Reactie verstuurd 💬');
+    } catch (e: any) {
+      toast(e.message || 'Reageren mislukt');
+    }
+  };
+
   return (
     <div className="page">
       {/* 1. Nieuw seizoen van een serie die je 7+ gaf */}
@@ -216,6 +227,15 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
                 <span><b>{from?.name || 'Iemand'}</b> raadt jou aan{rec.note ? `: "${rec.note}"` : ''}</span>
               </div>
               <TitleCard snap={snap} title={title!} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
+              {/* Laat de afzender snel weten wat je ervan vindt. */}
+              <div className="tip-respond">
+                <button className={rec.response === 'thanks' ? 'sel' : ''} onClick={() => respond(rec.id, rec.response, 'thanks')}>
+                  👍 Thanks, ziet er leuk uit!
+                </button>
+                <button className={rec.response === 'meh' ? 'sel' : ''} onClick={() => respond(rec.id, rec.response, 'meh')}>
+                  😐 Mwah, niet echt iets voor mij
+                </button>
+              </div>
               <button
                 className="btn ghost"
                 style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 2px', marginTop: 2 }}

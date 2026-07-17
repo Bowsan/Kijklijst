@@ -58,7 +58,18 @@ export interface Recommendation {
   title_id: number;
   note: string | null;
   dismissed: boolean;
+  /** Reactie van de ontvanger: 'thanks' of 'meh'. */
+  response?: string | null;
   created_at: number;
+}
+
+export interface Message {
+  id: string;
+  from_user: string;
+  to_user: string;
+  text: string;
+  created_at: number;
+  read_at: number | null;
 }
 
 export interface Reaction {
