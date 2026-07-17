@@ -68,8 +68,6 @@ export default function Friends({ snap, userId, subTab, onSubTab, onOpenProfile,
 
   return (
     <div className="page">
-      <h2>Vrienden</h2>
-
       {/* Sub-tabs: vriendenlijsten, jouw verstuurde tips of berichten */}
       <div className="subtabs" role="tablist">
         <button role="tab" aria-selected={subTab === 'friends'} className={subTab === 'friends' ? 'sel' : ''} onClick={() => onSubTab('friends')}>

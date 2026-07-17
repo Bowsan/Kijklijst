@@ -58,7 +58,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snap, userId, friends]);
 
-  // --- Mijn statistieken ---
+  // --- Jouw statistieken ---
   const currentYear = new Date().getFullYear();
   const year = useMemo(() => yearStats(snap, userId, currentYear), [snap, userId, currentYear]);
 
@@ -139,7 +139,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
   return (
     <div className="page dash" ref={pageRef}>
-      <h2 className="dash-h2"><span className="h2-ico">📺</span>Nu aan het kijken</h2>
+      <h2 className="dash-h2"><span className="h2-ico">📺</span>Jij kijkt nu naar:</h2>
       {myWatching.length === 0 ? (
         <p className="muted" style={{ margin: '0 4px 8px' }}>Je hebt nog niets als "Mee bezig" gemarkeerd.</p>
       ) : (
@@ -150,7 +150,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         </div>
       )}
 
-      <h2 className="dash-h2"><span className="h2-ico">👥</span>Mijn vrienden kijken</h2>
+      <h2 className="dash-h2"><span className="h2-ico">👥</span>Jouw vrienden kijken</h2>
       {friends.length === 0 ? (
         <div className="empty">
           <div className="big">👥</div>
@@ -234,13 +234,11 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
       {totalCount > 0 && (
         <>
-          <h2 className="dash-h2"><span className="h2-ico">📊</span>Mijn statistieken</h2>
-
-          <div className="stat-grid" style={{ marginBottom: 12 }}>
+          <div className="stat-grid" style={{ marginBottom: 12, marginTop: 12 }}>
             <button className="stat-box tint-accent" onClick={() => onNavigate({ status: 'mine' })}>
               <span className="stat-ico">📚</span>
               <div className="stat-body">
-                <div className="k">Series op de lijst</div>
+                <div className="k">Jouw series</div>
                 <div className="v"><CountUp value={totalCount} /></div>
               </div>
             </button>
@@ -269,14 +267,13 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
           {donutParts.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div className="card-title">Verdeling lijst</div>
               <Donut parts={donutParts} total={totalCount} onPick={(s) => onNavigate({ status: s })} />
             </div>
           )}
 
           {myGenreCounts.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div className="card-title">Mijn genres</div>
+              <div className="card-title">Jouw genres</div>
               {myGenreCounts.map((g) => (
                 <BarRow
                   key={g.genre}
@@ -319,7 +316,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
           {myCreators.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div className="card-title">🎬 Beste seriemakers</div>
+              <div className="card-title">🎬 Jouw beste serie makers</div>
               <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
                 Bedenkers van meerdere series die jij een cijfer gaf — tik voor hun series.
               </div>
@@ -345,7 +342,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
           {myServices.length > 0 && (
             <div className="card" style={{ marginBottom: 12 }}>
-              <div className="card-title with-unit">Streamingdiensten<span className="col-unit">seizoenen</span></div>
+              <div className="card-title with-unit">Jouw streamingdiensten<span className="col-unit">seizoenen</span></div>
               {myServices.map((s) => (
                 <BarRow
                   key={s.service}

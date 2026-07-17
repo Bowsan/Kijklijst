@@ -230,8 +230,8 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
         <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files?.[0] && pickAvatar(e.target.files[0])} />
       </div>
 
-      <h2>Mijn streamingdiensten</h2>
-      <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>Optioneel — helpt de app raden waar je een serie keek.</p>
+      <h2>Jouw streamingdiensten</h2>
+      <p className="muted" style={{ fontSize: 13, margin: '0 4px 8px' }}>Helpt de app raden waar je een serie keek.</p>
       <div className="service-grid">
         {serviceOptions(snap).map((s) => (
           <button key={s} className={services.includes(s) ? 'sel' : ''} onClick={() => toggleService(s)}>
