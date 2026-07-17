@@ -32,7 +32,7 @@ export function TopBar({ items, onLogo }: {
           <img className="logo-img" src="/icons/logo-bank.png" alt="" /> Op de Bank
         </button>
       </h1>
-      <div className="row" style={{ gap: 2 }}>
+      <div className="row" style={{ gap: 10 }}>
         {items.map((it) => (
           <button
             key={it.key}
