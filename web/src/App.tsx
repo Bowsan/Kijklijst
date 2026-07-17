@@ -423,6 +423,25 @@ export default function App() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // iOS-toetsenbordhoogte bijhouden in --kb-inset: de zoekbalk blijft erboven
+  // staan en de zoekresultaten krijgen genoeg extra scrollruimte.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--kb-inset', `${Math.round(inset)}px`);
+    };
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    update();
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      document.documentElement.style.removeProperty('--kb-inset');
+    };
+  }, []);
+
   const forYouCount = snap ? forYouBadgeCount(snap, userId, forYouSeen) : 0;
   const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
   const unreadChats = messages.filter((m) => m.to_user === userId && m.read_at == null).length;
@@ -496,7 +515,7 @@ export default function App() {
       )}
 
       {tab === 'list' && searchActive && (
-        <div className="page" style={{ paddingBottom: 'calc(84px + var(--safe-bottom))' }}>
+        <div className="page" style={{ paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' }}>
           {/* Al op je lijst — zodat je dubbel toevoegen voorkomt */}
           {myMatches.length > 0 && (
             <>
@@ -543,7 +562,7 @@ export default function App() {
       )}
 
       {tab === 'list' && !searchActive && (
-        <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom))' } : undefined}>
+        <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' } : undefined}>
           {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
           {friend && friend !== 'me' && (
             <div className="viewing-as">

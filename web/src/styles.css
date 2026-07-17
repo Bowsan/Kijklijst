@@ -1279,8 +1279,9 @@ input, textarea, select {
   position: fixed;
   left: 0; right: 0;
   /* De onderste navigatiebalk is tijdens zoeken verborgen, dus staat de
-     zoekbalk zelf onderaan (boven de veilige zone). */
-  bottom: 0;
+     zoekbalk zelf onderaan (boven de veilige zone). Met open toetsenbord
+     schuift hij mee omhoog via --kb-inset. */
+  bottom: var(--kb-inset, 0px);
   z-index: 50;
   display: flex; flex-direction: column; gap: 6px;
   padding: 10px 14px calc(8px + var(--safe-bottom));
