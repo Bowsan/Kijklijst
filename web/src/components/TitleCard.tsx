@@ -232,7 +232,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {/* Wie heeft 'm op de wishlist — leesbare pillen met voornaam, klikbaar naar het profiel. */}
           {wanters.length > 0 && (
             <div className="wanters-row" onClick={(e) => e.stopPropagation()}>
-              <span className="wanters-label">📌 Wishlist:</span>
+              <span className="wanters-label">Wishlist:</span>
               {wanters.map((p) => (
                 <button
                   key={p.id}

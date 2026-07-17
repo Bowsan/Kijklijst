@@ -70,13 +70,13 @@ export default function Friends({ snap, userId, onOpenProfile, onRecommendTo, on
       {/* Sub-tabs: vriendenlijsten, jouw verstuurde tips of berichten */}
       <div className="subtabs" role="tablist">
         <button role="tab" aria-selected={subTab === 'friends'} className={subTab === 'friends' ? 'sel' : ''} onClick={() => setSubTab('friends')}>
-          👥 Vrienden
+          Vrienden
         </button>
         <button role="tab" aria-selected={subTab === 'tips'} className={subTab === 'tips' ? 'sel' : ''} onClick={() => setSubTab('tips')}>
-          💌 Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}
+          Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}
         </button>
         <button role="tab" aria-selected={subTab === 'messages'} className={`subtab-badged ${subTab === 'messages' ? 'sel' : ''}`} onClick={() => setSubTab('messages')}>
-          💬 Berichten
+          Berichten
           {unreadMsgs > 0 && <span className="notif-dot subtab-dot" aria-label={`${unreadMsgs} ongelezen`} />}
         </button>
       </div>
