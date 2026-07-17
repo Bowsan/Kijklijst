@@ -67,6 +67,9 @@ export default function App() {
   const changeTheme = (t: Theme) => { setTheme(t); setThemeState(t); };
   const [recommendTarget, setRecommendTarget] = useState<Title | null>(null);
   const [profileTarget, setProfileTarget] = useState<string | null>(null);
+  // Open het profiel meteen in "Raad iets aan"-modus.
+  const [profileRecMode, setProfileRecMode] = useState(false);
+  const openRecommendTo = (id: string) => { setProfileRecMode(true); setProfileTarget(id); };
   const [showImport, setShowImport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [manualAddQuery, setManualAddQuery] = useState<string | null>(null);
@@ -660,6 +663,7 @@ export default function App() {
                     showWanters={status === 'want' && friend === ''}
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
                     onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); scroller()?.scrollTo({ top: 0 }); }}
+                    onOpenProfile={setProfileTarget}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -708,11 +712,11 @@ export default function App() {
       )}
 
       {tab === 'foryou' && (
-        <ForYou snap={snap} userId={userId} blind={blind} onRecommend={setRecommendTarget} onAdd={addTitle} onChange={reload} toast={toast} />
+        <ForYou snap={snap} userId={userId} blind={blind} onRecommend={setRecommendTarget} onAdd={addTitle} onChat={setChatTarget} onOpenProfile={setProfileTarget} onChange={reload} toast={toast} />
       )}
 
       {tab === 'friends' && (
-        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
       {tab === 'profile' && (
@@ -776,7 +780,8 @@ export default function App() {
           snap={snap}
           profileId={profileTarget}
           userId={userId}
-          onClose={() => setProfileTarget(null)}
+          initialRecMode={profileRecMode}
+          onClose={() => { setProfileTarget(null); setProfileRecMode(false); }}
           onChange={reload}
           onAdd={(id) => addTitle(id)}
           onOpenTitle={(id) => { setProfileTarget(null); navigateToList({ status: 'all', titleId: id }); }}

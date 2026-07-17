@@ -6,9 +6,10 @@ import {
   newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
   favoriteActors, favoriteCreators,
 } from '../lib/compute';
-import { dismissRecommendation, respondRecommendation, discoverNewTv, discoverByPeople, type PersonSuggestion, type SuggestPerson } from '../lib/api';
+import { dismissRecommendation, respondRecommendation, saveRating, discoverNewTv, discoverByPeople, type PersonSuggestion, type SuggestPerson } from '../lib/api';
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
+import ActionSheet, { type ActionOption } from './ActionSheet';
 
 interface Props {
   snap: Snapshot;
@@ -16,6 +17,10 @@ interface Props {
   blind: boolean;
   onRecommend: (t: Title) => void;
   onAdd: (tmdbId: number) => void;
+  /** Open het chatgesprek met een vriend (reactie op een tip). */
+  onChat: (id: string) => void;
+  /** Open het profiel van een vriend. */
+  onOpenProfile: (id: string) => void;
   onChange: () => void;
   toast: (m: string) => void;
 }
@@ -118,7 +123,7 @@ function FavSuggestCard({ row, onAdd }: {
   );
 }
 
-export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChange, toast }: Props) {
+export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat, onOpenProfile, onChange, toast }: Props) {
   const count = ratedCount(snap, userId);
   const incoming = incomingRecommendations(snap, userId);
   const newSeasons = newSeasonForYou(snap, userId);
@@ -179,19 +184,30 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, year: p.year, poster_path: p.poster_path, overview: p.overview, actors: p.actors, creators: p.creators })),
   ].slice(0, 5);
 
-  const dismiss = async (id: string) => {
-    await dismissRecommendation(id);
-    onChange();
+  // Welke ontvangen tip toont het reactiemenu (of null).
+  const [menuTip, setMenuTip] = useState<(typeof incoming)[number] | null>(null);
+
+  // "Thanks!" → reactie + meteen op je wishlist.
+  const likeTip = async (rec: { id: string; title_id: number }) => {
+    try {
+      await respondRecommendation(rec.id, 'thanks');
+      await saveRating({ tmdb_id: rec.title_id, status: 'want' });
+      onChange();
+      toast('Op je wishlist gezet 📌');
+    } catch (e: any) {
+      toast(e.message || 'Mislukt');
+    }
   };
 
-  // Snelle reactie op een tip; nogmaals tikken haalt de reactie weer weg.
-  const respond = async (id: string, current: string | null | undefined, r: 'thanks' | 'meh') => {
+  // "Niet voor mij" → reactie naar de afzender + tip verdwijnt.
+  const passTip = async (id: string) => {
     try {
-      await respondRecommendation(id, current === r ? null : r);
+      await respondRecommendation(id, 'meh');
+      await dismissRecommendation(id);
       onChange();
-      if (current !== r) toast('Reactie verstuurd 💬');
+      toast('Bedankt, tip verwijderd');
     } catch (e: any) {
-      toast(e.message || 'Reageren mislukt');
+      toast(e.message || 'Mislukt');
     }
   };
 
@@ -220,32 +236,49 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChan
       {incoming.length > 0 && (
         <>
           <h2>Aanraders van vrienden</h2>
-          {incoming.map(({ rec, from, title }) => (
-            <div key={rec.id} style={{ marginBottom: 16 }}>
-              <div className="rec-reason">
-                <span className="ric">💌</span>
-                <span><b>{from?.name || 'Iemand'}</b> raadt jou aan{rec.note ? `: "${rec.note}"` : ''}</span>
-              </div>
-              <TitleCard snap={snap} title={title!} userId={userId} blind={blind} onRecommend={onRecommend} onChange={onChange} toast={toast} />
-              {/* Laat de afzender snel weten wat je ervan vindt. */}
-              <div className="tip-respond">
-                <button className={rec.response === 'thanks' ? 'sel' : ''} onClick={() => respond(rec.id, rec.response, 'thanks')}>
-                  👍 Thanks, ziet er leuk uit!
+          {incoming.map((item) => {
+            const { rec, from, title } = item;
+            return (
+              <div key={rec.id} style={{ marginBottom: 16 }}>
+                <div className="rec-reason">
+                  <span className="ric">💌</span>
+                  <span>
+                    <b className="link-name" onClick={() => from && onOpenProfile(from.id)}>{from?.name || 'Iemand'}</b>
+                    {' '}raadt jou aan{rec.note ? `: "${rec.note}"` : ''}
+                  </span>
+                </div>
+                <TitleCard snap={snap} title={title!} userId={userId} blind={blind} onOpenProfile={onOpenProfile} onRecommend={onRecommend} onChange={onChange} toast={toast} />
+                {/* Eén knop met een keuzemenu; getoonde reactie blijft zichtbaar. */}
+                <button className="btn full tip-react-btn" onClick={() => setMenuTip(item)}>
+                  {rec.response === 'thanks' ? '👍 Je reageerde: leuk!'
+                    : rec.response === 'meh' ? '😐 Je reageerde: niet voor jou'
+                    : '💬 Reageer op deze tip'}
                 </button>
-                <button className={rec.response === 'meh' ? 'sel' : ''} onClick={() => respond(rec.id, rec.response, 'meh')}>
-                  😐 Mwah, niet echt iets voor mij
-                </button>
               </div>
-              <button
-                className="btn ghost"
-                style={{ fontSize: 12, color: 'var(--muted)', padding: '4px 2px', marginTop: 2 }}
-                onClick={() => dismiss(rec.id)}
-              >
-                Verwijder deze aanrader
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </>
+      )}
+
+      {menuTip && (
+        <ActionSheet
+          title={`Reageer op ${menuTip.from?.name?.split(' ')[0] || 'deze tip'}`}
+          onClose={() => setMenuTip(null)}
+          options={([
+            {
+              icon: '👍', label: 'Thanks, ziet er leuk uit!', sub: 'Op je wishlist',
+              onSelect: () => likeTip(menuTip.rec),
+            },
+            {
+              icon: '😐', label: 'Mwah, niet echt iets voor mij', sub: 'Tip verwijderen', danger: true,
+              onSelect: () => passTip(menuTip.rec.id),
+            },
+            menuTip.from && {
+              icon: '💬', label: `Stuur ${menuTip.from.name.split(' ')[0]} een bericht`,
+              onSelect: () => onChat(menuTip.from!.id),
+            },
+          ].filter(Boolean) as ActionOption[])}
+        />
       )}
 
       {!ready && (

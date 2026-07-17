@@ -1079,6 +1079,36 @@ input, textarea, select {
 }
 .topbar-badge { position: absolute; top: -4px; right: -4px; }
 
+/* Wishlist-pillen op de kaart: avatar + voornaam, leesbaar en klikbaar. */
+.wanters-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.wanters-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.wanter-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px 3px 3px;
+  font-size: 12.5px; font-weight: 600; color: var(--text); cursor: pointer;
+}
+.wanter-pill .avatar { width: 24px; height: 24px; font-size: 11px; }
+
+/* Bottom-sheet keuzemenu (reactie op een tip). */
+.action-menu { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.action-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px; text-align: left;
+  font-size: 15px; font-weight: 600; color: var(--text); cursor: pointer;
+}
+.action-item:active { transform: scale(0.99); }
+.action-item .action-ico { font-size: 20px; flex-shrink: 0; }
+.action-item .action-label { display: flex; flex-direction: column; gap: 2px; }
+.action-item .action-sub { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.action-item.danger { color: #d64848; }
+.action-item.cancel { justify-content: center; background: transparent; color: var(--muted); margin-top: 2px; }
+
+/* Aanklikbare naam (naar profiel) en de reageer-op-tip-knop. */
+.link-name { cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
+.tip-react-btn { margin-top: 8px; }
+
 /* Reactieknoppen onder een ontvangen tip. */
 .tip-respond { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .tip-respond button {
