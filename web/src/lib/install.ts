@@ -42,3 +42,12 @@ const ASK_PUSH_KEY = 'opdebank.askPush';
 export const setAskPushLater = () => localStorage.setItem(ASK_PUSH_KEY, '1');
 export const shouldAskPush = () => localStorage.getItem(ASK_PUSH_KEY) === '1';
 export const clearAskPush = () => localStorage.removeItem(ASK_PUSH_KEY);
+
+/** Grofmazige browserdetectie voor de juiste installatie-uitleg. */
+export type BrowserKind = 'ios-safari' | 'ios-other' | 'android' | 'desktop';
+export function browserKind(): BrowserKind {
+  const ua = navigator.userAgent;
+  if (isIos()) return /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua) ? 'ios-other' : 'ios-safari';
+  if (/android/i.test(ua)) return 'android';
+  return 'desktop';
+}

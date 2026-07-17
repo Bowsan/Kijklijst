@@ -14,9 +14,12 @@ export default function ListSearchBar({ value, onChange, onImport, onClose }: Pr
       <div className="fsb-row">
         <input
           autoFocus
+          enterKeyHint="done"
           placeholder="Zoek in je lijst of voeg toe…"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          // Enter klapt het toetsenbord in, zodat de hele resultatenlijst zichtbaar is.
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
         <button className="close" aria-label="Sluiten" onClick={onClose}>✕</button>
       </div>

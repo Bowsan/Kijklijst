@@ -5,6 +5,7 @@ import { setBlind, logout, type Theme } from '../lib/identity';
 import { profileById, serviceOptions } from '../lib/compute';
 import Avatar from './Avatar';
 import ServiceLogo from './ServiceLogo';
+import InstallTip from './InstallTip';
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -281,6 +282,8 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
       </div>
 
       <button className="btn full" style={{ marginTop: 12 }} onClick={onShare}>🔗 Vrienden erbij halen</button>
+
+      <InstallTip toast={toast} />
 
       <h2>Serie-info</h2>
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, isOnboarded, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
 import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
@@ -222,35 +222,46 @@ export default function App() {
   // Pagina resetten bij filterwijziging
   useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter, creatorFilter]);
 
-  const addTitle = async (tmdbId: number) => {
+  // Toevoegen vanuit een gefilterde lijst erft die status (Wishlist/Mee bezig/
+  // Gezien/Afgehaakt); overal anders is de wishlist de standaard.
+  const listAddStatus = (): Status =>
+    status === 'watching' || status === 'finished' || status === 'dropped' ? status : 'want';
+  const ADD_TOAST: Record<Status, string> = {
+    want: 'Op je wishlist gezet',
+    watching: 'Toegevoegd als Mee bezig',
+    finished: 'Toegevoegd als Gezien',
+    dropped: 'Toegevoegd als Afgehaakt',
+  };
+
+  const addTitle = async (tmdbId: number, st: Status = 'want') => {
     if (snap && myRating(snap, tmdbId, userId)) {
       toast('Staat al in je lijst!');
       return;
     }
     try {
-      // Nieuw toegevoegde series gaan naar de wishlist; "Mee bezig" kies je zelf.
-      await saveRating({ tmdb_id: tmdbId, status: 'want' });
+      await saveRating({ tmdb_id: tmdbId, status: st });
       await reload();
       setJustAddedId(tmdbId);
       setFriend('me');
-      setStatus('want');
-      toast('Op je wishlist gezet');
+      setStatus(st);
+      toast(ADD_TOAST[st]);
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
     }
   };
 
   const addManualTitle = async (name: string, service: string, seasons: number) => {
+    const st = listAddStatus();
     try {
       const { tmdb_id } = await createManualTitle(name, service || undefined, seasons);
-      await saveRating({ tmdb_id, status: 'want', ...(service ? { service } : {}) });
+      await saveRating({ tmdb_id, status: st, ...(service ? { service } : {}) });
       await reload();
       setJustAddedId(tmdb_id);
       setFriend('me');
-      setStatus('want');
+      setStatus(st);
       setManualAddQuery(null);
       setTab('list');
-      toast('Op je wishlist gezet');
+      toast(ADD_TOAST[st]);
     } catch (e: any) {
       toast(e.message || 'Toevoegen mislukt');
     }
@@ -492,8 +503,12 @@ export default function App() {
     );
   }
 
-  // Onboarding als er nog geen profiel met naam is voor dit apparaat.
-  if (!me) return <Onboarding onDone={reload} />;
+  // Onboarding: bij een nieuw apparaat (geen profiel), of éénmalig voor wie
+  // minder dan 5 beoordelingen heeft en de onboarding nog niet zag.
+  const scoredByMe = snap.ratings.filter((r) => r.user_id === userId && r.score != null).length;
+  if (!me || (!isOnboarded() && scoredByMe < 5)) {
+    return <Onboarding existing={!!me} onDone={reload} />;
+  }
 
   return (
     <div className="app">
@@ -563,7 +578,7 @@ export default function App() {
             {myMatches.length > 0 ? 'Andere series toevoegen:' : 'Toevoegen:'}
           </div>
           {addableResults.map((r) => (
-            <button key={r.tmdb_id} className="suggestion" onClick={() => addTitle(r.tmdb_id)}>
+            <button key={r.tmdb_id} className="suggestion" onClick={() => addTitle(r.tmdb_id, listAddStatus())}>
               {r.poster_path ? <img src={posterUrl(r.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="s-name">{r.name}</div>

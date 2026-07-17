@@ -1,25 +1,55 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Snapshot, Title, Profile } from '../lib/types';
-import { saveProfile, identify, fetchState, followUser, saveRating, enablePush } from '../lib/api';
-import { setUserId, getUserId } from '../lib/identity';
+import { saveProfile, identify, fetchState, followUser, enablePush } from '../lib/api';
+import { setUserId, getUserId, setOnboarded } from '../lib/identity';
 import { MIN_RATINGS_FOR_PROFILE } from '../lib/compute';
-import { isStandalone, canPromptInstall, promptInstall, isIos, setAskPushLater } from '../lib/install';
+import { isStandalone } from '../lib/install';
 import Avatar from './Avatar';
-import Thumb from './Thumb';
+import TitleCard from './TitleCard';
 
-// Onboarding in korte stappen: naam → vrienden volgen → een paar cijfers →
-// app op het beginscherm → meldingen. De stappen na de naam zijn overslaanbaar;
-// doel is dat een nieuwe gebruiker meteen een gevulde, werkende app heeft.
+// Onboarding in korte stappen: naam → vrienden volgen → een eerste stap met je
+// collectie (10 bekendste series, gewone lijstkaartjes) → meldingen (alleen als
+// de app al op het beginscherm staat). Alles na de naam is overslaanbaar.
 
-type Step = 'name' | 'friends' | 'rate' | 'install' | 'push';
+type Step = 'name' | 'friends' | 'rate' | 'push';
 
-export default function Onboarding({ onDone }: { onDone: () => void }) {
+export default function Onboarding({ existing = false, onDone }: {
+  /** Bestaande gebruiker (naam bekend): sla de naam/vrienden-stappen over. */
+  existing?: boolean;
+  onDone: () => void;
+}) {
   const [step, setStep] = useState<Step>('name');
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [followed, setFollowed] = useState<Set<string>>(new Set());
-  const [rated, setRated] = useState<Map<number, number>>(new Map());
+  // Vaste selectie voor de cijfer-stap, zodat kaarten niet verspringen na een actie.
+  const [rateIds, setRateIds] = useState<number[]>([]);
+
+  // Klaar: vlag zetten zodat de onboarding niet nogmaals verschijnt.
+  const finish = () => {
+    setOnboarded();
+    onDone();
+  };
+  // Na de laatste inhoudelijke stap: meldingen voorstellen als de app al als
+  // geïnstalleerde app draait, anders klaar (de beginscherm-tip staat in Profiel).
+  const finishOrPush = () => (isStandalone() ? setStep('push') : finish());
+
+  const enterRate = (s: Snapshot) => {
+    const ids = popularTitles(s).map((t) => t.tmdb_id);
+    if (ids.length === 0) return finishOrPush();
+    setRateIds(ids);
+    setStep('rate');
+  };
+
+  // Bestaande gebruiker: direct naar de collectie-stap.
+  useEffect(() => {
+    if (!existing) return;
+    fetchState()
+      .then((s) => { setSnap(s); enterRate(s); })
+      .catch(finish);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing]);
 
   const start = async () => {
     if (!name.trim()) return;
@@ -37,8 +67,8 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
       setSnap(s);
       const others = s ? followableProfiles(s) : [];
       if (others.length > 0) setStep('friends');
-      else if (s && popularTitles(s).length > 0) setStep('rate');
-      else goInstall();
+      else if (s) enterRate(s);
+      else finish();
     } catch {
       /* naam-stap opnieuw proberen */
     } finally {
@@ -53,16 +83,18 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     return s.profiles.filter((p) => p.id !== me && !p.hidden && !following.has(p.id));
   }
 
-  // De bekendste series in de groep (meeste beoordelaars) om snel te cijferen.
+  // De 10 meest beoordeelde series van de app die je zelf nog geen cijfer gaf.
   function popularTitles(s: Snapshot): Title[] {
     const me = getUserId();
-    const myRated = new Set(s.ratings.filter((r) => r.user_id === me && r.score != null).map((r) => r.title_id));
+    const myScored = new Set(s.ratings.filter((r) => r.user_id === me && r.score != null).map((r) => r.title_id));
     const counts = new Map<number, number>();
-    for (const r of s.ratings) counts.set(r.title_id, (counts.get(r.title_id) || 0) + 1);
+    for (const r of s.ratings) {
+      if (r.score != null) counts.set(r.title_id, (counts.get(r.title_id) || 0) + 1);
+    }
     return s.titles
-      .filter((t) => !myRated.has(t.tmdb_id))
+      .filter((t) => !myScored.has(t.tmdb_id))
       .sort((a, b) => (counts.get(b.tmdb_id) || 0) - (counts.get(a.tmdb_id) || 0))
-      .slice(0, 8);
+      .slice(0, 10);
   }
 
   const toggleFollow = async (p: Profile) => {
@@ -73,38 +105,9 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     } catch { /* stil laten — geen blocker in onboarding */ }
   };
 
-  const quickRate = async (t: Title, score: number) => {
-    try {
-      // Alleen het cijfer — de status ("Gezien" etc.) kiest de gebruiker zelf.
-      await saveRating({ tmdb_id: t.tmdb_id, score });
-      setRated((prev) => new Map(prev).set(t.tmdb_id, score));
-    } catch { /* stil laten */ }
-  };
-
-  const others = snap ? followableProfiles(snap) : [];
-  const rateTitles = useMemo(() => (snap ? popularTitles(snap) : []), [snap]);
-
-  // Vaste laatste stap: app op het beginscherm. Draait de app daar al, dan
-  // meteen door naar het meldingen-voorstel.
-  const goInstall = () => setStep(isStandalone() ? 'push' : 'install');
-
-  // Native installatieprompt (Chrome/Android); bij acceptatie → meldingen.
-  const [installBusy, setInstallBusy] = useState(false);
-  const doInstall = async () => {
-    setInstallBusy(true);
-    try {
-      const accepted = await promptInstall();
-      if (accepted) setStep('push');
-    } finally {
-      setInstallBusy(false);
-    }
-  };
-
-  // iOS: de installatie gebeurt buiten de app om; onthoud dat we bij de eerste
-  // start vanaf het beginscherm alsnog meldingen moeten voorstellen.
-  const iosInstalled = () => {
-    setAskPushLater();
-    onDone();
+  // Kaart-acties verversen de snapshot, zodat status en cijfer meteen kloppen.
+  const refresh = async () => {
+    try { setSnap(await fetchState()); } catch { /* volgende actie probeert opnieuw */ }
   };
 
   const [pushState, setPushState] = useState<'idle' | 'busy' | 'on' | 'failed'>('idle');
@@ -113,11 +116,13 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     try {
       const ok = await enablePush();
       setPushState(ok ? 'on' : 'failed');
-      if (ok) setTimeout(onDone, 900);
+      if (ok) setTimeout(finish, 900);
     } catch {
       setPushState('failed');
     }
   };
+
+  const others = snap ? followableProfiles(snap) : [];
 
   if (step === 'friends') {
     return (
@@ -142,7 +147,7 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
         </div>
         <button
           className="btn primary full"
-          onClick={() => (rateTitles.length > 0 ? setStep('rate') : goInstall())}
+          onClick={() => (snap ? enterRate(snap) : finishOrPush())}
         >
           {followed.size > 0 ? 'Verder' : 'Overslaan'}
         </button>
@@ -150,87 +155,43 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
     );
   }
 
-  if (step === 'rate') {
-    const done = rated.size;
+  if (step === 'rate' && snap) {
+    const me = getUserId();
+    const titles = rateIds
+      .map((id) => snap.titles.find((t) => t.tmdb_id === id))
+      .filter((t): t is Title => t != null);
+    // Voortgang: hoeveel van deze series heb je iets gegeven (status of cijfer)?
+    const done = rateIds.filter((id) => snap.ratings.some((r) => r.title_id === id && r.user_id === me && (r.status || r.score != null))).length;
     return (
       <div className="onboard onboard-top">
         <div className="hero compact">
           <div className="big">⭐</div>
-          <h1>Ken je deze series?</h1>
+          <h1>Zet een eerste stap met je collectie</h1>
           <p className="muted">
-            Geef er een paar een cijfer — vanaf {MIN_RATINGS_FOR_PROFILE} cijfers krijg je persoonlijke tips.
+            Dit zijn de {titles.length} bekendste series van de app. Tik op een serie om 'm op je
+            wishlist te zetten, als gezien te markeren of een cijfer te geven — vanaf{' '}
+            {MIN_RATINGS_FOR_PROFILE} cijfers krijg je persoonlijke tips.
             {done > 0 && <> Al <b>{done}</b> gedaan!</>}
           </p>
         </div>
         {/* Knop boven de lijst, zodat overslaan/klaar altijd boven de vouw staat. */}
-        <button className="btn primary full" onClick={goInstall}>
+        <button className="btn primary full" onClick={finishOrPush}>
           {done > 0 ? 'Verder' : 'Overslaan'}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {rateTitles.map((t) => (
-            <div className="card" key={t.tmdb_id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: 10 }}>
-              <Thumb path={t.poster_path} name={t.name} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                {rated.has(t.tmdb_id) ? (
-                  <div style={{ fontSize: 13, color: 'var(--good)', marginTop: 4 }}>✓ Je gaf een {rated.get(t.tmdb_id)}</div>
-                ) : (
-                  <div className="row" style={{ gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
-                    {[6, 7, 8, 9, 10].map((n) => (
-                      <button key={n} className="quick-score" onClick={() => quickRate(t, n)}>{n}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          {titles.map((t) => (
+            <TitleCard
+              key={t.tmdb_id}
+              snap={snap}
+              title={t}
+              userId={me}
+              blind={false}
+              onRecommend={() => {}}
+              onChange={refresh}
+              toast={() => {}}
+            />
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (step === 'install') {
-    return (
-      <div className="onboard">
-        <div className="hero">
-          <div className="big">📲</div>
-          <h1>Zet 'm op je beginscherm</h1>
-          <p className="muted">
-            Dan opent Op de Bank als een echte app — sneller, op volledig scherm en met meldingen van je vrienden.
-          </p>
-        </div>
-        {canPromptInstall() ? (
-          <button className="btn primary full" disabled={installBusy} onClick={doInstall}>
-            📲 Op beginscherm zetten
-          </button>
-        ) : (
-          <>
-            <div className="card" style={{ fontSize: 14, lineHeight: 1.7 }}>
-              {isIos() ? (
-                <>
-                  <b>Zo doe je dat op iPhone/iPad:</b>
-                  <ol style={{ margin: '6px 0 0', paddingLeft: 20 }}>
-                    <li>Tik onderin op de <b>Deel-knop</b> (vierkantje met pijl omhoog)</li>
-                    <li>Kies <b>"Zet op beginscherm"</b></li>
-                    <li>Tik op <b>Voeg toe</b> en open de app voortaan vanaf je beginscherm</li>
-                  </ol>
-                </>
-              ) : (
-                <>
-                  <b>Zo doe je dat:</b>
-                  <ol style={{ margin: '6px 0 0', paddingLeft: 20 }}>
-                    <li>Open het <b>menu van je browser</b> (⋮ of Deel-knop)</li>
-                    <li>Kies <b>"App installeren"</b> of <b>"Zet op beginscherm"</b></li>
-                  </ol>
-                </>
-              )}
-            </div>
-            <button className="btn primary full" onClick={iosInstalled}>
-              ✓ Staat op mijn beginscherm
-            </button>
-          </>
-        )}
-        <button className="btn ghost full" style={{ marginTop: 4 }} onClick={onDone}>Overslaan</button>
       </div>
     );
   }
@@ -257,12 +218,15 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
                 Dat lukte niet — je kunt het later nog eens proberen via je profiel.
               </p>
             )}
-            <button className="btn ghost full" style={{ marginTop: 4 }} onClick={onDone}>Niet nu</button>
+            <button className="btn ghost full" style={{ marginTop: 4 }} onClick={finish}>Niet nu</button>
           </>
         )}
       </div>
     );
   }
+
+  // Bestaande gebruiker die nog laadt: korte leegte i.p.v. de naam-stap.
+  if (existing) return <div className="onboard" />;
 
   return (
     <div className="onboard">
