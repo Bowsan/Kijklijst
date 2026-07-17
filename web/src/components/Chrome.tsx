@@ -3,9 +3,11 @@
 
 export type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 
-export function TopBar({ tab, unseen, onImport, onFriends, onActivity }: {
+export function TopBar({ tab, unseen, chatUnread, onImport, onFriends, onActivity }: {
   tab: Tab;
   unseen: number;
+  /** Aantal ongelezen chatberichten (badge op de vrienden-knop). */
+  chatUnread: number;
   onImport: () => void;
   onFriends: () => void;
   onActivity: () => void;
@@ -17,8 +19,9 @@ export function TopBar({ tab, unseen, onImport, onFriends, onActivity }: {
         <button className="btn ghost" style={{ padding: '6px 10px' }} onClick={onImport} title="Hele lijst importeren" aria-label="Hele lijst importeren">
           <img className="topbar-ico" src="/icons/top-import.png" alt="" />
         </button>
-        <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px' }} onClick={onFriends} title="Vrienden" aria-label="Vrienden">
+        <button className={`btn ghost ${tab === 'friends' ? 'sel' : ''}`} style={{ padding: '6px 10px', position: 'relative' }} onClick={onFriends} title="Vrienden" aria-label={chatUnread > 0 ? `Vrienden, ${chatUnread} ongelezen berichten` : 'Vrienden'}>
           <img className="topbar-ico" src="/icons/top-friends.png" alt="" />
+          {chatUnread > 0 && <span className="unread-badge topbar-badge">{chatUnread}</span>}
         </button>
         <button className="btn ghost" style={{ padding: '6px 10px', position: 'relative' }} onClick={onActivity} title="Meldingen" aria-label={unseen > 0 ? `Meldingen, ${unseen} nieuw` : 'Meldingen'}>
           <img className="topbar-ico" src="/icons/top-bell.png" alt="" />

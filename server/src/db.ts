@@ -119,6 +119,16 @@ db.exec(`
     logo_path   TEXT NOT NULL,
     updated_at  INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS messages (
+    id          TEXT PRIMARY KEY,
+    from_user   TEXT NOT NULL,
+    to_user     TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    read_at     INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS idx_messages_users ON messages (from_user, to_user, created_at);
 `);
 
 // Kolommen toevoegen aan bestaande databases (idempotent).
@@ -136,6 +146,15 @@ function addTitleColumns(): void {
   add('creators', 'TEXT'); // bedenkers/makers met portretfoto's (gevuld bij refresh)
 }
 addTitleColumns();
+
+// Reactie van de ontvanger op een tip ("thanks" / "meh"), additief toegevoegd.
+function addRecommendationColumns(): void {
+  const cols = db.prepare('PRAGMA table_info(recommendations)').all() as any[];
+  if (!cols.some((c) => c.name === 'response')) {
+    db.exec('ALTER TABLE recommendations ADD COLUMN response TEXT');
+  }
+}
+addRecommendationColumns();
 
 // Nieuwe kolommen op profiles toevoegen zonder bestaande data te verliezen.
 function addProfileColumns(): void {

@@ -533,6 +533,69 @@ app.post('/api/profile/:id/hidden', (req, res) => {
   res.json({ ok: true });
 });
 
+// Reactie van de ontvanger op een tip: "thanks" of "meh" (of null = wissen).
+app.post('/api/recommendation/:id/respond', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const { response } = req.body || {};
+  if (response !== null && response !== 'thanks' && response !== 'meh') {
+    return res.status(400).json({ error: 'onbekende reactie' });
+  }
+  const rec: any = db.prepare('SELECT * FROM recommendations WHERE id = ? AND to_user = ?').get(req.params.id, uid);
+  if (!rec) return res.status(404).json({ error: 'tip niet gevonden' });
+  db.prepare('UPDATE recommendations SET response = ? WHERE id = ?').run(response, rec.id);
+  broadcast('state', 1);
+  if (response) {
+    const text = response === 'thanks' ? 'Thanks, ziet er leuk uit!' : 'Mwah, niet echt iets voor mij.';
+    sendPushTo([rec.from_user], {
+      title: 'Op de Bank',
+      body: `💬 ${nameOf(uid)} over je tip ${titleNameOf(rec.title_id)}: ${text}`,
+    });
+  }
+  res.json({ ok: true });
+});
+
+// ---------- Berichten (1-op-1) ----------
+// Bewust niet in de gedeelde snapshot: berichten zijn privé tussen twee mensen.
+app.get('/api/messages', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const messages = db
+    .prepare('SELECT * FROM messages WHERE from_user = ? OR to_user = ? ORDER BY created_at ASC LIMIT 1000')
+    .all(uid, uid);
+  res.json({ messages });
+});
+
+app.post('/api/message', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const { to_user, text } = req.body || {};
+  const clean = typeof text === 'string' ? text.trim().slice(0, 1000) : '';
+  if (!to_user || !clean) return res.status(400).json({ error: 'to_user en tekst vereist' });
+  if (to_user === uid) return res.status(400).json({ error: 'geen berichten aan jezelf' });
+  if (!db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(to_user)) {
+    return res.status(404).json({ error: 'ontvanger niet gevonden' });
+  }
+  const id = randomUUID();
+  db.prepare('INSERT INTO messages (id, from_user, to_user, text, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(id, uid, to_user, clean, Date.now());
+  broadcast('state', 1);
+  sendPushTo([to_user], { title: 'Op de Bank', body: `💬 ${nameOf(uid)}: ${clean.slice(0, 120)}` });
+  res.json({ ok: true, id });
+});
+
+// Alles van één afzender als gelezen markeren (bij het openen van het gesprek).
+app.post('/api/messages/read', (req, res) => {
+  const uid = userId(req);
+  if (!uid) return res.status(400).json({ error: 'geen identiteit' });
+  const { with_user } = req.body || {};
+  if (!with_user) return res.status(400).json({ error: 'with_user vereist' });
+  db.prepare('UPDATE messages SET read_at = ? WHERE to_user = ? AND from_user = ? AND read_at IS NULL')
+    .run(Date.now(), uid, with_user);
+  broadcast('state', 1);
+  res.json({ ok: true });
+});
+
 // Aanrader wegklikken (privé bij de ontvanger).
 app.post('/api/recommendation/:id/dismiss', (req, res) => {
   const uid = userId(req);

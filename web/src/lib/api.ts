@@ -1,5 +1,5 @@
 import { getUserId } from './identity';
-import type { Snapshot, SearchResult, Title, Status } from './types';
+import type { Snapshot, SearchResult, Title, Status, Message } from './types';
 
 function headers(): HeadersInit {
   return {
@@ -87,6 +87,17 @@ export const identify = (name: string): Promise<{ id: string | null }> => post('
 export const sendRecommendation = (r: { to_user: string; tmdb_id: number; note?: string }) =>
   post('/api/recommendation', r);
 export const dismissRecommendation = (id: string) => post(`/api/recommendation/${id}/dismiss`, {});
+export const respondRecommendation = (id: string, response: 'thanks' | 'meh' | null) =>
+  post(`/api/recommendation/${id}/respond`, { response });
+
+// ---- Berichten (privé, dus niet in de gedeelde snapshot) ----
+export async function fetchMessages(): Promise<Message[]> {
+  const res = await fetch('/api/messages', { headers: headers() });
+  if (!res.ok) return [];
+  return (await res.json()).messages ?? [];
+}
+export const sendMessage = (to_user: string, text: string) => post('/api/message', { to_user, text });
+export const markMessagesRead = (with_user: string) => post('/api/messages/read', { with_user });
 // Eigen tip terugtrekken of de opmerking erbij aanpassen.
 export async function withdrawRecommendation(id: string): Promise<any> {
   const res = await fetch(`/api/recommendation/${id}`, { method: 'DELETE', headers: headers() });
