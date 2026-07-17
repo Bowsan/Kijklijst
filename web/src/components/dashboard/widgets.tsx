@@ -39,11 +39,17 @@ export function useReveal(ref: React.RefObject<HTMLDivElement | null>) {
       { threshold: 0.1, rootMargin: '0px 0px -6% 0px' },
     );
     targets.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    // Vangnet: vuurt de observer niet (zuinige stand, verborgen tab), dan
+    // worden de kaarten na 1,5s alsnog gewoon getoond.
+    const failsafe = setTimeout(() => targets.forEach((el) => el.classList.add('in')), 1500);
+    return () => { clearTimeout(failsafe); io.disconnect(); };
   }, [ref]);
 }
 
-/** Teller die soepel naar zijn eindwaarde loopt (ease-out). */
+/** Teller die soepel naar zijn eindwaarde loopt (ease-out). De eindwaarde is
+    gegarandeerd: vuurt requestAnimationFrame niet of te traag (iOS in
+    spaarstand, tab op de achtergrond), dan zet een timer 'm alsnog neer —
+    anders bleef de teller op 0 hangen. */
 export function CountUp({ value, decimals = 0, suffix = '' }: { value: number; decimals?: number; suffix?: string }) {
   const [n, setN] = useState(reducedMotion() ? value : 0);
   useEffect(() => {
@@ -58,7 +64,8 @@ export function CountUp({ value, decimals = 0, suffix = '' }: { value: number; d
       if (p < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    const settle = setTimeout(() => setN(value), dur + 300);
+    return () => { cancelAnimationFrame(raf); clearTimeout(settle); };
   }, [value]);
   return <>{n.toFixed(decimals)}{suffix}</>;
 }
