@@ -40,6 +40,8 @@ interface Props {
   onActor?: (name: string) => void;
   /** Toon de avatars van iedereen die 'm op de wishlist heeft (Iedereen + Wishlist). */
   showWanters?: boolean;
+  /** Tik op een vriend (avatar/naam) → open diens profiel. */
+  onOpenProfile?: (id: string) => void;
   onRecommend: (title: Title) => void;
   onChange: () => void;
   toast: (msg: string) => void;
@@ -48,7 +50,7 @@ interface Props {
   onEditToggle?: (tmdbId: number, open: boolean) => void;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, onOpenProfile, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -215,24 +217,33 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
           {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
-          {(newSeason || seasonsChip || showOthers || wanters.length > 0 || totalRecCount > 0 || reasonActor) && (
+          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor) && (
             <div className="metarow">
               {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
                 // Groen als je alle seizoenen zag, anders lichtgrijs (nog niet af).
                 <span className={`mchip${watchedSeasonCount >= totalSeasons ? ' seasons' : ''}`}>{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
               )}
-              {wanters.length > 0 && (
-                <span className="mchip wanters" title={`Op de wishlist bij ${wanters.map((p) => p.name.split(' ')[0]).join(', ')}`}>
-                  <span className="avatar-stack">
-                    {wanters.slice(0, 5).map((p) => <Avatar key={p.id} profile={p} id={p.id} size="xs" />)}
-                  </span>
-                  {wanters.length > 5 && <>+{wanters.length - 5}</>}
-                </span>
-              )}
               {showOthers && <span className="mchip">👥 {others.length}</span>}
               {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
               {reasonActor && <span className="mchip actor" title={`Met jouw favoriet ${reasonActor}`}>🎭 {reasonActor}</span>}
+            </div>
+          )}
+          {/* Wie heeft 'm op de wishlist — leesbare pillen met voornaam, klikbaar naar het profiel. */}
+          {wanters.length > 0 && (
+            <div className="wanters-row" onClick={(e) => e.stopPropagation()}>
+              <span className="wanters-label">📌 Wishlist:</span>
+              {wanters.map((p) => (
+                <button
+                  key={p.id}
+                  className="wanter-pill"
+                  title={onOpenProfile ? `Bekijk ${p.name}` : p.name}
+                  onClick={onOpenProfile ? () => onOpenProfile(p.id) : undefined}
+                >
+                  <Avatar profile={p} id={p.id} size="xs" />
+                  {p.name.split(' ')[0]}
+                </button>
+              ))}
             </div>
           )}
           {/* Cijfers van vrienden, direct zichtbaar zonder uitklappen. */}
@@ -396,8 +407,14 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                     const maxSeason = r?.seasons?.length ? Math.max(...r.seasons) : 0;
                     return (
                       <div className="friend-status-row" key={p.id}>
-                        <Avatar profile={p} id={p.id} size="sm" />
-                        <span className="fsr-name">{p.name?.split(' ')[0] || '—'}</span>
+                        <span
+                          className="row"
+                          style={{ gap: 8, flex: 1, minWidth: 0, alignItems: 'center', cursor: onOpenProfile ? 'pointer' : 'default' }}
+                          onClick={onOpenProfile ? () => onOpenProfile(p.id) : undefined}
+                        >
+                          <Avatar profile={p} id={p.id} size="sm" />
+                          <span className="fsr-name">{p.name?.split(' ')[0] || '—'}</span>
+                        </span>
                         <span className="fsr-val">
                           {r?.status && (
                             <span style={{ color: STATUS_COLORS[r.status].fg, fontWeight: 600 }}>

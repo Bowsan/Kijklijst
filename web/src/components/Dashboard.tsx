@@ -36,6 +36,28 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
     .map((p) => ({ profile: p, titles: watchingTitles(snap, p.id) }))
     .filter((fw) => fw.titles.length > 0);
 
+  // Hoog gewaardeerde series van je vrienden die jij nog niet hebt — zodat een
+  // nieuwe gebruiker (nog geen eigen lijst) meteen iets te ontdekken heeft.
+  const friendPicks = useMemo(() => {
+    const byTitle = new Map<number, { title: NonNullable<ReturnType<typeof titleById>>; best: number; fans: Set<string> }>();
+    for (const p of friends) {
+      for (const r of snap.ratings) {
+        if (r.user_id !== p.id || r.score == null) continue;
+        if (myRating(snap, r.title_id, userId)) continue; // al op mijn lijst
+        const t = titleById(snap, r.title_id);
+        if (!t) continue;
+        const e = byTitle.get(t.tmdb_id) ?? { title: t, best: 0, fans: new Set<string>() };
+        e.best = Math.max(e.best, r.score);
+        e.fans.add(p.id);
+        byTitle.set(t.tmdb_id, e);
+      }
+    }
+    return [...byTitle.values()]
+      .sort((a, b) => b.best - a.best || b.fans.size - a.fans.size)
+      .slice(0, 6);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snap, userId, friends]);
+
   // --- Mijn statistieken ---
   const currentYear = new Date().getFullYear();
   const year = useMemo(() => yearStats(snap, userId, currentYear), [snap, userId, currentYear]);
@@ -159,6 +181,32 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             })}
           </div>
         ))
+      )}
+
+      {/* Ontdek series van je vrienden — vooral waardevol als je zelf nog weinig
+          op je lijst hebt en er dus verder weinig te zien valt. */}
+      {friendPicks.length > 0 && (finishedCount + watchingCount < 3 || friendsWatching.length === 0) && (
+        <>
+          <h2 className="dash-h2"><span className="h2-ico">⭐</span>Toppers bij je vrienden</h2>
+          <p className="muted" style={{ margin: '0 4px 8px', fontSize: 13 }}>
+            Hoog gewaardeerd door de vrienden die je volgt — nog niet op jouw lijst.
+          </p>
+          <div className="card">
+            {friendPicks.map(({ title, best }) => (
+              <TitleRow
+                key={title.tmdb_id}
+                title={title}
+                onClick={() => onNavigate({ status: 'all', titleId: title.tmdb_id })}
+                right={
+                  <span className="row" style={{ gap: 8, flexShrink: 0 }}>
+                    <StatusBadge status={null} score={best} />
+                    <button className="btn ghost" style={{ padding: '4px 8px' }} onClick={(e) => { e.stopPropagation(); onAdd(title.tmdb_id); }} title="Aan mijn lijst toevoegen">+</button>
+                  </span>
+                }
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {latestComments.length > 0 && (

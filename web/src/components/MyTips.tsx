@@ -9,6 +9,10 @@ interface Props {
   snap: Snapshot;
   userId: string;
   onOpenTitle: (tmdbId: number) => void;
+  /** Open het profiel van een vriend. */
+  onOpenProfile: (id: string) => void;
+  /** Open het profiel van een vriend meteen in "Raad iets aan"-modus. */
+  onRecommendTo: (id: string) => void;
   onChange: () => void;
   toast: (m: string) => void;
 }
@@ -29,7 +33,7 @@ const RESPONSE_TEXT: Record<string, string> = {
   meh: '“Mwah, niet echt iets voor mij.”',
 };
 
-export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: Props) {
+export default function MyTips({ snap, userId, onOpenTitle, onOpenProfile, onRecommendTo, onChange, toast }: Props) {
   const tips = sentRecommendations(snap, userId);
   // Per vriend groeperen: kopje met naam, daaronder de tips aan die vriend.
   const byFriend: { to: NonNullable<(typeof tips)[number]['to']>; items: typeof tips }[] = [];
@@ -70,10 +74,15 @@ export default function MyTips({ snap, userId, onOpenTitle, onChange, toast }: P
       </p>
       {byFriend.map(({ to, items }) => (
       <div key={to.id} style={{ marginBottom: 14 }}>
-        <div className="row" style={{ gap: 8, margin: '0 4px 8px' }}>
-          <Avatar profile={to} id={to.id} size="sm" />
-          <span style={{ fontWeight: 600 }}>{to.name}</span>
-          <span className="muted" style={{ fontSize: 12 }}>· {items.length} tip{items.length === 1 ? '' : 's'}</span>
+        <div className="row spread" style={{ margin: '0 4px 8px' }}>
+          <span className="row" style={{ gap: 8, cursor: 'pointer', minWidth: 0 }} onClick={() => onOpenProfile(to.id)}>
+            <Avatar profile={to} id={to.id} size="sm" />
+            <span className="link-name" style={{ fontWeight: 600 }}>{to.name}</span>
+            <span className="muted" style={{ fontSize: 12 }}>· {items.length} tip{items.length === 1 ? '' : 's'}</span>
+          </span>
+          <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 13, flexShrink: 0 }} onClick={() => onRecommendTo(to.id)}>
+            💌 Raad iets aan
+          </button>
         </div>
         <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map(({ rec, title, status }) => {

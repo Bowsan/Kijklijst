@@ -17,6 +17,8 @@ interface Props {
   profileId: string;
   /** De ingelogde gebruiker. */
   userId: string;
+  /** Open direct de "Raad iets aan"-lijst. */
+  initialRecMode?: boolean;
   onClose: () => void;
   onChange: () => void;
   onAdd: (tmdbId: number) => void;
@@ -31,7 +33,7 @@ interface Props {
   toast: (m: string) => void;
 }
 
-export default function ProfileView({ snap, profileId, userId, onClose, onChange, onAdd, onOpenTitle, onViewList, onChat, chatUnread, toast }: Props) {
+export default function ProfileView({ snap, profileId, userId, initialRecMode = false, onClose, onChange, onAdd, onOpenTitle, onViewList, onChat, chatUnread, toast }: Props) {
   const profile = profileById(snap, profileId);
   const isMe = profileId === userId;
   const following = isFollowing(snap, userId, profileId);
@@ -57,7 +59,7 @@ export default function ProfileView({ snap, profileId, userId, onClose, onChange
 
   // "Raad [naam] iets aan": jouw beoordeelde series die deze vriend nog niet
   // op de lijst heeft (en die je hem/haar nog niet tipte), hoogste cijfer eerst.
-  const [recMode, setRecMode] = useState(false);
+  const [recMode, setRecMode] = useState(initialRecMode);
   const [sentIds, setSentIds] = useState<Set<number>>(new Set());
   const recCandidates = useMemo(() => {
     if (isMe) return [];

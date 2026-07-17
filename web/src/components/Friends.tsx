@@ -11,13 +11,15 @@ interface Props {
   snap: Snapshot;
   userId: string;
   onOpenProfile: (id: string) => void;
+  /** Open het profiel van een vriend meteen in "Raad iets aan"-modus. */
+  onRecommendTo: (id: string) => void;
   onOpenTitle: (tmdbId: number) => void;
   onChange: () => void;
   onShare: () => void;
   toast: (m: string) => void;
 }
 
-export default function Friends({ snap, userId, onOpenProfile, onOpenTitle, onChange, onShare, toast }: Props) {
+export default function Friends({ snap, userId, onOpenProfile, onRecommendTo, onOpenTitle, onChange, onShare, toast }: Props) {
   const friends = followingProfiles(snap, userId);
   const suggestions = suggestedProfiles(snap, userId);
   const inactive = inactiveFollowableProfiles(snap, userId);
@@ -71,7 +73,7 @@ export default function Friends({ snap, userId, onOpenProfile, onOpenTitle, onCh
 
       {subTab === 'tips' ? (
         tipCount > 0 ? (
-          <MyTips snap={snap} userId={userId} onOpenTitle={onOpenTitle} onChange={onChange} toast={toast} />
+          <MyTips snap={snap} userId={userId} onOpenTitle={onOpenTitle} onOpenProfile={onOpenProfile} onRecommendTo={onRecommendTo} onChange={onChange} toast={toast} />
         ) : (
           <div className="empty">
             <div className="big">💌</div>
