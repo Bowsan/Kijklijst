@@ -118,7 +118,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
   const svcLogos = useSvcLogos(snap);
   const maxGenreCount = myGenreCounts.length ? Math.max(...myGenreCounts.map((g) => g.count)) : 1;
-  const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.count)) : 1;
+  const maxServiceCount = myServices.length ? Math.max(...myServices.map((s) => s.seasons)) : 1;
 
   const visible = useMemo(() => new Set(visibleUserIds(snap, userId)), [snap, userId]);
   const latestComments = useMemo(() => {
@@ -348,9 +348,9 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 <BarRow
                   key={s.service}
                   label={<SvcLabel name={s.service} svcLogos={svcLogos} />}
-                  value={s.count}
+                  value={s.seasons}
                   max={maxServiceCount}
-                  val={<b>{s.count}×</b>}
+                  val={<b>{s.seasons} seizoen{s.seasons === 1 ? '' : 'en'}</b>}
                   color="var(--good)"
                   onClick={() => onNavigate({ status: 'mine', service: s.service })}
                 />

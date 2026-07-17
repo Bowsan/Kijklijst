@@ -55,7 +55,7 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
       const p = profileById(snap, r.user_id);
       // Opgegeven dienst wint; anders de eerste provider die bij het profiel past.
       const svc = r.service || (t.providers.find((pv) => p?.services?.includes(pv)) ?? t.providers[0]);
-      if (svc) counts.set(svc, (counts.get(svc) || 0) + 1);
+      if (svc) counts.set(svc, (counts.get(svc) || 0) + (t.seasons.length || 1));
     }
     return [...counts.entries()]
       .map(([service, count]) => ({ service, count }))
@@ -134,7 +134,7 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
             <BarRow
               key={s.service}
               label={<SvcLabel name={s.service} svcLogos={svcLogos} />}
-              value={s.count} max={maxGroupService} val={<b>{s.count}×</b>} color="var(--accent-2)"
+              value={s.count} max={maxGroupService} val={<b>{s.count} seizoen{s.count === 1 ? '' : 'en'}</b>} color="var(--accent-2)"
               onClick={() => onNavigate({ status: 'all', service: s.service })}
             />
           ))}
