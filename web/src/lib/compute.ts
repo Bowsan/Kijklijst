@@ -693,20 +693,21 @@ export function yearStats(snap: Snapshot, userId: string, year: number) {
 }
 
 /** Kijkstatistieken per streamingdienst voor een gebruiker. */
-export function serviceStats(snap: Snapshot, userId: string): { service: string; count: number; hours: number }[] {
+export function serviceStats(snap: Snapshot, userId: string): { service: string; count: number; seasons: number; hours: number }[] {
   const profile = profileById(snap, userId);
-  const byService = new Map<string, { count: number; hours: number }>();
+  const byService = new Map<string, { count: number; seasons: number; hours: number }>();
   for (const t of snap.titles) {
     const r = myRating(snap, t.tmdb_id, userId);
     if (!r || r.score == null) continue;
     const service = guessService(t, profile, r.service);
     if (!service) continue;
-    if (!byService.has(service)) byService.set(service, { count: 0, hours: 0 });
+    if (!byService.has(service)) byService.set(service, { count: 0, seasons: 0, hours: 0 });
     const entry = byService.get(service)!;
     entry.count++;
+    entry.seasons += t.seasons.length || 1; // onbekend seizoen-aantal telt als 1
     entry.hours += watchHours(t, r);
   }
   return [...byService.entries()]
     .map(([service, v]) => ({ service, ...v }))
-    .sort((a, b) => b.count - a.count);
+    .sort((a, b) => b.seasons - a.seasons || b.count - a.count);
 }
