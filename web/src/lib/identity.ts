@@ -91,3 +91,7 @@ export function colorFor(id: string): string {
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
   return `hsl(${h} 60% 55%)`;
 }
+
+// Onboarding één keer tonen: vlag per apparaat.
+export const isOnboarded = () => localStorage.getItem('opdebank.onboarded') === '1';
+export const setOnboarded = () => localStorage.setItem('opdebank.onboarded', '1');
