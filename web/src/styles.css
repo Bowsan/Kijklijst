@@ -1268,10 +1268,12 @@ input, textarea, select {
 .fab-search-bar {
   position: fixed;
   left: 0; right: 0;
-  bottom: calc(62px + var(--safe-bottom));
+  /* De onderste navigatiebalk is tijdens zoeken verborgen, dus staat de
+     zoekbalk zelf onderaan (boven de veilige zone). */
+  bottom: 0;
   z-index: 50;
   display: flex; gap: 8px; align-items: center;
-  padding: 10px 14px;
+  padding: 10px 14px calc(10px + var(--safe-bottom));
   background: var(--bar-bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);

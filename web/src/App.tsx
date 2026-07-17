@@ -478,7 +478,7 @@ export default function App() {
       )}
 
       {tab === 'list' && searchActive && (
-        <div className="page" style={{ paddingBottom: 88 }}>
+        <div className="page" style={{ paddingBottom: 'calc(84px + var(--safe-bottom))' }}>
           {/* Al op je lijst — zodat je dubbel toevoegen voorkomt */}
           {myMatches.length > 0 && (
             <>
@@ -525,7 +525,7 @@ export default function App() {
       )}
 
       {tab === 'list' && !searchActive && (
-        <div className="page" style={searchOpen ? { paddingBottom: 88 } : undefined}>
+        <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom))' } : undefined}>
           {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
           {friend && friend !== 'me' && (
             <div className="viewing-as">
@@ -723,7 +723,9 @@ export default function App() {
         <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} theme={theme} setTheme={changeTheme} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
-      <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />
+      {/* Tijdens zoeken/toevoegen verbergen we de balk: hij is dan overbodig en
+          neemt ruimte weg van de zoekresultaten. */}
+      {!searchOpen && <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />}
 
       {chatTarget && snap && (
         <ChatSheet
