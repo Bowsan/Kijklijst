@@ -139,7 +139,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
   return (
     <div className="page dash" ref={pageRef}>
-      <h2 className="dash-h2"><span className="h2-ico">📺</span>Jij kijkt nu naar:</h2>
+      <h2 className="dash-h2"><span className="h2-ico">📺</span>Jij kijkt nu naar</h2>
       {myWatching.length === 0 ? (
         <p className="muted" style={{ margin: '0 4px 8px' }}>Je hebt nog niets als "Mee bezig" gemarkeerd.</p>
       ) : (
