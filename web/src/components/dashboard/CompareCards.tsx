@@ -30,6 +30,9 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
   }, [snap, userId]);
 
   const nick = (p: Profile) => (p.id === userId ? 'Jij' : p.name);
+  // Naam als link naar het profiel (jezelf blijft gewone tekst).
+  const nickLink = (p: Profile) =>
+    p.id === userId ? 'Jij' : <span className="link-name" onClick={() => onOpenProfile(p.id)}>{p.name}</span>;
   const hasCompare =
     jury.length >= 2 || division.divided != null || division.agreed != null ||
     outliers.guilty != null || outliers.panned != null || blindSpot != null || finishers.length >= 2 ||
@@ -70,8 +73,10 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
           {jury.map((j, i) => (
             <div className="row spread" key={j.profile.id} style={{ padding: '5px 0' }}>
               <div className="row" style={{ gap: 8 }}>
-                <Avatar profile={j.profile} size="sm" />
-                <span style={{ fontSize: 14 }}>{nick(j.profile)}</span>
+                <span className="row" style={{ gap: 8, cursor: 'pointer' }} onClick={() => onOpenProfile(j.profile.id)}>
+                  <Avatar profile={j.profile} size="sm" />
+                  <span style={{ fontSize: 14 }}>{nick(j.profile)}</span>
+                </span>
                 {i === 0 && <span className="jury-tag strict">strengste</span>}
                 {i === jury.length - 1 && <span className="jury-tag mild">mildste</span>}
               </div>
@@ -91,7 +96,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
               <IconRow
                 ico="🔥"
                 line={<>Meest verdeeld: <TLink title={division.divided.title} onNavigate={onNavigate} /></>}
-                sub={<>{nick(division.divided.low.user)} gaf een {division.divided.low.score}, {nick(division.divided.high.user)} een {division.divided.high.score}</>}
+                sub={<>{nickLink(division.divided.low.user)} gaf een {division.divided.low.score}, {nickLink(division.divided.high.user)} een {division.divided.high.score}</>}
               />
             )}
             {division.agreed && (
@@ -142,8 +147,10 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
           </div>
           {finishers.map((f) => (
             <div className="finisher-row" key={f.profile.id}>
-              <Avatar profile={f.profile} size="sm" />
-              <span className="fin-name">{nick(f.profile)}</span>
+              <span className="row" style={{ gap: 8, cursor: 'pointer', flexShrink: 0 }} onClick={() => onOpenProfile(f.profile.id)}>
+                <Avatar profile={f.profile} size="sm" />
+                <span className="fin-name">{nick(f.profile)}</span>
+              </span>
               <div className="bar-track">
                 <div className="bar-fill" style={{ width: `${f.pct}%`, background: f.pct >= 70 ? 'var(--good)' : f.pct >= 40 ? 'var(--warn)' : '#b47b7b' }} />
               </div>

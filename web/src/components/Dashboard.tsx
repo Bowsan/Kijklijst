@@ -215,10 +215,12 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           <div className="card">
             {latestComments.map(({ c, who, title }) => (
               <div key={c.id} className="feed-row" onClick={() => onNavigate({ status: 'all', titleId: title!.tmdb_id })}>
-                <Avatar profile={who} id={c.user_id} size="sm" />
+                <span onClick={(e) => { e.stopPropagation(); onOpenProfile(c.user_id); }} style={{ cursor: 'pointer', flexShrink: 0 }}>
+                  <Avatar profile={who} id={c.user_id} size="sm" />
+                </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="feed-meta">
-                    <b>{c.user_id === userId ? 'Jij' : who!.name.split(' ')[0]}</b> over <b>{title!.name}</b>
+                    <b className="link-name" onClick={(e) => { e.stopPropagation(); onOpenProfile(c.user_id); }}>{c.user_id === userId ? 'Jij' : who!.name.split(' ')[0]}</b> over <b>{title!.name}</b>
                     <span className="muted"> · {timeAgo(c.created_at)}</span>
                   </div>
                   <div className="feed-text">“{c.text}”</div>
@@ -390,7 +392,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 <IconRow
                   ico="⚔️"
                   line={<>Grootste meningsverschil: <TLink title={year.clash.title} onNavigate={onNavigate} /></>}
-                  sub={<>Jij gaf een {year.clash.mine}, {year.clash.friend.name} een {year.clash.theirs}</>}
+                  sub={<>Jij gaf een {year.clash.mine}, <span className="link-name" onClick={() => onOpenProfile(year.clash!.friend.id)}>{year.clash.friend.name}</span> een {year.clash.theirs}</>}
                 />
               )}
             </div>
