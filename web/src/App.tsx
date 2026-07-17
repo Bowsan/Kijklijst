@@ -70,6 +70,8 @@ export default function App() {
   // Open het profiel meteen in "Raad iets aan"-modus.
   const [profileRecMode, setProfileRecMode] = useState(false);
   const openRecommendTo = (id: string) => { setProfileRecMode(true); setProfileTarget(id); };
+  // Sub-tab van de vriendenpagina — hier zodat de kopbalk er direct heen kan linken.
+  const [friendsSubTab, setFriendsSubTab] = useState<'friends' | 'tips' | 'messages'>('friends');
   const [showImport, setShowImport] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [manualAddQuery, setManualAddQuery] = useState<string | null>(null);
@@ -456,12 +458,28 @@ export default function App() {
   return (
     <div className="app">
       <TopBar
-        tab={tab}
-        unseen={unseenMessages}
-        chatUnread={unreadChats}
-        onImport={() => setShowImport(true)}
-        onFriends={() => setTab('friends')}
-        onActivity={openActivity}
+        onLogo={() => setTab('dashboard')}
+        items={[
+          {
+            key: 'friends', label: 'Vrienden', icon: 'top-friends.png',
+            active: tab === 'friends' && friendsSubTab === 'friends',
+            onClick: () => { setTab('friends'); setFriendsSubTab('friends'); },
+          },
+          {
+            key: 'tips', label: 'Tips', icon: '💌',
+            active: tab === 'friends' && friendsSubTab === 'tips',
+            onClick: () => { setTab('friends'); setFriendsSubTab('tips'); },
+          },
+          {
+            key: 'messages', label: 'Berichten', icon: '💬', badge: unreadChats,
+            active: tab === 'friends' && friendsSubTab === 'messages',
+            onClick: () => { setTab('friends'); setFriendsSubTab('messages'); },
+          },
+          {
+            key: 'log', label: 'Log', icon: 'top-bell.png', dot: unseenMessages > 0,
+            onClick: openActivity,
+          },
+        ]}
       />
 
       {!online && <div className="offline-banner" role="status">⚡ Geen verbinding — wijzigingen kunnen nu niet worden opgeslagen</div>}
@@ -688,6 +706,7 @@ export default function App() {
           <ListSearchBar
             value={nameFilter}
             onChange={setNameFilter}
+            onImport={() => setShowImport(true)}
             onClose={() => { setNameFilter(''); setSearchOpen(false); }}
           />
         ) : (
@@ -716,7 +735,7 @@ export default function App() {
       )}
 
       {tab === 'friends' && (
-        <Friends snap={snap} userId={userId} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} messages={messages} onOpenChat={setChatTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <Friends snap={snap} userId={userId} subTab={friendsSubTab} onSubTab={setFriendsSubTab} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} messages={messages} onOpenChat={setChatTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
       {tab === 'profile' && (
