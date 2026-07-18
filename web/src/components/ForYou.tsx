@@ -6,7 +6,7 @@ import {
   newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
   favoriteActors, favoriteCreators,
 } from '../lib/compute';
-import { dismissRecommendation, respondRecommendation, saveRating, discoverNewTv, discoverByPeople, type PersonSuggestion, type SuggestPerson } from '../lib/api';
+import { dismissRecommendation, respondRecommendation, saveRating, discoverNewTv, discoverByPeople, fetchSimilar, type PersonSuggestion, type SuggestPerson } from '../lib/api';
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
 import ActionSheet, { type ActionOption } from './ActionSheet';
@@ -168,6 +168,43 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [favActorNames.join(','), favCreatorNames.join(',')]);
 
+  // "Als je dit leuk vindt…": TMDb-aanbevelingen bij je hoogst beoordeelde series.
+  const seeds = snap.ratings
+    .filter((r) => r.user_id === userId && (r.score ?? 0) >= 8 && r.title_id > 0)
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || b.updated_at - a.updated_at)
+    .slice(0, 3)
+    .map((r) => ({ title: snap.titles.find((t) => t.tmdb_id === r.title_id), score: r.score as number }))
+    .filter((s): s is { title: Title; score: number } => s.title != null);
+  const [similar, setSimilar] = useState<Record<number, SearchResult[]>>({});
+  useEffect(() => {
+    let alive = true;
+    Promise.all(seeds.map(async (s) => [s.title.tmdb_id, await fetchSimilar(s.title.tmdb_id)] as const))
+      .then((pairs) => { if (alive) setSimilar(Object.fromEntries(pairs)); })
+      .catch(() => {});
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seeds.map((s) => s.title.tmdb_id).join(',')]);
+
+  // Per seed max 3 nog onbekende series; over de seeds heen ontdubbelen.
+  const seenRec = new Set<number>();
+  const similarRows = seeds
+    .map((s) => ({
+      seed: s,
+      items: (similar[s.title.tmdb_id] ?? [])
+        .filter((r) => !known.has(r.tmdb_id) && !seenRec.has(r.tmdb_id))
+        .slice(0, 3)
+        .map((r) => { seenRec.add(r.tmdb_id); return r; }),
+    }))
+    .filter((g) => g.items.length > 0);
+  // Vrienden die de seed óók hoog gaven — maakt de tip overtuigender.
+  const seedFans = (tmdbId: number) => {
+    const ids = new Set(snap.follows.filter((f) => f.follower === userId).map((f) => f.followee));
+    return snap.ratings
+      .filter((r) => r.title_id === tmdbId && r.user_id !== userId && ids.has(r.user_id) && (r.score ?? 0) >= 8)
+      .map((r) => snap.profiles.find((p) => p.id === r.user_id)?.name?.split(' ')[0])
+      .filter((n): n is string => !!n);
+  };
+
   const favRows = [
     ...favSuggests.map(({ title, actors, creators }) => ({
       tmdb_id: title.tmdb_id,
@@ -287,6 +324,32 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
           <p>Je hebt <b>{count}</b> van de {MIN_RATINGS_FOR_PROFILE} series beoordeeld.</p>
           <p className="muted">Geef nog {MIN_RATINGS_FOR_PROFILE - count} cijfer{MIN_RATINGS_FOR_PROFILE - count === 1 ? '' : 's'} en je persoonlijke tips gaan vanzelf branden.</p>
         </div>
+      )}
+
+      {/* "Als je dit leuk vindt…" — TMDb-aanbevelingen bij je toppers */}
+      {similarRows.length > 0 && (
+        <>
+          <h2>Als je dit leuk vindt…</h2>
+          {similarRows.map(({ seed, items }) => {
+            const fans = seedFans(seed.title.tmdb_id);
+            return (
+              <div key={seed.title.tmdb_id} style={{ marginBottom: 16 }}>
+                <div className="rec-reason">
+                  <span className="ric">🎯</span>
+                  <span>
+                    Omdat je <b>{seed.title.name}</b> een {seed.score} gaf
+                    {fans.length > 0 && <> — {fans.join(' en ')} vond{fans.length === 1 ? '' : 'en'} 'm ook goed</>}
+                  </span>
+                </div>
+                {items.map((r) => (
+                  <div key={r.tmdb_id} style={{ marginBottom: 10 }}>
+                    <DiscoverCard item={r} onAdd={onAdd} />
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </>
       )}
 
       {/* Top 5 met jouw favoriete acteurs en makers — nog niet op je lijst */}

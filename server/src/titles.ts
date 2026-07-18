@@ -114,6 +114,46 @@ export async function refreshTitles(rows: { tmdb_id: number }[], label: string):
   console.log(`${label} klaar: ${changed} met een nieuw seizoen.`);
 }
 
+// OMDb-antwoord naar nette getallen ("8.4"/"123,456"; "N/A" → null).
+export function parseOmdbRating(d: any): { rating: number | null; votes: number | null } {
+  const rating = Number.parseFloat(d?.imdbRating);
+  const votes = Number.parseInt(String(d?.imdbVotes ?? '').replace(/,/g, ''), 10);
+  return {
+    rating: Number.isFinite(rating) ? rating : null,
+    votes: Number.isFinite(votes) ? votes : null,
+  };
+}
+
+// IMDb-cijfers via OMDb verversen voor titels met een imdb_id (cache 7 dagen).
+// Rustig getimed en gemaximeerd per run i.v.m. de gratis daglimiet van OMDb.
+export async function refreshImdbRatings(): Promise<void> {
+  const key = process.env.OMDB_API_KEY;
+  if (!key) return;
+  const weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+  const rows = db
+    .prepare('SELECT tmdb_id, imdb_id FROM titles WHERE imdb_id IS NOT NULL AND (imdb_rating_at IS NULL OR imdb_rating_at < ?) LIMIT 150')
+    .all(weekAgo) as { tmdb_id: number; imdb_id: string }[];
+  if (!rows.length) return;
+
+  console.log(`IMDb-cijfers verversen voor ${rows.length} titel(s)…`);
+  const upd = db.prepare('UPDATE titles SET imdb_rating = ?, imdb_votes = ?, imdb_rating_at = ? WHERE tmdb_id = ?');
+  let filled = 0;
+  for (const r of rows) {
+    try {
+      const res = await fetch(`https://www.omdbapi.com/?i=${encodeURIComponent(r.imdb_id)}&apikey=${key}`);
+      const d: any = await res.json();
+      const { rating, votes } = parseOmdbRating(d);
+      // Ook een misser krijgt een tijdstempel, anders blijft dezelfde titel de limiet opeten.
+      upd.run(rating, votes, Date.now(), r.tmdb_id);
+      if (rating != null) filled++;
+      if (filled > 0 && filled % 25 === 0) broadcast('state', 1);
+    } catch { /* titel overslaan bij fout */ }
+    await new Promise((res) => setTimeout(res, 300));
+  }
+  if (filled) broadcast('state', 1);
+  console.log(`IMDb-cijfers klaar: ${filled} bijgewerkt.`);
+}
+
 // Eenmalig cast-foto's en makers aanvullen voor titels die die info nog missen
 // (vult onderweg ook de dienstlogo's).
 export async function backfillCastMeta(): Promise<void> {

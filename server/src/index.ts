@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { db, getSnapshot, parseJson } from './db.js';
-import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb, discoverByPeople } from './tmdb.js';
+import { searchTv, getTvDetails, getImdbId, getNewTv, findTvIdByImdb, discoverByPeople, getRecommendations } from './tmdb.js';
 import { tvmazeByImdb, type EnrichData } from './tvmaze.js';
 import { addClient, broadcast } from './events.js';
 import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 import { logActivity, nameOf, titleNameOf, listersOf } from './helpers.js';
-import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, refreshOngoingTitles } from './titles.js';
+import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, refreshOngoingTitles, refreshImdbRatings } from './titles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -92,6 +92,26 @@ app.get('/api/tmdb/people', async (req, res) => {
     res.json(await discoverByPeople(parse(req.query.actors), parse(req.query.creators)));
   } catch {
     res.json([]); // tips zijn nice-to-have: liever leeg dan een fout
+  }
+});
+
+// "Als je dit leuk vindt…" — TMDb-aanbevelingen per serie, 7 dagen gecachet.
+app.get('/api/similar', async (req, res) => {
+  const id = Number(req.query.tmdb_id);
+  if (!Number.isFinite(id) || id <= 0) return res.json({ results: [] });
+  const cached = db.prepare('SELECT data, updated_at FROM similar_cache WHERE tmdb_id = ?').get(id) as any;
+  if (cached && Date.now() - cached.updated_at < 7 * 24 * 3600 * 1000) {
+    return res.json({ results: JSON.parse(cached.data) });
+  }
+  if (!process.env.TMDB_API_KEY) return res.json({ results: [] });
+  try {
+    const results = await getRecommendations(id);
+    db.prepare('INSERT INTO similar_cache (tmdb_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(tmdb_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at')
+      .run(id, JSON.stringify(results), Date.now());
+    res.json({ results });
+  } catch {
+    // TMDb-hapering: liever een verouderde cache (of leeg) dan een fout.
+    res.json({ results: cached ? JSON.parse(cached.data) : [] });
   }
 });
 
@@ -679,10 +699,13 @@ app.listen(PORT, () => {
   // Niet awaiten: op de achtergrond laten lopen (na elkaar, rustig getimed).
   backfillImdbIds()
     .catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e))
-    .finally(() => backfillCastMeta().catch((e) => console.warn('Cast-backfill mislukt:', e?.message || e)));
+    .finally(() => backfillCastMeta().catch((e) => console.warn('Cast-backfill mislukt:', e?.message || e)))
+    // Na de id-backfill de IMDb-cijfers ophalen (heeft de imdb_id's nodig).
+    .finally(() => refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e)));
   refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
-  // Daarna elke 12 uur opnieuw de lopende series checken.
+  // Daarna elke 12 uur opnieuw de lopende series en IMDb-cijfers checken.
   setInterval(() => {
     refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
+    refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));
   }, 12 * 3600 * 1000);
 });

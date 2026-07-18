@@ -33,6 +33,9 @@ export interface Title {
   /** Bedenkers/makers van de serie (TMDb created_by). */
   creators?: { name: string; photo: string | null }[];
   imdb_id?: string | null;
+  /** IMDb-cijfer via OMDb (op de achtergrond gevuld). */
+  imdb_rating?: number | null;
+  imdb_votes?: number | null;
   tmdb_status?: string | null;
   refreshed_at?: number | null;
   new_season_at?: number | null;

@@ -33,6 +33,13 @@ export async function discoverNewTv(): Promise<SearchResult[]> {
   return res.json();
 }
 
+/** "Als je dit leuk vindt…" — aanbevelingen bij één serie (server cachet). */
+export async function fetchSimilar(tmdbId: number): Promise<SearchResult[]> {
+  const res = await fetch(`/api/similar?tmdb_id=${tmdbId}`, { headers: headers() });
+  if (!res.ok) return [];
+  return (await res.json()).results ?? [];
+}
+
 export interface SuggestPerson {
   name: string;
   photo: string | null;

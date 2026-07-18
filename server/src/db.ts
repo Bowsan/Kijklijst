@@ -120,6 +120,12 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS similar_cache (
+    tmdb_id     INTEGER PRIMARY KEY,
+    data        TEXT NOT NULL,
+    updated_at  INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS messages (
     id          TEXT PRIMARY KEY,
     from_user   TEXT NOT NULL,
@@ -144,6 +150,9 @@ function addTitleColumns(): void {
   add('new_season_at', 'INTEGER');
   add('cast_meta', 'TEXT'); // cast met portretfoto's (gevuld bij refresh)
   add('creators', 'TEXT'); // bedenkers/makers met portretfoto's (gevuld bij refresh)
+  add('imdb_rating', 'REAL'); // IMDb-cijfer via OMDb (gevuld op de achtergrond)
+  add('imdb_votes', 'INTEGER');
+  add('imdb_rating_at', 'INTEGER'); // wanneer voor het laatst ververst
 }
 addTitleColumns();
 

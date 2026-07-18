@@ -458,6 +458,8 @@ input, textarea, select {
   background: #f5c518; color: #000; font-weight: 800; font-size: 11px;
   padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em;
 }
+/* IMDb-cijfer naast de badge (via OMDb). */
+.imdb-score { color: #b28b00; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 
 /* Status + cijfer per gevolgde vriend, één regel per vriend */
 .friend-status-list { display: flex; flex-direction: column; gap: 6px; }
