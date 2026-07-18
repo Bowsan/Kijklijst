@@ -138,20 +138,26 @@ export async function refreshImdbRatings(): Promise<void> {
   console.log(`IMDb-cijfers verversen voor ${rows.length} titel(s)…`);
   const upd = db.prepare('UPDATE titles SET imdb_rating = ?, imdb_votes = ?, imdb_rating_at = ? WHERE tmdb_id = ?');
   let filled = 0;
+  let failed = 0;
   for (const r of rows) {
     try {
       const res = await fetch(`https://www.omdbapi.com/?i=${encodeURIComponent(r.imdb_id)}&apikey=${key}`);
       const d: any = await res.json();
+      if (d?.Error) throw new Error(String(d.Error));
       const { rating, votes } = parseOmdbRating(d);
       // Ook een misser krijgt een tijdstempel, anders blijft dezelfde titel de limiet opeten.
       upd.run(rating, votes, Date.now(), r.tmdb_id);
       if (rating != null) filled++;
       if (filled > 0 && filled % 25 === 0) broadcast('state', 1);
-    } catch { /* titel overslaan bij fout */ }
+    } catch (e: any) {
+      // Eerste fout loggen zodat een kapotte sleutel/limiet zichtbaar is in de serverlog.
+      if (failed === 0) console.warn(`OMDb-fout bij ${r.imdb_id}: ${e?.message || e}`);
+      failed++;
+    }
     await new Promise((res) => setTimeout(res, 300));
   }
   if (filled) broadcast('state', 1);
-  console.log(`IMDb-cijfers klaar: ${filled} bijgewerkt.`);
+  console.log(`IMDb-cijfers klaar: ${filled} bijgewerkt${failed ? `, ${failed} mislukt` : ''}.`);
 }
 
 // Eenmalig cast-foto's en makers aanvullen voor titels die die info nog missen

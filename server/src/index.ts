@@ -676,6 +676,8 @@ app.post('/api/refresh-titles', (req, res) => {
   if (!process.env.TMDB_API_KEY) return res.status(503).json({ error: 'TMDb-sleutel ontbreekt' });
   const rows = db.prepare('SELECT tmdb_id FROM titles WHERE tmdb_id > 0').all() as { tmdb_id: number }[];
   refreshTitles(rows, 'Handmatige refresh').catch((e) => console.warn('Refresh mislukt:', e?.message || e));
+  // Ook de IMDb-cijfers meenemen, zodat de knop in Profiel alles ineens ververst.
+  refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));
   res.json({ ok: true, count: rows.length });
 });
 
@@ -703,10 +705,12 @@ app.listen(PORT, () => {
   // Bestaande base64-afbeeldingen eenmalig naar bestanden verplaatsen.
   try { migrateDataUrisToFiles(); } catch (e: any) { console.warn('Uploads-migratie mislukt:', e?.message || e); }
   // Niet awaiten: op de achtergrond laten lopen (na elkaar, rustig getimed).
+  // IMDb-cijfers meteen ophalen voor titels die al een imdb_id hebben…
+  refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));
   backfillImdbIds()
     .catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e))
     .finally(() => backfillCastMeta().catch((e) => console.warn('Cast-backfill mislukt:', e?.message || e)))
-    // Na de id-backfill de IMDb-cijfers ophalen (heeft de imdb_id's nodig).
+    // …en nogmaals na de id-backfill, voor titels die net een imdb_id kregen.
     .finally(() => refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e)));
   refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
   // Daarna elke 12 uur opnieuw de lopende series en IMDb-cijfers checken.
