@@ -305,17 +305,15 @@ input, textarea, select {
 .score-pill svg { display: block; flex-shrink: 0; }
 .score-pill.group { background: #5d7191; }
 
-/* Een 10 is goud: lichte glans die periodiek over de pil veegt. */
+/* Een 10 krijgt om de eigen kleur een gouden, glimmende rand met shimmer. */
 .score-pill { position: relative; overflow: hidden; }
-.score-pill.gold::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(115deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%);
-  transform: translateX(-100%);
-  animation: goldShimmer 2.6s ease-in-out infinite;
+.score-pill.gold {
+  overflow: visible;
+  box-shadow: 0 0 0 2px #e8b923, 0 0 6px rgba(232, 185, 35, 0.45);
+  animation: goldRing 2.4s ease-in-out infinite;
 }
-@keyframes goldShimmer {
-  55%, 100% { transform: translateX(100%); }
+@keyframes goldRing {
+  50% { box-shadow: 0 0 0 2px #ffe08a, 0 0 12px rgba(255, 214, 80, 0.85); }
 }
 /* Gouden 10 in de cijfer-slider: shimmer door het cijfer zelf. */
 .ss-value.gold {
@@ -330,7 +328,7 @@ input, textarea, select {
   to { background-position: -220% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .score-pill.gold::after { animation: none; content: none; }
+  .score-pill.gold { animation: none; }
   .ss-value.gold { animation: none; background: none; color: #c9930a; }
 }
 

@@ -1,16 +1,18 @@
-// Kleurschaal voor cijfers, ook gebruikt door de cijfer-pil op de kaart:
-// 1–3 donkerrood · 4–5 rood · 6 lichter rood/oranje · 7 lichtgroen ·
-// 8 groen · 9 geelgroen · 10 goud (met shimmer via de .gold-klasse).
+// Kleurschaal voor cijfers (1 t/m 10), ook gebruikt door de cijfer-pil op de
+// kaart: van donkerrood (1) via oranje/geel (5-6) naar groen (7-9) en
+// blauwgroen (10). De 10 krijgt daarbovenop een gouden shimmer-rand
+// via de .gold-klasse.
 const ANCHORS: { v: number; c: [number, number, number] }[] = [
-  { v: 1, c: [127, 29, 29] },   // donkerrood
-  { v: 3, c: [127, 29, 29] },
-  { v: 4, c: [220, 47, 47] },   // rood
-  { v: 5, c: [220, 47, 47] },
-  { v: 6, c: [232, 112, 61] },  // lichter rood/oranje
-  { v: 7, c: [103, 178, 111] }, // lichtgroen
-  { v: 8, c: [31, 157, 91] },   // groen
-  { v: 9, c: [148, 168, 33] },  // geelgroen
-  { v: 10, c: [212, 160, 23] }, // goud
+  { v: 1, c: [139, 0, 0] },     // #8B0000
+  { v: 2, c: [165, 42, 42] },   // #A52A2A
+  { v: 3, c: [229, 57, 53] },   // #E53935
+  { v: 4, c: [244, 81, 30] },   // #F4511E
+  { v: 5, c: [251, 140, 0] },   // #FB8C00
+  { v: 6, c: [249, 168, 37] },  // #F9A825
+  { v: 7, c: [124, 179, 66] },  // #7CB342
+  { v: 8, c: [67, 160, 71] },   // #43A047
+  { v: 9, c: [46, 125, 50] },   // #2E7D32
+  { v: 10, c: [0, 122, 124] },  // #007A7C
 ];
 
 /** Kleur bij een cijfer (halve cijfers interpoleren tussen de ankers). */
@@ -27,7 +29,7 @@ export function scoreColor(score: number): string {
   return `rgb(${ANCHORS[ANCHORS.length - 1].c.join(', ')})`;
 }
 
-/** Een (afgeronde) 10 is goud en krijgt de shimmer-animatie. */
+/** Een (afgeronde) 10 krijgt de gouden shimmer-rand. */
 export function isGoldScore(score: number): boolean {
   return score >= 9.95;
 }
