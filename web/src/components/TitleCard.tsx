@@ -103,9 +103,21 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   // De algemene 👥-teller verbergen we als we de vriendcijfers of wishlist-avatars al tonen.
   const showOthers = others.length > 0 && !(showFriendScores && friendScores.length > 0) && wanters.length === 0;
 
+  // Seizoenen optimistisch bijhouden: de knopjes reageren direct, de server
+  // (en de gedeelde snapshot) volgen op de achtergrond — anders voelt vooral
+  // "Alles" traag door de volledige herlaad-rondgang.
+  const [pendingSeasons, setPendingSeasons] = useState<number[] | null>(null);
+  const watchedSeasons = pendingSeasons ?? mine?.seasons ?? [];
+  useEffect(() => {
+    if (pendingSeasons && JSON.stringify([...(mine?.seasons ?? [])].sort((a, b) => a - b)) === JSON.stringify([...pendingSeasons].sort((a, b) => a - b))) {
+      setPendingSeasons(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mine?.seasons]);
+
   // Seizoen-voortgang voor de ingeklapte kaart: hoeveel van de N seizoenen zag je?
   const totalSeasons = title.seasons.length;
-  const watchedSeasonCount = mine?.seasons?.filter((n) => title.seasons.some((s) => s.season_number === n)).length ?? 0;
+  const watchedSeasonCount = watchedSeasons.filter((n) => title.seasons.some((s) => s.season_number === n)).length;
   const seasonsChip = !!mine && totalSeasons > 1;
   const newSeason = hasUnseenNewSeason(snap, title, userId);
 
@@ -183,17 +195,25 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     }
   };
 
-  const watchedSeasons = mine?.seasons || [];
+  // Direct tonen, dan pas opslaan; bij een fout terugdraaien.
+  const commitSeasons = (next: number[]) => {
+    setPendingSeasons(next);
+    saveRating({ tmdb_id: title.tmdb_id, seasons: next })
+      .then(onChange)
+      .catch((e: any) => {
+        setPendingSeasons(null);
+        toast(e.message || 'Opslaan mislukt');
+      });
+  };
   const toggleSeason = (n: number) => {
-    const next = watchedSeasons.includes(n)
+    commitSeasons(watchedSeasons.includes(n)
       ? watchedSeasons.filter((s) => s !== n)
-      : [...watchedSeasons, n].sort((a, b) => a - b);
-    update({ seasons: next });
+      : [...watchedSeasons, n].sort((a, b) => a - b));
   };
   const toggleAllSeasons = () => {
     const all = title.seasons.map((s) => s.season_number);
     const allOn = all.every((n) => watchedSeasons.includes(n));
-    update({ seasons: allOn ? [] : all });
+    commitSeasons(allOn ? [] : all);
   };
 
   const currentService = guessService(title, me, mine?.service || null);
