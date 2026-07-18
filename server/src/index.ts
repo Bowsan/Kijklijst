@@ -44,7 +44,13 @@ function userId(req: express.Request): string | null {
 
 // ---------- Health ----------
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, tmdb: !!process.env.TMDB_API_KEY });
+  res.json({
+    ok: true,
+    tmdb: !!process.env.TMDB_API_KEY,
+    omdb: !!process.env.OMDB_API_KEY,
+    // Hoeveel titels hebben al een IMDb-cijfer? Handig om de OMDb-job te volgen.
+    imdb_ratings: (db.prepare('SELECT COUNT(*) c FROM titles WHERE imdb_rating IS NOT NULL').get() as any).c,
+  });
 });
 
 // ---------- Realtime (SSE) ----------
