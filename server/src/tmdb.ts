@@ -59,6 +59,21 @@ export async function searchTv(query: string): Promise<SearchResult[]> {
     }));
 }
 
+// "Kijkers van deze serie keken ook…" — TMDb's eigen aanbevelingen per serie.
+export async function getRecommendations(id: number): Promise<SearchResult[]> {
+  const data = await tmdb(`/tv/${id}/recommendations`);
+  return (data.results || [])
+    .filter((r: any) => (r.vote_count ?? 0) >= 25) // obscure/lege inzendingen overslaan
+    .slice(0, 12)
+    .map((r: any) => ({
+      tmdb_id: r.id,
+      name: r.name,
+      year: r.first_air_date ? Number(r.first_air_date.slice(0, 4)) : null,
+      poster_path: r.poster_path,
+      overview: r.overview || '',
+    }));
+}
+
 // De nieuwste series ontdekken (voor de "Voor jou" ontdek-sectie).
 // We sorteren op eerste uitzenddatum aflopend, maar eisen een minimum aan stemmen
 // zodat we geen obscure of lege inzendingen tonen.

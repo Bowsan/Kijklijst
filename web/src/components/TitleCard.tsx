@@ -495,7 +495,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               </p>
             )}
             <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+              <span className="imdb-badge">IMDb</span>
+              {title.imdb_rating != null && (
+                <b className="imdb-score" title={title.imdb_votes ? `${title.imdb_votes.toLocaleString('nl-NL')} stemmen` : undefined}>
+                  ★ {fmt1(title.imdb_rating)}
+                </b>
+              )}
+              {' '}Bekijk op IMDb ↗
             </a>
             {/* Handmatig toegevoegde serie (negatief id): info aanvullen via IMDb/TVmaze. */}
             {title.tmdb_id < 0 && (
