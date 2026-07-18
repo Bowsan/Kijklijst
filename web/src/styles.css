@@ -1260,6 +1260,35 @@ input, textarea, select {
   cursor: pointer;
 }
 .fab-search:active { transform: scale(0.94); }
+
+/* Spraakballonnetje bij de +knop (na de onboarding). */
+.fab-hint {
+  position: fixed;
+  right: 16px;
+  bottom: calc(140px + var(--safe-bottom));
+  z-index: 50;
+  background: var(--accent-grad);
+  color: #fff;
+  font-size: 13.5px; font-weight: 600;
+  border: none; border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: hint-pop 0.35s ease-out;
+}
+.fab-hint::after {
+  content: '';
+  position: absolute;
+  right: 20px; bottom: -6px;
+  width: 12px; height: 12px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+@keyframes hint-pop {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
 .scroll-top {
   position: fixed;
   left: 16px;

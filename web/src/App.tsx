@@ -438,6 +438,16 @@ export default function App() {
   // Na de onboarding-instructie "zet op je beginscherm" (iOS): bij de eerste
   // start vanaf het beginscherm alsnog éénmalig meldingen voorstellen.
   const [showPushAsk, setShowPushAsk] = useState(false);
+
+  // Na de onboarding: land op de eigen "Gezien"-lijst met een hint bij de +knop.
+  const [showAddHint, setShowAddHint] = useState(false);
+  const finishOnboarding = async () => {
+    await reload();
+    setFriend('me');
+    setStatus('finished');
+    setTab('list');
+    setShowAddHint(true);
+  };
   useEffect(() => {
     if (!isStandalone() || !shouldAskPush()) return;
     if (!('Notification' in window) || Notification.permission === 'denied') { clearAskPush(); return; }
@@ -507,7 +517,7 @@ export default function App() {
   // minder dan 5 beoordelingen heeft en de onboarding nog niet zag.
   const scoredByMe = snap.ratings.filter((r) => r.user_id === userId && r.score != null).length;
   if (!me || (!isOnboarded() && scoredByMe < 5)) {
-    return <Onboarding existing={!!me} onDone={reload} />;
+    return <Onboarding existing={!!me} onDone={finishOnboarding} />;
   }
 
   return (
@@ -765,7 +775,14 @@ export default function App() {
             onClose={() => { setNameFilter(''); setSearchOpen(false); }}
           />
         ) : (
-          <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
+          <>
+            {showAddHint && (
+              <button className="fab-hint" onClick={() => { setShowAddHint(false); setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>
+                Voeg hier jouw series toe!
+              </button>
+            )}
+            <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setShowAddHint(false); setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
+          </>
         )
       )}
 

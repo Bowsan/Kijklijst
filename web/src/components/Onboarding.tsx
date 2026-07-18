@@ -168,9 +168,8 @@ export default function Onboarding({ existing = false, onDone }: {
           <div className="big">⭐</div>
           <h1>Zet een eerste stap met je collectie</h1>
           <p className="muted">
-            Dit zijn de {titles.length} bekendste series van de app. Tik op een serie om 'm op je
-            wishlist te zetten, als gezien te markeren of een cijfer te geven — vanaf{' '}
-            {MIN_RATINGS_FOR_PROFILE} cijfers krijg je persoonlijke tips.
+            Tik op een serie om 'm te beoordelen of op je Wishlist te zetten.
+            Vanaf {MIN_RATINGS_FOR_PROFILE} cijfers krijg je handige tips!
             {done > 0 && <> Al <b>{done}</b> gedaan!</>}
           </p>
         </div>
