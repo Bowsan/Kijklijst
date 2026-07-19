@@ -460,6 +460,9 @@ input, textarea, select {
 .imdb-score { color: #b28b00; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 /* TMDb-publiekscijfer als klein sterretje op ontdek-/tipkaarten. */
 .tmdb-vote { color: #2a9d63; font-weight: 700; white-space: nowrap; }
+/* IMDb-cijfer inline (badge + getal) op ontdek-/tipkaarten. */
+.imdb-inline { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: #b28b00; font-weight: 700; }
+.imdb-inline .imdb-badge { font-size: 10px; padding: 1px 4px; }
 
 /* Genre-rij op het dashboard: groot icoon links, met balk + beste serie rechts. */
 .genre-stat { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }

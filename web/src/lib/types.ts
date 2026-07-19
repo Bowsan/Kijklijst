@@ -140,6 +140,8 @@ export interface SearchResult {
   /** TMDb-publiekscijfer (0-10) en aantal stemmen. */
   vote?: number | null;
   vote_count?: number | null;
+  /** IMDb-cijfer (via OMDb), server-side aangevuld. */
+  imdb?: number | null;
 }
 
 export const STATUS_LABELS: Record<Status, string> = {

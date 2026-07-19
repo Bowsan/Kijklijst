@@ -33,6 +33,8 @@ export interface SearchResult {
   /** TMDb-publiekscijfer (0-10) en aantal stemmen — voor kwaliteitsfilter/badge. */
   vote?: number | null;
   vote_count?: number | null;
+  /** IMDb-cijfer (via OMDb), achteraf aangevuld. */
+  imdb?: number | null;
 }
 
 // De NL-streamingdiensten voor één serie ophalen (lichte losse call).
@@ -137,6 +139,7 @@ export interface PersonSuggestion {
   popularity: number;
   vote?: number | null;
   vote_count?: number | null;
+  imdb?: number | null;
 }
 
 // Cache per persoon (12 uur): zoeken + tv-credits zijn twee calls per naam.

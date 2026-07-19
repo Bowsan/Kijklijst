@@ -126,6 +126,14 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
 
+  -- IMDb-cijfer per TMDb-id, ook voor series die (nog) niet op de lijst staan.
+  CREATE TABLE IF NOT EXISTS imdb_by_tmdb (
+    tmdb_id     INTEGER PRIMARY KEY,
+    rating      REAL,
+    votes       INTEGER,
+    updated_at  INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS messages (
     id          TEXT PRIMARY KEY,
     from_user   TEXT NOT NULL,
