@@ -93,8 +93,8 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         genre,
         count,
         avg: gs.length ? gs.reduce((a, b) => a + b, 0) / gs.length : null,
-        // Jouw drie hoogst beoordeelde series in dit genre (voorbeelden).
-        top: rated.sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.title),
+        // Top 25 op jouw cijfer; de kaart kiest daaruit 3 willekeurige voorbeelden.
+        pool: rated.sort((a, b) => b.score - a.score).slice(0, 25).map((x) => x.title),
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
@@ -286,8 +286,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   count={g.count}
                   avg={g.avg}
                   max={maxGenreCount}
-                  titles={g.top}
-                  color="var(--accent)"
+                  pool={g.pool}
                   onGenre={() => onNavigate({ status: 'mine', genre: g.genre })}
                   onTitle={(id) => onNavigate({ status: 'mine', titleId: id })}
                 />

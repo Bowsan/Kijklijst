@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status } from '../../lib/types';
 import { serviceLogoUrl } from '../../lib/types';
 import { genreEmoji } from '../../lib/genres';
+import { scoreColor } from '../../lib/score';
 import { fmt1 } from '../../lib/format';
 import Thumb from '../Thumb';
 
@@ -97,40 +98,70 @@ export function BarRow({ label, value, max, val, color, onClick }: { label: Reac
   );
 }
 
-/** Genre-rij: groot icoon links, balk + (tot 3) voorbeeldseries eronder. */
-export function GenreStat({ genre, count, avg, max, titles, color, onGenre, onTitle }: {
+// Drie willekeurige series uit de (al op rating gesorteerde) top van een genre.
+function pickThree(pool: Title[]): Title[] {
+  const arr = [...pool];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, 3);
+}
+
+/** Genre-kaart: icoon links (over de hele kaart), en rechts drie regels —
+ *  naam + gemiddelde, drie klikbare voorbeeldseries, en de balk met N×.
+ *  Tik op de kaart filtert op het genre; tik op een titel opent die serie. */
+export function GenreStat({ genre, count, avg, max, pool, onGenre, onTitle }: {
   genre: string;
   count: number;
   avg: number | null;
   max: number;
-  titles?: Title[];
-  color?: string;
+  /** Kandidaten (top ~25 op rating) waaruit 3 voorbeelden worden gekozen. */
+  pool: Title[];
   onGenre: () => void;
   onTitle: (tmdbId: number) => void;
 }) {
+  // Willekeurige keuze vasthouden zolang de kaart in beeld is (niet flikkeren
+  // bij ongerelateerde re-renders); bij opnieuw openen van de statistieken
+  // (nieuwe mount) wordt 'r opnieuw gekozen.
+  const poolKey = pool.map((t) => t.tmdb_id).join(',');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const examples = useMemo(() => pickThree(pool), [poolKey]);
+  const fill = avg != null ? scoreColor(avg) : 'var(--accent)';
   return (
-    <div className="genre-stat">
-      {/* Groot icoon dat beide regels (genre + voorbeeldseries) beslaat. */}
+    <div
+      className="genre-card"
+      role="button"
+      tabIndex={0}
+      onClick={onGenre}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onGenre(); } }}
+    >
       <span className="genre-icon">{genreEmoji(genre)}</span>
-      <div className="genre-body">
-        <BarRow
-          label={genre}
-          value={count} max={max}
-          val={avg != null ? <><b>{count}×</b> <span className="val-sub">· {fmt1(avg)}</span></> : <b>{count}×</b>}
-          color={color}
-          onClick={onGenre}
-        />
-        {titles && titles.length > 0 && (
-          // Eén regel met tot 3 titels, afgekapt met puntjes (nowrap + ellipsis).
-          <div className="genre-best">
-            {titles.map((t, i) => (
+      <div className="genre-main">
+        <div className="genre-titlerow">
+          <span className="genre-name">{genre}</span>
+          {avg != null && <span className="genre-avg" style={{ color: scoreColor(avg) }}>{fmt1(avg)}</span>}
+        </div>
+        {examples.length > 0 && (
+          <div className="genre-examples">
+            {examples.map((t, i) => (
               <span key={t.tmdb_id}>
-                {i > 0 && ', '}
-                <span className="genre-best-name" onClick={() => onTitle(t.tmdb_id)}>{t.name}</span>
+                {i > 0 && <span className="genre-sep"> · </span>}
+                <span
+                  className="genre-serie"
+                  role="link"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); onTitle(t.tmdb_id); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); onTitle(t.tmdb_id); } }}
+                >{t.name}</span>
               </span>
             ))}
           </div>
         )}
+        <div className="genre-barrow">
+          <div className="bar-track"><div className="bar-fill" style={{ width: `${max > 0 ? (count / max) * 100 : 0}%`, background: fill }} /></div>
+          <span className="genre-count"><b>{count}×</b></span>
+        </div>
       </div>
     </div>
   );
