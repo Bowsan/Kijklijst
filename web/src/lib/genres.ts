@@ -4,27 +4,22 @@ const GENRE_EMOJI: [RegExp, string][] = [
   [/sci-?fi|science|fantas/i, '🚀'],
   [/action|actie|avontuur|adventure/i, '💥'],
   [/animat/i, '🎨'],
-  [/comedy|komedie/i, '😂'],
-  [/crime|misdaad/i, '🔍'],
-  [/document/i, '🎥'],
-  [/myster/i, '🕵️'],
+  [/comedy|komedie/i, '😄'],
+  [/crime|misdaad/i, '🕵️'],
+  [/document/i, '🎬'],
+  [/myster/i, '🔍'],
   [/war|oorlog|politic|politiek/i, '⚔️'],
-  [/reality/i, '📸'],
-  [/famil/i, '👪'],
+  [/reality/i, '📺'],
+  [/famil/i, '👨‍👩‍👧'],
   [/kid|kinder|jeugd/i, '🧸'],
   [/west/i, '🤠'],
-  [/soap/i, '🧼'],
+  [/soap/i, '💧'],
   [/talk/i, '🎙️'],
   [/news|nieuws/i, '📰'],
-  [/horror|griezel/i, '👻'],
-  [/thrill/i, '🔪'],
-  [/roman/i, '💕'],
-  [/music|muziek/i, '🎵'],
-  [/histor|geschied/i, '🏛️'],
   [/drama/i, '🎭'],
 ];
 
 export function genreEmoji(name: string): string {
   for (const [re, emoji] of GENRE_EMOJI) if (re.test(name)) return emoji;
-  return '🎬';
+  return '🎞️';
 }

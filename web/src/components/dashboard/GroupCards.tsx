@@ -33,28 +33,35 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
   }, [snap, visible]);
 
   const groupGenreCounts = useMemo(() => {
-    // Per genre: aantal beoordelingen + de drie best gewaardeerde series (groepsgemiddelde).
-    const counts = new Map<string, number>();
+    // Per genre: aantal beoordelingen en het groepsgemiddelde (som/aantal cijfers).
+    const counts = new Map<string, { count: number; scoreSum: number; scoreN: number }>();
     for (const r of snap.ratings) {
       if (!visible.has(r.user_id)) continue;
       const t = titleById(snap, r.title_id);
       if (!t) continue;
-      for (const g of t.genres) counts.set(g, (counts.get(g) || 0) + 1);
+      for (const g of t.genres) {
+        if (!counts.has(g)) counts.set(g, { count: 0, scoreSum: 0, scoreN: 0 });
+        const e = counts.get(g)!;
+        e.count++;
+        if (r.score != null) { e.scoreSum += r.score; e.scoreN++; }
+      }
     }
-    // Groepsgemiddelde per titel, één keer berekend.
+    // Groepsgemiddelde per titel, één keer berekend (voor de voorbeeld-pool).
     const titleAvg = new Map<number, number>();
     for (const t of snap.titles) {
       const scores = snap.ratings.filter((r) => r.title_id === t.tmdb_id && visible.has(r.user_id) && r.score != null).map((r) => r.score as number);
       if (scores.length) titleAvg.set(t.tmdb_id, scores.reduce((a, b) => a + b, 0) / scores.length);
     }
     return [...counts.entries()]
-      .map(([genre, count]) => ({
+      .map(([genre, { count, scoreSum, scoreN }]) => ({
         genre,
         count,
-        top: snap.titles
+        avg: scoreN ? scoreSum / scoreN : null,
+        // Top 25 op groepsgemiddelde; de kaart kiest daaruit 3 willekeurige.
+        pool: snap.titles
           .filter((t) => t.genres.includes(genre) && titleAvg.has(t.tmdb_id))
           .sort((a, b) => (titleAvg.get(b.tmdb_id)! - titleAvg.get(a.tmdb_id)!))
-          .slice(0, 3),
+          .slice(0, 25),
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
@@ -140,10 +147,9 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
               key={g.genre}
               genre={g.genre}
               count={g.count}
-              avg={null}
+              avg={g.avg}
               max={maxGroupGenre}
-              titles={g.top}
-              color="var(--warn)"
+              pool={g.pool}
               onGenre={() => onNavigate({ status: 'all', genre: g.genre })}
               onTitle={(id) => onNavigate({ status: 'all', titleId: id })}
             />
