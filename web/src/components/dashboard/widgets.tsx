@@ -110,19 +110,23 @@ export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitl
 }) {
   return (
     <div className="genre-stat">
-      <BarRow
-        label={<><span className="genre-emoji">{genreEmoji(genre)}</span>{genre}</>}
-        value={count} max={max}
-        val={avg != null ? <><b>{count}×</b> <span className="val-sub">· {fmt1(avg)}</span></> : <b>{count}×</b>}
-        color={color}
-        onClick={onGenre}
-      />
-      {best && (
-        <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
-          <span className="genre-best-name">{best.title.name}</span>
-          <span className="genre-best-score">{best.score}</span>
-        </button>
-      )}
+      {/* Groot icoon dat beide regels (genre + beste serie) beslaat. */}
+      <span className="genre-icon">{genreEmoji(genre)}</span>
+      <div className="genre-body">
+        <BarRow
+          label={genre}
+          value={count} max={max}
+          val={avg != null ? <><b>{count}×</b> <span className="val-sub">· {fmt1(avg)}</span></> : <b>{count}×</b>}
+          color={color}
+          onClick={onGenre}
+        />
+        {best && (
+          <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
+            <span className="genre-best-name">{best.title.name}</span>
+            <span className="genre-best-score">{best.score}</span>
+          </button>
+        )}
+      </div>
     </div>
   );
 }

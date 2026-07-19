@@ -461,13 +461,14 @@ input, textarea, select {
 /* TMDb-publiekscijfer als klein sterretje op ontdek-/tipkaarten. */
 .tmdb-vote { color: #2a9d63; font-weight: 700; white-space: nowrap; }
 
-/* Genre-rij op het dashboard: balk + emoji, met de beste serie eronder. */
-.genre-stat { margin-bottom: 12px; }
+/* Genre-rij op het dashboard: groot icoon links, met balk + beste serie rechts. */
+.genre-stat { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.genre-icon { flex-shrink: 0; font-size: 30px; line-height: 1; width: 34px; text-align: center; }
+.genre-body { flex: 1; min-width: 0; }
 .genre-stat .bar-row { margin-bottom: 0; }
-.genre-emoji { margin-right: 6px; }
 .genre-best {
   display: flex; align-items: baseline; gap: 8px;
-  margin: 4px 0 0; padding: 2px 0 2px 26px;
+  margin: 4px 0 0; padding: 2px 0;
   background: none; text-align: left; cursor: pointer;
 }
 /* Serienaam als duidelijke link (accentkleur + onderstreping). */
