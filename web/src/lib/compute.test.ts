@@ -6,7 +6,7 @@ import {
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
   favoriteActors, sharedFavoriteActor, favoriteCreators, favoriteSuggestions,
-  NEW_SEASON_WINDOW,
+  imdbCompare, NEW_SEASON_WINDOW,
 } from './compute';
 
 // ---- kleine fabriekjes voor testdata ----
@@ -410,5 +410,56 @@ describe('tasteProfile / groupAverage', () => {
       ratings: [rating(1, 'a', { score: 8 }), rating(1, 'b', { status: 'want' })],
     });
     expect(groupAverage(s, 1)).toBe(8);
+  });
+});
+
+// ---- imdbCompare (feature: Jij vs IMDb) ----
+
+describe('imdbCompare', () => {
+  it('geeft null onder de drempel van 3 vergelijkbare series', () => {
+    const s = snap({
+      titles: [title(1, { imdb_rating: 8 }), title(2, { imdb_rating: 7 })],
+      ratings: [rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 })],
+    });
+    expect(imdbCompare(s, 'me')).toBeNull();
+  });
+
+  it('negeert series zonder IMDb-cijfer of zonder eigen cijfer', () => {
+    const s = snap({
+      titles: [title(1, { imdb_rating: 8 }), title(2), title(3, { imdb_rating: 7 })],
+      ratings: [rating(1, 'me', { score: 9 }), rating(2, 'me', { score: 8 }), rating(3, 'me', { score: 6 })],
+    });
+    // Alleen 2 series hebben zowel eigen cijfer als imdb → onder de drempel.
+    expect(imdbCompare(s, 'me')).toBeNull();
+  });
+
+  it('berekent gemiddeld verschil, guilty pleasure en de omgekeerde', () => {
+    const s = snap({
+      titles: [
+        title(1, { imdb_rating: 6 }),   // jij 9  → +3 (guilty pleasure)
+        title(2, { imdb_rating: 8.5 }), // jij 6  → -2.5 (wereld enthousiaster)
+        title(3, { imdb_rating: 7 }),   // jij 7  → 0
+      ],
+      ratings: [
+        rating(1, 'me', { score: 9 }),
+        rating(2, 'me', { score: 6 }),
+        rating(3, 'me', { score: 7 }),
+      ],
+    });
+    const r = imdbCompare(s, 'me')!;
+    expect(r.count).toBe(3);
+    expect(r.avgDelta).toBeCloseTo((3 - 2.5 + 0) / 3, 5);
+    expect(r.guilty?.title.tmdb_id).toBe(1);
+    expect(r.panned?.title.tmdb_id).toBe(2);
+  });
+
+  it('laat guilty/panned weg als het verschil klein is', () => {
+    const s = snap({
+      titles: [title(1, { imdb_rating: 7.5 }), title(2, { imdb_rating: 8 }), title(3, { imdb_rating: 7 })],
+      ratings: [rating(1, 'me', { score: 8 }), rating(2, 'me', { score: 8 }), rating(3, 'me', { score: 7 })],
+    });
+    const r = imdbCompare(s, 'me')!;
+    expect(r.guilty).toBeNull();
+    expect(r.panned).toBeNull();
   });
 });

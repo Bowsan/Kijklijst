@@ -137,6 +137,9 @@ export interface SearchResult {
   poster_path: string | null;
   overview: string;
   providers?: string[];
+  /** TMDb-publiekscijfer (0-10) en aantal stemmen. */
+  vote?: number | null;
+  vote_count?: number | null;
 }
 
 export const STATUS_LABELS: Record<Status, string> = {

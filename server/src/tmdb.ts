@@ -30,6 +30,9 @@ export interface SearchResult {
   poster_path: string | null;
   overview: string;
   providers?: string[];
+  /** TMDb-publiekscijfer (0-10) en aantal stemmen — voor kwaliteitsfilter/badge. */
+  vote?: number | null;
+  vote_count?: number | null;
 }
 
 // De NL-streamingdiensten voor één serie ophalen (lichte losse call).
@@ -56,6 +59,8 @@ export async function searchTv(query: string): Promise<SearchResult[]> {
       year: r.first_air_date ? Number(r.first_air_date.slice(0, 4)) : null,
       poster_path: r.poster_path,
       overview: r.overview || '',
+      vote: r.vote_average ?? null,
+      vote_count: r.vote_count ?? null,
     }));
 }
 
@@ -71,6 +76,8 @@ export async function getRecommendations(id: number): Promise<SearchResult[]> {
       year: r.first_air_date ? Number(r.first_air_date.slice(0, 4)) : null,
       poster_path: r.poster_path,
       overview: r.overview || '',
+      vote: r.vote_average ?? null,
+      vote_count: r.vote_count ?? null,
     }));
 }
 
@@ -95,6 +102,8 @@ export async function getNewTv(): Promise<SearchResult[]> {
       year: r.first_air_date ? Number(r.first_air_date.slice(0, 4)) : null,
       poster_path: r.poster_path,
       overview: r.overview || '',
+      vote: r.vote_average ?? null,
+      vote_count: r.vote_count ?? null,
     }));
 
   // Per serie de NL-streamingdienst(en) erbij zoeken (parallel; fout = geen dienst).
@@ -126,6 +135,8 @@ export interface PersonSuggestion {
   /** Favoriete makers die dit bedachten/maakten, met portretfoto. */
   creators: SuggestPerson[];
   popularity: number;
+  vote?: number | null;
+  vote_count?: number | null;
 }
 
 // Cache per persoon (12 uur): zoeken + tv-credits zijn twee calls per naam.
@@ -174,6 +185,8 @@ export async function discoverByPeople(actors: string[], creators: string[]): Pr
         actors: [],
         creators: [],
         popularity: s.popularity || 0,
+        vote: s.vote_average ?? null,
+        vote_count: s.vote_count ?? null,
       };
       out.set(s.id, e);
     }

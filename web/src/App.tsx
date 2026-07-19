@@ -46,6 +46,7 @@ const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
   { key: 'date', label: 'Oudste', dir: 'asc' },
   { key: 'name', label: 'Alfabetisch (A–Z)', dir: 'asc' },
   { key: 'rating', label: 'Hoogste rating', dir: 'desc' },
+  { key: 'imdb', label: 'Hoogste IMDb', dir: 'desc' },
 ];
 
 // Het scroll-element van de app (zie styles.css): #root, niet het document.
@@ -54,6 +55,7 @@ const scroller = () => document.getElementById('root');
 function sortLabel(key: SortKey, dir: SortDir): string {
   if (key === 'name') return dir === 'asc' ? 'A–Z' : 'Z–A';
   if (key === 'rating') return dir === 'desc' ? 'Hoogste' : 'Laagste';
+  if (key === 'imdb') return dir === 'desc' ? 'Hoogste IMDb' : 'Laagste IMDb';
   return dir === 'desc' ? 'Nieuwste' : 'Oudste';
 }
 
@@ -350,6 +352,8 @@ export default function App() {
         cmp = a.name.localeCompare(b.name);
       } else if (sortKey === 'rating') {
         cmp = (personScore(a.tmdb_id) ?? -1) - (personScore(b.tmdb_id) ?? -1);
+      } else if (sortKey === 'imdb') {
+        cmp = (a.imdb_rating ?? -1) - (b.imdb_rating ?? -1);
       } else {
         cmp = personDate(a) - personDate(b);
       }
