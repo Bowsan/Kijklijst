@@ -10,6 +10,7 @@ import { dismissRecommendation, respondRecommendation, saveRating, discoverNewTv
 import TitleCard from './TitleCard';
 import PosterFallback from './PosterFallback';
 import ActionSheet, { type ActionOption } from './ActionSheet';
+import ImdbChip from './ImdbChip';
 
 interface Props {
   snap: Snapshot;
@@ -25,13 +26,10 @@ interface Props {
   toast: (m: string) => void;
 }
 
-// Cijfer-chip: IMDb (geel badge) als we dat hebben, anders het TMDb-sterretje.
-function RatingChip({ imdb, vote }: { imdb?: number | null; vote?: number | null }) {
-  if (imdb != null && imdb > 0) {
-    return <span className="imdb-inline" title="IMDb-cijfer"><span className="imdb-badge">IMDb</span> {imdb.toFixed(1)}</span>;
-  }
-  if (vote != null && vote > 0) return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
-  return null;
+// Klein TMDb-sterretje als terugval wanneer we (nog) geen IMDb-cijfer hebben.
+function TmdbStar({ vote }: { vote?: number | null }) {
+  if (vote == null || vote <= 0) return null;
+  return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
 }
 
 // Kwaliteitsdrempel voor niet-toegevoegde tips: series met een bekend, laag
@@ -56,7 +54,7 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
           <div className="title-sub">
             {item.year || '—'}
             {item.providers && item.providers.length > 0 && ` · ${item.providers.join(', ')}`}
-            {((item.imdb ?? 0) > 0 || (item.vote ?? 0) > 0) && <> · <RatingChip imdb={item.imdb} vote={item.vote} /></>}
+            {(item.imdb == null || item.imdb <= 0) && (item.vote ?? 0) > 0 && <> · <TmdbStar vote={item.vote} /></>}
           </div>
           {item.overview
             ? (
@@ -72,9 +70,13 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
         </div>
       </div>
       <div className="dc-actions">
-        <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-          <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
-        </a>
+        {item.imdb != null && item.imdb > 0
+          ? <ImdbChip rating={item.imdb} url={imdbUrl} />
+          : (
+            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
+              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+            </a>
+          )}
         <button className="btn primary dc-add" onClick={() => onAdd(item.tmdb_id)}>+ Toevoegen</button>
       </div>
     </div>
@@ -112,7 +114,7 @@ function FavSuggestCard({ row, onAdd }: {
           <h3>{row.name}</h3>
           <div className="title-sub">
             {row.year || '—'}
-            {((row.imdb ?? 0) > 0 || (row.vote ?? 0) > 0) && <> · <RatingChip imdb={row.imdb} vote={row.vote} /></>}
+            {(row.imdb == null || row.imdb <= 0) && (row.vote ?? 0) > 0 && <> · <TmdbStar vote={row.vote} /></>}
           </div>
           <div className="fav-people">
             {row.creators.map((p) => <PersonChip key={`c-${p.name}`} person={p} kind="creator" />)}
@@ -132,9 +134,13 @@ function FavSuggestCard({ row, onAdd }: {
         </div>
       </div>
       <div className="dc-actions">
-        <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-          <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
-        </a>
+        {row.imdb != null && row.imdb > 0
+          ? <ImdbChip rating={row.imdb} url={imdbUrl} />
+          : (
+            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
+              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+            </a>
+          )}
         <button className="btn primary dc-add" onClick={() => onAdd(row.tmdb_id)}>+ Toevoegen</button>
       </div>
     </div>

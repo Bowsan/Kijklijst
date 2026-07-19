@@ -12,6 +12,7 @@ import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
 import PosterFallback from './PosterFallback';
+import ImdbChip from './ImdbChip';
 
 // De vaste set emoji voor reacties op prikbordberichten.
 const COMMENT_EMOJI = ['👍', '❤️', '😂', '😮'];
@@ -494,15 +495,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                 ))}
               </p>
             )}
-            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-              <span className="imdb-badge">IMDb</span>
-              {title.imdb_rating != null && (
-                <b className="imdb-score" title={title.imdb_votes ? `${title.imdb_votes.toLocaleString('nl-NL')} stemmen` : undefined}>
-                  ★ {fmt1(title.imdb_rating)}
-                </b>
+            {title.imdb_rating != null
+              ? <ImdbChip rating={title.imdb_rating} url={imdbUrl} />
+              : (
+                <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
+                  <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
+                </a>
               )}
-              {' '}Bekijk op IMDb ↗
-            </a>
             {/* Handmatig toegevoegde serie (negatief id): info aanvullen via IMDb/TVmaze. */}
             {title.tmdb_id < 0 && (
               <button className="btn ghost" style={{ alignSelf: 'flex-start', color: 'var(--accent)', padding: '4px 0', fontSize: 13 }} onClick={() => setShowEnrich(true)}>
