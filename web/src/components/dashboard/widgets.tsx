@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status } from '../../lib/types';
 import { serviceLogoUrl } from '../../lib/types';
 import { genreEmoji } from '../../lib/genres';
-import { scoreColor, isGoldScore } from '../../lib/score';
 import { fmt1 } from '../../lib/format';
 import Thumb from '../Thumb';
 
@@ -120,12 +119,8 @@ export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitl
       />
       {best && (
         <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
-          <span className="genre-best-tag">★ Top</span>
           <span className="genre-best-name">{best.title.name}</span>
-          <span
-            className={isGoldScore(best.score) ? 'score-pill gold' : 'score-pill'}
-            style={{ background: scoreColor(best.score), padding: '2px 8px', fontSize: 12 }}
-          >{best.score}</span>
+          <span className="genre-best-score">{best.score}</span>
         </button>
       )}
     </div>
