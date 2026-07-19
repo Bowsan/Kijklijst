@@ -14,7 +14,7 @@ import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 import { logActivity, nameOf, titleNameOf, listersOf } from './helpers.js';
-import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, refreshOngoingTitles, refreshImdbRatings } from './titles.js';
+import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, refreshOngoingTitles, refreshImdbRatings, attachImdbRatings } from './titles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -84,7 +84,7 @@ app.get('/api/tmdb/search', async (req, res) => {
 // De nieuwste series (ontdek-sectie in "Voor jou").
 app.get('/api/tmdb/new', async (_req, res) => {
   try {
-    res.json(await getNewTv());
+    res.json(await attachImdbRatings(await getNewTv()));
   } catch (err: any) {
     res.status(502).json({ error: err.message });
   }
@@ -95,7 +95,7 @@ app.get('/api/tmdb/people', async (req, res) => {
   if (!process.env.TMDB_API_KEY) return res.json([]);
   const parse = (v: unknown) => String(v || '').split(',').map((s) => s.trim()).filter(Boolean).slice(0, 3);
   try {
-    res.json(await discoverByPeople(parse(req.query.actors), parse(req.query.creators)));
+    res.json(await attachImdbRatings(await discoverByPeople(parse(req.query.actors), parse(req.query.creators))));
   } catch {
     res.json([]); // tips zijn nice-to-have: liever leeg dan een fout
   }
@@ -107,17 +107,18 @@ app.get('/api/similar', async (req, res) => {
   if (!Number.isFinite(id) || id <= 0) return res.json({ results: [] });
   const cached = db.prepare('SELECT data, updated_at FROM similar_cache WHERE tmdb_id = ?').get(id) as any;
   if (cached && Date.now() - cached.updated_at < 7 * 24 * 3600 * 1000) {
-    return res.json({ results: JSON.parse(cached.data) });
+    // IMDb-cijfers erbij (uit de eigen cache, geen extra TMDb-call nodig).
+    return res.json({ results: await attachImdbRatings(JSON.parse(cached.data)) });
   }
   if (!process.env.TMDB_API_KEY) return res.json({ results: [] });
   try {
-    const results = await getRecommendations(id);
+    const results = await attachImdbRatings(await getRecommendations(id));
     db.prepare('INSERT INTO similar_cache (tmdb_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(tmdb_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at')
       .run(id, JSON.stringify(results), Date.now());
     res.json({ results });
   } catch {
     // TMDb-hapering: liever een verouderde cache (of leeg) dan een fout.
-    res.json({ results: cached ? JSON.parse(cached.data) : [] });
+    res.json({ results: cached ? await attachImdbRatings(JSON.parse(cached.data)) : [] });
   }
 });
 

@@ -56,6 +56,7 @@ export interface PersonSuggestion {
   popularity: number;
   vote?: number | null;
   vote_count?: number | null;
+  imdb?: number | null;
 }
 
 // Series (TMDb-breed) met jouw favoriete acteurs/makers, voor "Van jouw favorieten".

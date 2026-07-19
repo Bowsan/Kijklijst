@@ -25,10 +25,13 @@ interface Props {
   toast: (m: string) => void;
 }
 
-// TMDb-publiekscijfer als klein sterretje (niet tonen zonder cijfer).
-function VoteChip({ vote }: { vote?: number | null }) {
-  if (vote == null || vote <= 0) return null;
-  return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
+// Cijfer-chip: IMDb (geel badge) als we dat hebben, anders het TMDb-sterretje.
+function RatingChip({ imdb, vote }: { imdb?: number | null; vote?: number | null }) {
+  if (imdb != null && imdb > 0) {
+    return <span className="imdb-inline" title="IMDb-cijfer"><span className="imdb-badge">IMDb</span> {imdb.toFixed(1)}</span>;
+  }
+  if (vote != null && vote > 0) return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
+  return null;
 }
 
 // Kwaliteitsdrempel voor niet-toegevoegde tips: series met een bekend, laag
@@ -53,7 +56,7 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
           <div className="title-sub">
             {item.year || '—'}
             {item.providers && item.providers.length > 0 && ` · ${item.providers.join(', ')}`}
-            {item.vote != null && item.vote > 0 && <> · <VoteChip vote={item.vote} /></>}
+            {((item.imdb ?? 0) > 0 || (item.vote ?? 0) > 0) && <> · <RatingChip imdb={item.imdb} vote={item.vote} /></>}
           </div>
           {item.overview
             ? (
@@ -93,7 +96,7 @@ function PersonChip({ person, kind }: { person: SuggestPerson; kind: 'actor' | '
 /** Tip-kaart voor "Van jouw favorieten": zelfde opzet als de ontdek-kaart,
     plus de favoriete acteurs/makers als reden. */
 function FavSuggestCard({ row, onAdd }: {
-  row: { tmdb_id: number; name: string; year: number | null; poster_path: string | null; overview: string; actors: SuggestPerson[]; creators: SuggestPerson[]; vote?: number | null };
+  row: { tmdb_id: number; name: string; year: number | null; poster_path: string | null; overview: string; actors: SuggestPerson[]; creators: SuggestPerson[]; vote?: number | null; imdb?: number | null };
   onAdd: (tmdbId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -109,7 +112,7 @@ function FavSuggestCard({ row, onAdd }: {
           <h3>{row.name}</h3>
           <div className="title-sub">
             {row.year || '—'}
-            {row.vote != null && row.vote > 0 && <> · <VoteChip vote={row.vote} /></>}
+            {((row.imdb ?? 0) > 0 || (row.vote ?? 0) > 0) && <> · <RatingChip imdb={row.imdb} vote={row.vote} /></>}
           </div>
           <div className="fav-people">
             {row.creators.map((p) => <PersonChip key={`c-${p.name}`} person={p} kind="creator" />)}
@@ -230,10 +233,11 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
       // Foto's van de personen komen uit de metadata van de serie zelf.
       actors: actors.map((n) => ({ name: n, photo: title.cast_meta?.find((c) => c.name === n)?.photo ?? null })),
       creators: creators.map((n) => ({ name: n, photo: title.creators?.find((c) => c.name === n)?.photo ?? null })),
+      imdb: title.imdb_rating, // deze staan al in de app, dus IMDb is bekend
     })),
     ...peopleTips
       .filter((p) => !snap.titles.some((t) => t.tmdb_id === p.tmdb_id) && passesQuality(p.vote))
-      .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, year: p.year, poster_path: p.poster_path, overview: p.overview, actors: p.actors, creators: p.creators, vote: p.vote })),
+      .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, year: p.year, poster_path: p.poster_path, overview: p.overview, actors: p.actors, creators: p.creators, vote: p.vote, imdb: p.imdb })),
   ].slice(0, 5);
 
   // Welke ontvangen tip toont het reactiemenu (of null).

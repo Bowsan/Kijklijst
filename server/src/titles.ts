@@ -160,6 +160,44 @@ export async function refreshImdbRatings(): Promise<void> {
   console.log(`IMDb-cijfers klaar: ${filled} bijgewerkt${failed ? `, ${failed} mislukt` : ''}.`);
 }
 
+// IMDb-cijfer voor één TMDb-id — ook voor series die nog niet op de lijst staan
+// (voor de tips/ontdek-kaarten in "Voor jou"). Bronvolgorde: de titels-tabel,
+// dan de cache, dan live via TMDb (imdb_id) + OMDb. 30 dagen cache.
+export async function imdbForTmdb(tmdbId: number): Promise<{ rating: number | null; votes: number | null } | null> {
+  const inTitles: any = db.prepare('SELECT imdb_rating, imdb_votes FROM titles WHERE tmdb_id = ? AND imdb_rating IS NOT NULL').get(tmdbId);
+  if (inTitles) return { rating: inTitles.imdb_rating, votes: inTitles.imdb_votes };
+
+  const cached: any = db.prepare('SELECT rating, votes, updated_at FROM imdb_by_tmdb WHERE tmdb_id = ?').get(tmdbId);
+  if (cached && Date.now() - cached.updated_at < 30 * 24 * 3600 * 1000) {
+    return { rating: cached.rating, votes: cached.votes };
+  }
+  const key = process.env.OMDB_API_KEY;
+  if (!key) return cached ? { rating: cached.rating, votes: cached.votes } : null;
+
+  const save = (rating: number | null, votes: number | null) =>
+    db.prepare('INSERT OR REPLACE INTO imdb_by_tmdb (tmdb_id, rating, votes, updated_at) VALUES (?, ?, ?, ?)').run(tmdbId, rating, votes, Date.now());
+  try {
+    const imdb = await getImdbId(tmdbId);
+    if (!imdb) { save(null, null); return null; }
+    const res = await fetch(`https://www.omdbapi.com/?i=${encodeURIComponent(imdb)}&apikey=${key}`);
+    const d: any = await res.json();
+    const { rating, votes } = parseOmdbRating(d);
+    save(rating, votes);
+    return { rating, votes };
+  } catch {
+    return cached ? { rating: cached.rating, votes: cached.votes } : null;
+  }
+}
+
+// Een lijst tips/suggesties verrijken met hun IMDb-cijfer (parallel, best-effort).
+export async function attachImdbRatings<T extends { tmdb_id: number; imdb?: number | null }>(rows: T[]): Promise<T[]> {
+  await Promise.all(rows.map(async (r) => {
+    const got = await imdbForTmdb(r.tmdb_id).catch(() => null);
+    if (got?.rating != null) r.imdb = got.rating;
+  }));
+  return rows;
+}
+
 // Eenmalig cast-foto's en makers aanvullen voor titels die die info nog missen
 // (vult onderweg ook de dienstlogo's).
 export async function backfillCastMeta(): Promise<void> {
