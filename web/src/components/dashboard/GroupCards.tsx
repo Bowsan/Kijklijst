@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { Snapshot, Title } from '../../lib/types';
+import type { Snapshot } from '../../lib/types';
 import { followingProfiles, visibleUserIds, titleById, profileById } from '../../lib/compute';
 import Thumb from '../Thumb';
 import { BarRow, GenreStat, TitleRow, SvcLabel, useSvcLogos, type NavOpts } from './widgets';
@@ -33,29 +33,29 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
   }, [snap, visible]);
 
   const groupGenreCounts = useMemo(() => {
-    // Per genre: aantal beoordelingen én de best gewaardeerde serie in de groep.
-    const counts = new Map<string, { count: number; bestAvg: number; best: Title | null }>();
+    // Per genre: aantal beoordelingen + de drie best gewaardeerde series (groepsgemiddelde).
+    const counts = new Map<string, number>();
     for (const r of snap.ratings) {
       if (!visible.has(r.user_id)) continue;
       const t = titleById(snap, r.title_id);
       if (!t) continue;
-      for (const g of t.genres) {
-        if (!counts.has(g)) counts.set(g, { count: 0, bestAvg: -1, best: null });
-        counts.get(g)!.count++;
-      }
+      for (const g of t.genres) counts.set(g, (counts.get(g) || 0) + 1);
     }
-    // Beste serie per genre bepalen aan de hand van het groepsgemiddelde.
-    for (const [g, entry] of counts) {
-      for (const t of snap.titles) {
-        if (!t.genres.includes(g)) continue;
-        const scores = snap.ratings.filter((r) => r.title_id === t.tmdb_id && visible.has(r.user_id) && r.score != null).map((r) => r.score as number);
-        if (scores.length === 0) continue;
-        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-        if (avg > entry.bestAvg) { entry.bestAvg = avg; entry.best = t; }
-      }
+    // Groepsgemiddelde per titel, één keer berekend.
+    const titleAvg = new Map<number, number>();
+    for (const t of snap.titles) {
+      const scores = snap.ratings.filter((r) => r.title_id === t.tmdb_id && visible.has(r.user_id) && r.score != null).map((r) => r.score as number);
+      if (scores.length) titleAvg.set(t.tmdb_id, scores.reduce((a, b) => a + b, 0) / scores.length);
     }
     return [...counts.entries()]
-      .map(([genre, { count, bestAvg, best }]) => ({ genre, count, best: best ? { title: best, score: Math.round(bestAvg * 10) / 10 } : null }))
+      .map(([genre, count]) => ({
+        genre,
+        count,
+        top: snap.titles
+          .filter((t) => t.genres.includes(genre) && titleAvg.has(t.tmdb_id))
+          .sort((a, b) => (titleAvg.get(b.tmdb_id)! - titleAvg.get(a.tmdb_id)!))
+          .slice(0, 3),
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
   }, [snap, visible]);
@@ -142,7 +142,7 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
               count={g.count}
               avg={null}
               max={maxGroupGenre}
-              best={g.best}
+              titles={g.top}
               color="var(--warn)"
               onGenre={() => onNavigate({ status: 'all', genre: g.genre })}
               onTitle={(id) => onNavigate({ status: 'all', titleId: id })}

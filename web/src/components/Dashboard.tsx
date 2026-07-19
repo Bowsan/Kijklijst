@@ -74,27 +74,27 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   const hours = totalWatchHours(snap, userId);
 
   const myGenreCounts = useMemo(() => {
-    const counts = new Map<string, { count: number; scores: number[]; best: { title: typeof snap.titles[number]; score: number } | null }>();
+    const counts = new Map<string, { count: number; scores: number[]; rated: { title: typeof snap.titles[number]; score: number }[] }>();
     for (const r of myRatings) {
       const t = titleById(snap, r.title_id);
       if (!t) continue;
       for (const g of t.genres) {
-        if (!counts.has(g)) counts.set(g, { count: 0, scores: [], best: null });
+        if (!counts.has(g)) counts.set(g, { count: 0, scores: [], rated: [] });
         const entry = counts.get(g)!;
         entry.count++;
         if (r.score != null) {
           entry.scores.push(r.score);
-          // Beste eigen serie in dit genre (hoogste cijfer).
-          if (!entry.best || r.score > entry.best.score) entry.best = { title: t, score: r.score };
+          entry.rated.push({ title: t, score: r.score });
         }
       }
     }
     return [...counts.entries()]
-      .map(([genre, { count, scores: gs, best }]) => ({
+      .map(([genre, { count, scores: gs, rated }]) => ({
         genre,
         count,
         avg: gs.length ? gs.reduce((a, b) => a + b, 0) / gs.length : null,
-        best,
+        // Jouw drie hoogst beoordeelde series in dit genre (voorbeelden).
+        top: rated.sort((a, b) => b.score - a.score).slice(0, 3).map((x) => x.title),
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
@@ -286,7 +286,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                   count={g.count}
                   avg={g.avg}
                   max={maxGenreCount}
-                  best={g.best}
+                  titles={g.top}
                   color="var(--accent)"
                   onGenre={() => onNavigate({ status: 'mine', genre: g.genre })}
                   onTitle={(id) => onNavigate({ status: 'mine', titleId: id })}

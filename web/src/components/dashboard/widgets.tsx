@@ -97,20 +97,20 @@ export function BarRow({ label, value, max, val, color, onClick }: { label: Reac
   );
 }
 
-/** Genre-rij: balk met emoji + naam, en daaronder de beste serie (klikbaar). */
-export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitle }: {
+/** Genre-rij: groot icoon links, balk + (tot 3) voorbeeldseries eronder. */
+export function GenreStat({ genre, count, avg, max, titles, color, onGenre, onTitle }: {
   genre: string;
   count: number;
   avg: number | null;
   max: number;
-  best?: { title: Title; score: number } | null;
+  titles?: Title[];
   color?: string;
   onGenre: () => void;
   onTitle: (tmdbId: number) => void;
 }) {
   return (
     <div className="genre-stat">
-      {/* Groot icoon dat beide regels (genre + beste serie) beslaat. */}
+      {/* Groot icoon dat beide regels (genre + voorbeeldseries) beslaat. */}
       <span className="genre-icon">{genreEmoji(genre)}</span>
       <div className="genre-body">
         <BarRow
@@ -120,11 +120,16 @@ export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitl
           color={color}
           onClick={onGenre}
         />
-        {best && (
-          <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
-            <span className="genre-best-name">{best.title.name}</span>
-            <span className="genre-best-score">{best.score}</span>
-          </button>
+        {titles && titles.length > 0 && (
+          // Eén regel met tot 3 titels, afgekapt met puntjes (nowrap + ellipsis).
+          <div className="genre-best">
+            {titles.map((t, i) => (
+              <span key={t.tmdb_id}>
+                {i > 0 && ', '}
+                <span className="genre-best-name" onClick={() => onTitle(t.tmdb_id)}>{t.name}</span>
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </div>
