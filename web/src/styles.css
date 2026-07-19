@@ -466,6 +466,7 @@ input, textarea, select {
 .genre-icon { flex-shrink: 0; font-size: 30px; line-height: 1; width: 34px; text-align: center; }
 .genre-body { flex: 1; min-width: 0; }
 .genre-stat .bar-row { margin-bottom: 0; }
+.genre-stat .bar-row .label { font-size: 14px; font-weight: 700; }
 .genre-best {
   display: flex; align-items: baseline; gap: 8px;
   margin: 4px 0 0; padding: 2px 0;
