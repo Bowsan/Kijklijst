@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Snapshot, Profile } from '../../lib/types';
 import {
   followingProfiles, juryScores, groupDivision, tasteOutliers, blindSpotGenre,
-  finisherStats, tasteMates, imdbCompare,
+  finisherStats, tasteMates, imdbCompare, mostDroppedTitle,
 } from '../../lib/compute';
 import { fmt1 } from '../../lib/format';
 import Avatar from '../Avatar';
@@ -24,6 +24,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
   const blindSpot = useMemo(() => blindSpotGenre(snap, userId), [snap, userId]);
   const finishers = useMemo(() => finisherStats(snap, userId), [snap, userId]);
   const vsImdb = useMemo(() => imdbCompare(snap, userId), [snap, userId]);
+  const mostDropped = useMemo(() => mostDroppedTitle(snap, userId), [snap, userId]);
   // Smaakmatch: gevolgde vrienden met minimaal 3 gedeelde beoordeelde series.
   const tasteRank = useMemo(() => {
     const followed = new Set(followingProfiles(snap, userId).map((p) => p.id));
@@ -191,6 +192,15 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
               </span>
             </div>
           ))}
+          {mostDropped && (
+            <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <IconRow
+                ico="🪂"
+                line={<>Vaakst afgehaakt: <TLink title={mostDropped.title} onNavigate={onNavigate} /></>}
+                sub={<>{mostDropped.dropped} van de {mostDropped.total} kijkers haakten af</>}
+              />
+            </div>
+          )}
         </div>
       )}
     </>

@@ -6,7 +6,7 @@ import {
   sentRecommendations, unseenCommentCount, tasteProfile, groupAverage,
   juryScores, groupDivision, tasteOutliers, blindSpotGenre, finisherStats,
   favoriteActors, sharedFavoriteActor, favoriteCreators, favoriteSuggestions,
-  imdbCompare, NEW_SEASON_WINDOW,
+  imdbCompare, mostDroppedTitle, NEW_SEASON_WINDOW,
 } from './compute';
 
 // ---- kleine fabriekjes voor testdata ----
@@ -461,5 +461,43 @@ describe('imdbCompare', () => {
     const r = imdbCompare(s, 'me')!;
     expect(r.guilty).toBeNull();
     expect(r.panned).toBeNull();
+  });
+});
+
+// ---- mostDroppedTitle (feature: vaakst afgehaakt) ----
+
+describe('mostDroppedTitle', () => {
+  const me = profile('me'), a = profile('a'), b = profile('b'), c = profile('c');
+  const base = {
+    profiles: [me, a, b, c],
+    follows: [
+      { follower: 'me', followee: 'a', created_at: 1 },
+      { follower: 'me', followee: 'b', created_at: 1 },
+      { follower: 'me', followee: 'c', created_at: 1 },
+    ],
+  };
+
+  it('geeft de serie met de meeste afhakers (min. 2)', () => {
+    const s = snap({
+      ...base,
+      titles: [title(1), title(2)],
+      ratings: [
+        rating(1, 'a', { status: 'dropped' }), rating(1, 'b', { status: 'dropped' }), rating(1, 'c', { status: 'finished' }),
+        rating(2, 'a', { status: 'dropped' }), rating(2, 'b', { status: 'finished' }),
+      ],
+    });
+    const r = mostDroppedTitle(s, 'me')!;
+    expect(r.title.tmdb_id).toBe(1);
+    expect(r.dropped).toBe(2);
+    expect(r.total).toBe(3);
+  });
+
+  it('geeft null als geen serie 2+ afhakers heeft', () => {
+    const s = snap({
+      ...base,
+      titles: [title(1)],
+      ratings: [rating(1, 'a', { status: 'dropped' }), rating(1, 'b', { status: 'finished' })],
+    });
+    expect(mostDroppedTitle(s, 'me')).toBeNull();
   });
 });
