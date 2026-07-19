@@ -67,7 +67,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
 
       {vsImdb && (
         <div className="card" style={{ marginBottom: 12 }}>
-          <div className="card-title">🎬 Jij vs IMDb</div>
+          <div className="card-title">★ Jij vs IMDb</div>
           <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
             Jouw cijfers vergeleken met die van de wereld ({vsImdb.count} series).{' '}
             {Math.abs(vsImdb.avgDelta) < 0.25
@@ -80,7 +80,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
             {vsImdb.guilty && (
               <IconRow
                 ico="💖"
-                line={<>Jouw guilty pleasure: <TLink title={vsImdb.guilty.title} onNavigate={onNavigate} /></>}
+                line={<>Grootste verschil: <TLink title={vsImdb.guilty.title} onNavigate={onNavigate} /></>}
                 sub={<>Jij gaf een {vsImdb.guilty.mine}, IMDb {fmt1(vsImdb.guilty.imdb)}</>}
               />
             )}
