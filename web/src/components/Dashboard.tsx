@@ -11,7 +11,7 @@ import Thumb from './Thumb';
 import Avatar from './Avatar';
 import StatusBadge from './StatusBadge';
 import {
-  useReveal, useSvcLogos, CountUp, TitleRow, BarRow, TLink, IconRow, Donut,
+  useReveal, useSvcLogos, CountUp, TitleRow, BarRow, GenreStat, TLink, IconRow, Donut,
   SvcLabel, type NavOpts, type DonutPart,
 } from './dashboard/widgets';
 import CompareCards from './dashboard/CompareCards';
@@ -74,22 +74,27 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   const hours = totalWatchHours(snap, userId);
 
   const myGenreCounts = useMemo(() => {
-    const counts = new Map<string, { count: number; scores: number[] }>();
+    const counts = new Map<string, { count: number; scores: number[]; best: { title: typeof snap.titles[number]; score: number } | null }>();
     for (const r of myRatings) {
       const t = titleById(snap, r.title_id);
       if (!t) continue;
       for (const g of t.genres) {
-        if (!counts.has(g)) counts.set(g, { count: 0, scores: [] });
+        if (!counts.has(g)) counts.set(g, { count: 0, scores: [], best: null });
         const entry = counts.get(g)!;
         entry.count++;
-        if (r.score != null) entry.scores.push(r.score);
+        if (r.score != null) {
+          entry.scores.push(r.score);
+          // Beste eigen serie in dit genre (hoogste cijfer).
+          if (!entry.best || r.score > entry.best.score) entry.best = { title: t, score: r.score };
+        }
       }
     }
     return [...counts.entries()]
-      .map(([genre, { count, scores: gs }]) => ({
+      .map(([genre, { count, scores: gs, best }]) => ({
         genre,
         count,
         avg: gs.length ? gs.reduce((a, b) => a + b, 0) / gs.length : null,
+        best,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
@@ -275,14 +280,16 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
             <div className="card" style={{ marginBottom: 12 }}>
               <div className="card-title">Jouw genres</div>
               {myGenreCounts.map((g) => (
-                <BarRow
+                <GenreStat
                   key={g.genre}
-                  label={g.genre}
-                  value={g.count}
+                  genre={g.genre}
+                  count={g.count}
+                  avg={g.avg}
                   max={maxGenreCount}
-                  val={g.avg != null ? <><b>{g.count}×</b> <span className="val-sub">· {g.avg.toFixed(1)}</span></> : <b>{g.count}×</b>}
+                  best={g.best}
                   color="var(--accent)"
-                  onClick={() => onNavigate({ status: 'mine', genre: g.genre })}
+                  onGenre={() => onNavigate({ status: 'mine', genre: g.genre })}
+                  onTitle={(id) => onNavigate({ status: 'mine', titleId: id })}
                 />
               ))}
             </div>
