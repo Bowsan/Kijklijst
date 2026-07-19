@@ -25,6 +25,17 @@ interface Props {
   toast: (m: string) => void;
 }
 
+// TMDb-publiekscijfer als klein sterretje (niet tonen zonder cijfer).
+function VoteChip({ vote }: { vote?: number | null }) {
+  if (vote == null || vote <= 0) return null;
+  return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
+}
+
+// Kwaliteitsdrempel voor niet-toegevoegde tips: series met een bekend, laag
+// TMDb-cijfer weglaten; onbekende cijfers wél tonen (anders missen we te veel).
+const QUALITY_MIN = 6.5;
+const passesQuality = (v?: number | null) => v == null || v >= QUALITY_MIN;
+
 // Ontdek-kaart voor een nog niet toegevoegde TMDb-serie: poster, omschrijving,
 // IMDb-link en een knop om 'm op de wishlist te zetten.
 function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: number) => void }) {
@@ -42,6 +53,7 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
           <div className="title-sub">
             {item.year || '—'}
             {item.providers && item.providers.length > 0 && ` · ${item.providers.join(', ')}`}
+            {item.vote != null && item.vote > 0 && <> · <VoteChip vote={item.vote} /></>}
           </div>
           {item.overview
             ? (
@@ -81,7 +93,7 @@ function PersonChip({ person, kind }: { person: SuggestPerson; kind: 'actor' | '
 /** Tip-kaart voor "Van jouw favorieten": zelfde opzet als de ontdek-kaart,
     plus de favoriete acteurs/makers als reden. */
 function FavSuggestCard({ row, onAdd }: {
-  row: { tmdb_id: number; name: string; year: number | null; poster_path: string | null; overview: string; actors: SuggestPerson[]; creators: SuggestPerson[] };
+  row: { tmdb_id: number; name: string; year: number | null; poster_path: string | null; overview: string; actors: SuggestPerson[]; creators: SuggestPerson[]; vote?: number | null };
   onAdd: (tmdbId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -95,7 +107,10 @@ function FavSuggestCard({ row, onAdd }: {
           : <PosterFallback name={row.name} />}
         <div className="title-meta">
           <h3>{row.name}</h3>
-          <div className="title-sub">{row.year || '—'}</div>
+          <div className="title-sub">
+            {row.year || '—'}
+            {row.vote != null && row.vote > 0 && <> · <VoteChip vote={row.vote} /></>}
+          </div>
           <div className="fav-people">
             {row.creators.map((p) => <PersonChip key={`c-${p.name}`} person={p} kind="creator" />)}
             {row.actors.map((p) => <PersonChip key={`a-${p.name}`} person={p} kind="actor" />)}
@@ -137,9 +152,9 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
     return () => { alive = false; };
   }, []);
 
-  // Alleen series tonen die nog niet in de app staan.
+  // Alleen series tonen die nog niet in de app staan én de kwaliteitsdrempel halen.
   const known = new Set(snap.titles.map((t) => t.tmdb_id));
-  const newest = discover.filter((r) => !known.has(r.tmdb_id)).slice(0, 5);
+  const newest = discover.filter((r) => !known.has(r.tmdb_id) && passesQuality(r.vote)).slice(0, 5);
 
   // Jouw wishlist krijgt een eigen lijst; die series horen niet bij de tips.
   const wishlist = snap.titles
@@ -191,7 +206,7 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
     .map((s) => ({
       seed: s,
       items: (similar[s.title.tmdb_id] ?? [])
-        .filter((r) => !known.has(r.tmdb_id) && !seenRec.has(r.tmdb_id))
+        .filter((r) => !known.has(r.tmdb_id) && !seenRec.has(r.tmdb_id) && passesQuality(r.vote))
         .slice(0, 3)
         .map((r) => { seenRec.add(r.tmdb_id); return r; }),
     }))
@@ -217,8 +232,8 @@ export default function ForYou({ snap, userId, blind, onRecommend, onAdd, onChat
       creators: creators.map((n) => ({ name: n, photo: title.creators?.find((c) => c.name === n)?.photo ?? null })),
     })),
     ...peopleTips
-      .filter((p) => !snap.titles.some((t) => t.tmdb_id === p.tmdb_id))
-      .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, year: p.year, poster_path: p.poster_path, overview: p.overview, actors: p.actors, creators: p.creators })),
+      .filter((p) => !snap.titles.some((t) => t.tmdb_id === p.tmdb_id) && passesQuality(p.vote))
+      .map((p) => ({ tmdb_id: p.tmdb_id, name: p.name, year: p.year, poster_path: p.poster_path, overview: p.overview, actors: p.actors, creators: p.creators, vote: p.vote })),
   ].slice(0, 5);
 
   // Welke ontvangen tip toont het reactiemenu (of null).

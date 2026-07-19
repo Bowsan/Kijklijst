@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Snapshot, Profile } from '../../lib/types';
 import {
   followingProfiles, juryScores, groupDivision, tasteOutliers, blindSpotGenre,
-  finisherStats, tasteMates,
+  finisherStats, tasteMates, imdbCompare,
 } from '../../lib/compute';
 import { fmt1 } from '../../lib/format';
 import Avatar from '../Avatar';
@@ -23,6 +23,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
   const outliers = useMemo(() => tasteOutliers(snap, userId), [snap, userId]);
   const blindSpot = useMemo(() => blindSpotGenre(snap, userId), [snap, userId]);
   const finishers = useMemo(() => finisherStats(snap, userId), [snap, userId]);
+  const vsImdb = useMemo(() => imdbCompare(snap, userId), [snap, userId]);
   // Smaakmatch: gevolgde vrienden met minimaal 3 gedeelde beoordeelde series.
   const tasteRank = useMemo(() => {
     const followed = new Set(followingProfiles(snap, userId).map((p) => p.id));
@@ -36,7 +37,7 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
   const hasCompare =
     jury.length >= 2 || division.divided != null || division.agreed != null ||
     outliers.guilty != null || outliers.panned != null || blindSpot != null || finishers.length >= 2 ||
-    tasteRank.length > 0;
+    tasteRank.length > 0 || vsImdb != null;
   if (!hasCompare) return null;
 
   return (
@@ -61,6 +62,36 @@ export default function CompareCards({ snap, userId, onOpenProfile, onNavigate }
               <b className="match-pct">{m.match}%</b>
             </button>
           ))}
+        </div>
+      )}
+
+      {vsImdb && (
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div className="card-title">🎬 Jij vs IMDb</div>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>
+            Jouw cijfers vergeleken met die van de wereld ({vsImdb.count} series).{' '}
+            {Math.abs(vsImdb.avgDelta) < 0.25
+              ? 'Je zit vrijwel op één lijn met IMDb.'
+              : vsImdb.avgDelta > 0
+                ? <>Je bent gemiddeld <b>{fmt1(vsImdb.avgDelta)} punt milder</b> dan IMDb.</>
+                : <>Je bent gemiddeld <b>{fmt1(Math.abs(vsImdb.avgDelta))} punt strenger</b> dan IMDb.</>}
+          </div>
+          <div className="year-rows">
+            {vsImdb.guilty && (
+              <IconRow
+                ico="💖"
+                line={<>Jouw guilty pleasure: <TLink title={vsImdb.guilty.title} onNavigate={onNavigate} /></>}
+                sub={<>Jij gaf een {vsImdb.guilty.mine}, IMDb {fmt1(vsImdb.guilty.imdb)}</>}
+              />
+            )}
+            {vsImdb.panned && (
+              <IconRow
+                ico="🌍"
+                line={<>De wereld is enthousiaster: <TLink title={vsImdb.panned.title} onNavigate={onNavigate} /></>}
+                sub={<>IMDb {fmt1(vsImdb.panned.imdb)}, jij een {vsImdb.panned.mine}</>}
+              />
+            )}
+          </div>
         </div>
       )}
 

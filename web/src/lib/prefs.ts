@@ -1,7 +1,7 @@
 // Onthouden van de filter- en sorteerkeuzes op het lijstscherm (tussen bezoeken).
 // De statustab valt hier bewust buiten: die springt bij openen terug naar "Alles".
 
-export type SortKey = 'date' | 'name' | 'rating';
+export type SortKey = 'date' | 'name' | 'rating' | 'imdb';
 export type SortDir = 'asc' | 'desc';
 
 export interface ListPrefs {
@@ -33,7 +33,7 @@ export function loadPrefs(): ListPrefs {
       friend: typeof p.friend === 'string' ? p.friend : null,
       services: Array.isArray(p.services) ? p.services : [],
       genres: Array.isArray(p.genres) ? p.genres : [],
-      sortKey: p.sortKey === 'name' || p.sortKey === 'rating' ? p.sortKey : 'date',
+      sortKey: p.sortKey === 'name' || p.sortKey === 'rating' || p.sortKey === 'imdb' ? p.sortKey : 'date',
       sortDir: p.sortDir === 'asc' ? 'asc' : 'desc',
     };
   } catch {

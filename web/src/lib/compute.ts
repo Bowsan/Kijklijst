@@ -270,6 +270,37 @@ export function titleById(snap: Snapshot, id: number): Title | undefined {
   return snap.titles.find((t) => t.tmdb_id === id);
 }
 
+export interface ImdbCompare {
+  count: number;
+  /** Gemiddeld jouw cijfer minus IMDb: >0 = milder, <0 = strenger dan de wereld. */
+  avgDelta: number;
+  /** Serie waar jij het meest bovengemiddeld enthousiast was (guilty pleasure). */
+  guilty: { title: Title; mine: number; imdb: number; diff: number } | null;
+  /** Serie die de wereld veel hoger vindt dan jij. */
+  panned: { title: Title; mine: number; imdb: number; diff: number } | null;
+}
+
+/** Vergelijkt jouw cijfers met het IMDb-cijfer per serie (min. 3 met beide). */
+export function imdbCompare(snap: Snapshot, userId: string): ImdbCompare | null {
+  const pairs: { title: Title; mine: number; imdb: number; diff: number }[] = [];
+  for (const r of snap.ratings) {
+    if (r.user_id !== userId || r.score == null) continue;
+    const t = titleById(snap, r.title_id);
+    if (!t || t.imdb_rating == null) continue;
+    pairs.push({ title: t, mine: r.score, imdb: t.imdb_rating, diff: r.score - t.imdb_rating });
+  }
+  if (pairs.length < 3) return null;
+  const avgDelta = pairs.reduce((a, b) => a + b.diff, 0) / pairs.length;
+  const guilty = pairs.reduce<typeof pairs[number] | null>((best, p) => (p.diff > (best?.diff ?? -Infinity) ? p : best), null);
+  const panned = pairs.reduce<typeof pairs[number] | null>((best, p) => (p.diff < (best?.diff ?? Infinity) ? p : best), null);
+  return {
+    count: pairs.length,
+    avgDelta,
+    guilty: guilty && guilty.diff >= 1.5 ? guilty : null,
+    panned: panned && panned.diff <= -1.5 ? panned : null,
+  };
+}
+
 /** Hoeveel series heeft deze gebruiker een cijfer gegeven. */
 export function ratedCount(snap: Snapshot, userId: string): number {
   return snap.ratings.filter((r) => r.user_id === userId && r.score != null).length;
