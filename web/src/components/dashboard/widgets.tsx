@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Status } from '../../lib/types';
 import { serviceLogoUrl } from '../../lib/types';
+import { genreEmoji } from '../../lib/genres';
+import { scoreColor, isGoldScore } from '../../lib/score';
+import { fmt1 } from '../../lib/format';
 import Thumb from '../Thumb';
 
 /** Navigatie-opties vanaf het dashboard naar de lijst. */
@@ -91,6 +94,40 @@ export function BarRow({ label, value, max, val, color, onClick }: { label: Reac
         <div className="bar-fill" style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, background: color || 'var(--accent)' }} />
       </div>
       <div className="val">{val}</div>
+    </div>
+  );
+}
+
+/** Genre-rij: balk met emoji + naam, en daaronder de beste serie (klikbaar). */
+export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitle }: {
+  genre: string;
+  count: number;
+  avg: number | null;
+  max: number;
+  best?: { title: Title; score: number } | null;
+  color?: string;
+  onGenre: () => void;
+  onTitle: (tmdbId: number) => void;
+}) {
+  return (
+    <div className="genre-stat">
+      <BarRow
+        label={<><span className="genre-emoji">{genreEmoji(genre)}</span>{genre}</>}
+        value={count} max={max}
+        val={avg != null ? <><b>{count}×</b> <span className="val-sub">· {fmt1(avg)}</span></> : <b>{count}×</b>}
+        color={color}
+        onClick={onGenre}
+      />
+      {best && (
+        <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
+          <Thumb path={best.title.poster_path} name={best.title.name} w={28} h={42} radius={4} />
+          <span className="genre-best-name">{best.title.name}</span>
+          <span
+            className={isGoldScore(best.score) ? 'score-pill gold' : 'score-pill'}
+            style={{ background: scoreColor(best.score), padding: '2px 8px', fontSize: 12 }}
+          >{best.score}</span>
+        </button>
+      )}
     </div>
   );
 }
