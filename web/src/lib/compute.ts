@@ -565,6 +565,30 @@ export function finisherStats(snap: Snapshot, userId: string): { profile: Profil
   return result.sort((a, b) => b.pct - a.pct);
 }
 
+/** De serie die het vaakst is afgehaakt in de groep (min. 2 afhakers). */
+export function mostDroppedTitle(snap: Snapshot, userId: string): { title: Title; dropped: number; total: number } | null {
+  const visible = new Set(visibleUserIds(snap, userId));
+  const counts = new Map<number, { dropped: number; total: number }>();
+  for (const r of snap.ratings) {
+    if (!visible.has(r.user_id) || (r.status !== 'dropped' && r.status !== 'finished')) continue;
+    const e = counts.get(r.title_id) ?? { dropped: 0, total: 0 };
+    e.total++;
+    if (r.status === 'dropped') e.dropped++;
+    counts.set(r.title_id, e);
+  }
+  let best: { title: Title; dropped: number; total: number } | null = null;
+  for (const [id, c] of counts) {
+    if (c.dropped < 2) continue;
+    const t = titleById(snap, id);
+    if (!t) continue;
+    // Meeste afhakers; bij gelijkspel de hoogste afhaakverhouding.
+    if (!best || c.dropped > best.dropped || (c.dropped === best.dropped && c.dropped / c.total > best.dropped / best.total)) {
+      best = { title: t, dropped: c.dropped, total: c.total };
+    }
+  }
+  return best;
+}
+
 // Genres waar de "cast" geen acteurs zijn maar presentatoren/deelnemers
 // (reality zoals SAS, talkshows, nieuws, documentaires) — die tellen niet
 // mee voor je vaste cast.
