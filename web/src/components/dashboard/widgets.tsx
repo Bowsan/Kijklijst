@@ -120,7 +120,7 @@ export function GenreStat({ genre, count, avg, max, best, color, onGenre, onTitl
       />
       {best && (
         <button className="genre-best" onClick={() => onTitle(best.title.tmdb_id)}>
-          <Thumb path={best.title.poster_path} name={best.title.name} w={28} h={42} radius={4} />
+          <span className="genre-best-tag">★ Top</span>
           <span className="genre-best-name">{best.title.name}</span>
           <span
             className={isGoldScore(best.score) ? 'score-pill gold' : 'score-pill'}
