@@ -459,7 +459,6 @@ input, textarea, select {
 /* IMDb-cijfer naast de badge (via OMDb). */
 .imdb-score { color: #b28b00; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 /* TMDb-publiekscijfer als klein sterretje op ontdek-/tipkaarten. */
-.tmdb-vote { color: #2a9d63; font-weight: 700; white-space: nowrap; }
 
 /* IMDb-chip (variant B): volledig IMDb-geel, hele chip is de externe link.
    #f5c518 is de vaste merkkleur van IMDb — bewust geen app-token. */
