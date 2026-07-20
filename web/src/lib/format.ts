@@ -30,3 +30,11 @@ export function fmtDateTime(ts: number): string {
 export function fmtDate(ts: number): string {
   return new Date(ts).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** ISO-datum ("YYYY-MM-DD") naar "3 mrt 2026"; leeg/ongeldig → null. */
+export function fmtISODate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' });
+}

@@ -13,10 +13,10 @@ export async function ensureTitle(tmdbId: number, addedBy: string | null): Promi
   const d = await getTvDetails(tmdbId);
   db.prepare(
     `INSERT INTO titles
-      (tmdb_id, name, year, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, cast_meta, creators, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tmdb_id, name, year, first_air_date, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, cast_meta, creators, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
-    d.tmdb_id, d.name, d.year, d.poster_path,
+    d.tmdb_id, d.name, d.year, d.first_air_date, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
     JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), JSON.stringify(d.creators), d.imdb_id, d.status, Date.now(), addedBy, Date.now()
   );
@@ -75,12 +75,12 @@ export async function refreshTitle(tmdbId: number): Promise<boolean> {
 
   db.prepare(
     `UPDATE titles SET
-       name=?, year=?, poster_path=?, genres=?, seasons=?, episode_count=?, runtime=?,
+       name=?, year=?, first_air_date=COALESCE(?, first_air_date), poster_path=?, genres=?, seasons=?, episode_count=?, runtime=?,
        providers=?, overview=?, cast=?, cast_meta=?, creators=?, imdb_id=COALESCE(?, imdb_id), tmdb_status=?,
        refreshed_at=?, new_season_at=?
      WHERE tmdb_id=?`
   ).run(
-    d.name, d.year, d.poster_path,
+    d.name, d.year, d.first_air_date, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
     JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), JSON.stringify(d.creators), d.imdb_id, d.status,
     now, gainedSeason ? now : existing.new_season_at ?? null,
@@ -206,6 +206,16 @@ export async function backfillCastMeta(): Promise<void> {
     .prepare('SELECT tmdb_id FROM titles WHERE (cast_meta IS NULL OR creators IS NULL) AND tmdb_id > 0')
     .all() as { tmdb_id: number }[];
   if (rows.length) await refreshTitles(rows, 'Cast/makers-backfill');
+}
+
+// Eenmalig de uitgavedatum aanvullen voor bestaande titels die die nog missen,
+// zodat sorteren op uitgave meteen klopt (verversen vult first_air_date).
+export async function backfillFirstAirDates(): Promise<void> {
+  if (!process.env.TMDB_API_KEY) return;
+  const rows = db
+    .prepare('SELECT tmdb_id FROM titles WHERE first_air_date IS NULL AND tmdb_id > 0')
+    .all() as { tmdb_id: number }[];
+  if (rows.length) await refreshTitles(rows, 'Uitgavedatum-backfill');
 }
 
 // Automatisch: alleen nog-lopende (of nog onbekende) series, hooguit 1×/dag.

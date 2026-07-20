@@ -14,7 +14,7 @@ import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 import { logActivity, nameOf, titleNameOf, listersOf } from './helpers.js';
-import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, refreshOngoingTitles, refreshImdbRatings, attachImdbRatings } from './titles.js';
+import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, backfillFirstAirDates, refreshOngoingTitles, refreshImdbRatings, attachImdbRatings } from './titles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -370,8 +370,8 @@ app.post('/api/rating', async (req, res) => {
     const prev: any = db.prepare('SELECT * FROM ratings WHERE title_id = ? AND user_id = ?').get(tmdb_id, uid);
 
     db.prepare(
-      `INSERT INTO ratings (title_id, user_id, score, status, note, service, seasons, updated_at)
-       VALUES (@title_id, @user_id, @score, @status, @note, @service, COALESCE(@seasons, '[]'), @updated_at)
+      `INSERT INTO ratings (title_id, user_id, score, status, note, service, seasons, created_at, updated_at)
+       VALUES (@title_id, @user_id, @score, @status, @note, @service, COALESCE(@seasons, '[]'), @updated_at, @updated_at)
        ON CONFLICT(title_id, user_id) DO UPDATE SET
          score=CASE WHEN @clear_score = 1 THEN NULL ELSE COALESCE(@score, score) END,
          status=COALESCE(@status, status),
@@ -711,6 +711,8 @@ app.listen(PORT, () => {
   backfillImdbIds()
     .catch((e) => console.warn('IMDb-backfill mislukt:', e?.message || e))
     .finally(() => backfillCastMeta().catch((e) => console.warn('Cast-backfill mislukt:', e?.message || e)))
+    // Uitgavedatum aanvullen voor titels die die nog missen (sorteren op uitgave).
+    .finally(() => backfillFirstAirDates().catch((e) => console.warn('Uitgavedatum-backfill mislukt:', e?.message || e)))
     // …en nogmaals na de id-backfill, voor titels die net een imdb_id kregen.
     .finally(() => refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e)));
   refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));

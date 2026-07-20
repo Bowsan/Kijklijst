@@ -47,6 +47,7 @@ const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
   { key: 'name', label: 'Alfabetisch (A–Z)', dir: 'asc' },
   { key: 'rating', label: 'Hoogste rating', dir: 'desc' },
   { key: 'imdb', label: 'Hoogste IMDb', dir: 'desc' },
+  { key: 'release', label: 'Nieuwste uitgave', dir: 'desc' },
 ];
 
 // Het scroll-element van de app (zie styles.css): #root, niet het document.
@@ -56,6 +57,7 @@ function sortLabel(key: SortKey, dir: SortDir): string {
   if (key === 'name') return dir === 'asc' ? 'A–Z' : 'Z–A';
   if (key === 'rating') return dir === 'desc' ? 'Hoogste' : 'Laagste';
   if (key === 'imdb') return dir === 'desc' ? 'Hoogste IMDb' : 'Laagste IMDb';
+  if (key === 'release') return dir === 'desc' ? 'Nieuwste uitgave' : 'Oudste uitgave';
   return dir === 'desc' ? 'Nieuwste' : 'Oudste';
 }
 
@@ -337,10 +339,17 @@ export default function App() {
     if (scopeUser) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === scopeUser)?.score ?? null;
     return groupAverage(snap, tmdbId);
   };
+  // Invoervolgorde: wanneer déze gebruiker de serie toevoegde (created_at), met
+  // updated_at en tenslotte de titel-datum als terugval voor oudere gegevens.
   const personDate = (t: Title): number => {
     if (!snap || !scopeUser) return t.created_at;
-    return snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === scopeUser)?.updated_at ?? t.created_at;
+    const r = snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === scopeUser);
+    return r?.created_at ?? r?.updated_at ?? t.created_at;
   };
+  // Uitgavedatum als sorteersleutel: volledige datum indien bekend, anders het
+  // jaar (zodat sorteren meteen werkt terwijl de datums op de achtergrond vullen).
+  const releaseKey = (t: Title): string =>
+    t.first_air_date || (t.year != null ? `${t.year}-00-00` : '');
 
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
@@ -354,6 +363,8 @@ export default function App() {
         cmp = (personScore(a.tmdb_id) ?? -1) - (personScore(b.tmdb_id) ?? -1);
       } else if (sortKey === 'imdb') {
         cmp = (a.imdb_rating ?? -1) - (b.imdb_rating ?? -1);
+      } else if (sortKey === 'release') {
+        cmp = releaseKey(a).localeCompare(releaseKey(b));
       } else {
         cmp = personDate(a) - personDate(b);
       }
