@@ -26,12 +26,6 @@ interface Props {
   toast: (m: string) => void;
 }
 
-// Klein TMDb-sterretje als terugval wanneer we (nog) geen IMDb-cijfer hebben.
-function TmdbStar({ vote }: { vote?: number | null }) {
-  if (vote == null || vote <= 0) return null;
-  return <span className="tmdb-vote" title="TMDb-publiekscijfer">★ {vote.toFixed(1)}</span>;
-}
-
 // Kwaliteitsdrempel voor niet-toegevoegde tips: series met een bekend, laag
 // TMDb-cijfer weglaten; onbekende cijfers wél tonen (anders missen we te veel).
 const QUALITY_MIN = 6.5;
@@ -54,7 +48,6 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
           <div className="title-sub">
             {item.year || '—'}
             {item.providers && item.providers.length > 0 && ` · ${item.providers.join(', ')}`}
-            {(item.imdb == null || item.imdb <= 0) && (item.vote ?? 0) > 0 && <> · <TmdbStar vote={item.vote} /></>}
           </div>
           {item.overview
             ? (
@@ -109,7 +102,6 @@ function FavSuggestCard({ row, onAdd }: {
           <h3>{row.name}</h3>
           <div className="title-sub">
             {row.year || '—'}
-            {(row.imdb == null || row.imdb <= 0) && (row.vote ?? 0) > 0 && <> · <TmdbStar vote={row.vote} /></>}
           </div>
           <div className="fav-people">
             {row.creators.map((p) => <PersonChip key={`c-${p.name}`} person={p} kind="creator" />)}
