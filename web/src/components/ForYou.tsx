@@ -70,13 +70,8 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
         </div>
       </div>
       <div className="dc-actions">
-        {item.imdb != null && item.imdb > 0
-          ? <ImdbChip rating={item.imdb} url={imdbUrl} />
-          : (
-            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
-            </a>
-          )}
+        {/* Alleen de IMDb-chip tonen als er een cijfer is; anders geen knop. */}
+        {item.imdb != null && item.imdb > 0 && <ImdbChip rating={item.imdb} url={imdbUrl} />}
         <button className="btn primary dc-add" onClick={() => onAdd(item.tmdb_id)}>+ Toevoegen</button>
       </div>
     </div>
@@ -134,13 +129,8 @@ function FavSuggestCard({ row, onAdd }: {
         </div>
       </div>
       <div className="dc-actions">
-        {row.imdb != null && row.imdb > 0
-          ? <ImdbChip rating={row.imdb} url={imdbUrl} />
-          : (
-            <a className="imdb-link" href={imdbUrl} target="_blank" rel="noopener noreferrer">
-              <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
-            </a>
-          )}
+        {/* Alleen de IMDb-chip tonen als er een cijfer is; anders geen knop. */}
+        {row.imdb != null && row.imdb > 0 && <ImdbChip rating={row.imdb} url={imdbUrl} />}
         <button className="btn primary dc-add" onClick={() => onAdd(row.tmdb_id)}>+ Toevoegen</button>
       </div>
     </div>
