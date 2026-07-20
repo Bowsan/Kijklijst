@@ -41,24 +41,21 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'finished', label: 'Gezien' },
 ];
 
+// Eén optie per sleutel; de richting togglet door dezelfde optie opnieuw te
+// kiezen (het pijltje toont welke kant op). De `dir` is de standaardrichting.
 const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
-  { key: 'date', label: 'Nieuwste', dir: 'desc' },
-  { key: 'date', label: 'Oudste', dir: 'asc' },
-  { key: 'name', label: 'Alfabetisch (A–Z)', dir: 'asc' },
-  { key: 'rating', label: 'Hoogste rating', dir: 'desc' },
-  { key: 'imdb', label: 'Hoogste IMDb', dir: 'desc' },
-  { key: 'release', label: 'Nieuwste uitgave', dir: 'desc' },
+  { key: 'name', label: 'Alfabetisch', dir: 'asc' },
+  { key: 'date', label: 'Toegevoegd', dir: 'desc' },
+  { key: 'release', label: 'Uitgave', dir: 'desc' },
+  { key: 'rating', label: 'Rating', dir: 'desc' },
+  { key: 'imdb', label: 'IMDb Rating', dir: 'desc' },
 ];
 
 // Het scroll-element van de app (zie styles.css): #root, niet het document.
 const scroller = () => document.getElementById('root');
 
-function sortLabel(key: SortKey, dir: SortDir): string {
-  if (key === 'name') return dir === 'asc' ? 'A–Z' : 'Z–A';
-  if (key === 'rating') return dir === 'desc' ? 'Hoogste' : 'Laagste';
-  if (key === 'imdb') return dir === 'desc' ? 'Hoogste IMDb' : 'Laagste IMDb';
-  if (key === 'release') return dir === 'desc' ? 'Nieuwste uitgave' : 'Oudste uitgave';
-  return dir === 'desc' ? 'Nieuwste' : 'Oudste';
+function sortLabel(key: SortKey): string {
+  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Toegevoegd';
 }
 
 export default function App() {
@@ -670,14 +667,14 @@ export default function App() {
             </div>
             <div style={{ position: 'relative' }}>
               <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)}>
-                {sortLabel(sortKey, sortDir)} {sortDir === 'desc' ? '↓' : '↑'}
+                {sortLabel(sortKey)} {sortDir === 'desc' ? '↓' : '↑'}
               </button>
               {showSortMenu && (
                 <>
                   <div className="popover-backdrop" onClick={() => setShowSortMenu(false)} />
                   <div className="sort-menu">
                     {SORT_OPTIONS.map((o) => {
-                      const active = o.key === 'date' ? (sortKey === 'date' && sortDir === o.dir) : sortKey === o.key;
+                      const active = sortKey === o.key;
                       return (
                         <button key={o.label} className={active ? 'active' : ''} onClick={() => pickSort(o.key, o.dir)}>
                           {o.label}
