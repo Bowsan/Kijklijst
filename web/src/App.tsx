@@ -45,7 +45,7 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
 // kiezen (het pijltje toont welke kant op). De `dir` is de standaardrichting.
 const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
   { key: 'name', label: 'Alfabetisch', dir: 'asc' },
-  { key: 'date', label: 'Toegevoegd', dir: 'desc' },
+  { key: 'date', label: 'Aangepast', dir: 'desc' },
   { key: 'release', label: 'Uitgave', dir: 'desc' },
   { key: 'rating', label: 'Rating', dir: 'desc' },
   { key: 'imdb', label: 'IMDb Rating', dir: 'desc' },
@@ -55,7 +55,7 @@ const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
 const scroller = () => document.getElementById('root');
 
 function sortLabel(key: SortKey): string {
-  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Toegevoegd';
+  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Aangepast';
 }
 
 export default function App() {
@@ -336,12 +336,12 @@ export default function App() {
     if (scopeUser) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === scopeUser)?.score ?? null;
     return groupAverage(snap, tmdbId);
   };
-  // Invoervolgorde: wanneer déze gebruiker de serie toevoegde (created_at), met
-  // updated_at en tenslotte de titel-datum als terugval voor oudere gegevens.
+  // "Aangepast": wanneer deze gebruiker de serie voor het laatst wijzigde
+  // (updated_at), met de titel-datum als terugval voor oudere gegevens.
   const personDate = (t: Title): number => {
     if (!snap || !scopeUser) return t.created_at;
     const r = snap.ratings.find((r) => r.title_id === t.tmdb_id && r.user_id === scopeUser);
-    return r?.created_at ?? r?.updated_at ?? t.created_at;
+    return r?.updated_at ?? t.created_at;
   };
   // Uitgavedatum als sorteersleutel: volledige datum indien bekend, anders het
   // jaar (zodat sorteren meteen werkt terwijl de datums op de achtergrond vullen).
