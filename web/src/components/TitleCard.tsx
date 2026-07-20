@@ -5,7 +5,7 @@ import { saveRating, removeRating, addComment, removeComment, clearRatingScore, 
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
 import { scoreColor, isGoldScore } from '../lib/score';
-import { fmt1, fmtDate, fmtDateTime } from '../lib/format';
+import { fmt1, fmtDate, fmtDateTime, fmtISODate } from '../lib/format';
 import ServiceLogo from './ServiceLogo';
 import Avatar from './Avatar';
 import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
@@ -482,6 +482,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {/* ── Sectie: Over de serie ── */}
           <section className="tc-section">
             <div className="tc-label">Over de serie</div>
+            {fmtISODate(title.first_air_date) && (
+              <p className="title-sub">Uitgebracht op {fmtISODate(title.first_air_date)}</p>
+            )}
             {title.overview && <p className="note">{title.overview}</p>}
             {title.cast.length > 0 && (
               <p className="title-sub">
@@ -512,7 +515,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               <div className="tc-meta">
                 {addedBy && <>Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}</>}
                 {addedBy && mine && ' · '}
-                {mine && <>op {fmtDate(mine.updated_at)}</>}
+                {mine && <>op {fmtDate(mine.created_at ?? mine.updated_at)}</>}
               </div>
             )}
           </section>

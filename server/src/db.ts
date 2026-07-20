@@ -161,8 +161,21 @@ function addTitleColumns(): void {
   add('imdb_rating', 'REAL'); // IMDb-cijfer via OMDb (gevuld op de achtergrond)
   add('imdb_votes', 'INTEGER');
   add('imdb_rating_at', 'INTEGER'); // wanneer voor het laatst ververst
+  add('first_air_date', 'TEXT'); // uitgavedatum (TMDb first_air_date, "YYYY-MM-DD")
 }
 addTitleColumns();
+
+// created_at op beoordelingen: de invoervolgorde per gebruiker (de tijdlijn van
+// wanneer je een serie toevoegde). Bestaande rijen krijgen updated_at als beste
+// benadering, zodat de bestaande "Nieuwste/Oudste"-volgorde behouden blijft.
+function addRatingColumns(): void {
+  const cols = db.prepare('PRAGMA table_info(ratings)').all() as any[];
+  if (!cols.some((c) => c.name === 'created_at')) {
+    db.exec('ALTER TABLE ratings ADD COLUMN created_at INTEGER');
+    db.exec('UPDATE ratings SET created_at = updated_at WHERE created_at IS NULL');
+  }
+}
+addRatingColumns();
 
 // Reactie van de ontvanger op een tip ("thanks" / "meh"), additief toegevoegd.
 function addRecommendationColumns(): void {

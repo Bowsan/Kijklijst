@@ -21,6 +21,8 @@ export interface Title {
   tmdb_id: number;
   name: string;
   year: number | null;
+  /** Volledige uitgavedatum ("YYYY-MM-DD"), voor sorteren/tonen. */
+  first_air_date?: string | null;
   poster_path: string | null;
   genres: string[];
   seasons: Season[];
@@ -51,6 +53,8 @@ export interface Rating {
   note: string | null;
   service: string | null;
   seasons: number[];
+  /** Wanneer je deze serie toevoegde (invoervolgorde/tijdlijn). */
+  created_at?: number;
   updated_at: number;
 }
 

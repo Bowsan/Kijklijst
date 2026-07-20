@@ -222,6 +222,8 @@ export interface TitleDetails {
   tmdb_id: number;
   name: string;
   year: number | null;
+  /** Volledige uitgavedatum ("YYYY-MM-DD"), voor sorteren op uitgave. */
+  first_air_date: string | null;
   poster_path: string | null;
   genres: string[];
   seasons: { season_number: number; episode_count: number; name: string; air_year: number | null }[];
@@ -298,6 +300,7 @@ export async function getTvDetails(id: number): Promise<TitleDetails> {
     tmdb_id: data.id,
     name: data.name,
     year: data.first_air_date ? Number(data.first_air_date.slice(0, 4)) : null,
+    first_air_date: data.first_air_date || null,
     poster_path: data.poster_path,
     genres: (data.genres || []).map((g: any) => g.name),
     seasons,
