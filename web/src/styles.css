@@ -1403,3 +1403,119 @@ input, textarea, select {
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
   font-size: 16px; display: flex; align-items: center; justify-content: center;
 }
+
+/* ============================================================
+   Simpele modus — kaal kijklijstje ("Ik kijk" + "De rest")
+   ============================================================ */
+.sm-page { padding-bottom: calc(84px + var(--safe-bottom)); }
+.sm-gear { font-size: 19px; line-height: 1; }
+.sm-nav button { max-width: 200px; margin: 5px auto; }
+
+.sm-list-wrap { display: flex; flex-direction: column; gap: 12px; }
+.sm-label {
+  font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin: 6px 2px 0;
+}
+.sm-list { display: flex; flex-direction: column; gap: 10px; }
+.sm-empty { color: var(--muted); font-size: 13.5px; font-style: italic; padding: 12px 4px; margin: 0; }
+
+/* Serie-regel */
+.sm-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px;
+}
+.sm-poster { width: 46px; height: 66px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.sm-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-row-title { font-weight: 700; font-size: 15.5px; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-note {
+  font-size: 13px; color: var(--muted); font-style: italic; line-height: 1.35;
+  background: transparent; border: 0; padding: 2px 4px; margin-left: -4px; border-radius: 6px;
+  width: 100%; font-family: inherit;
+}
+.sm-note::placeholder { font-style: normal; opacity: 0.6; color: var(--muted); }
+.sm-note:focus { outline: none; font-style: normal; background: var(--surface-2); box-shadow: 0 0 0 2px var(--accent-2); }
+.sm-check {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); background: transparent; color: transparent; font-size: 15px;
+  display: grid; place-items: center; transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.sm-check:active { transform: scale(0.9); }
+.sm-row.done .sm-check { background: var(--good); border-color: var(--good); color: #fff; }
+.sm-row.done .sm-poster { opacity: 0.72; }
+.sm-row.done .sm-row-title { color: var(--muted); }
+
+/* Toevoegen */
+.sm-addbar {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  background: var(--surface); border: 1px dashed var(--border); color: var(--muted);
+  font-size: 14.5px; font-weight: 600;
+}
+.sm-plus { color: var(--accent-2); font-size: 18px; font-weight: 800; }
+.sm-add { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.sm-add-head { display: flex; align-items: center; gap: 8px; }
+.sm-search {
+  flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 15px; font-family: inherit;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+}
+.sm-search:focus { outline: none; border-color: var(--accent-2); }
+.sm-add-close {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; font-size: 15px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+}
+.sm-results { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.sm-result {
+  display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+  padding: 6px; border-radius: 10px; background: transparent; border: 1px solid transparent;
+}
+.sm-result:not(:disabled):active { background: var(--surface-2); }
+.sm-result:disabled { opacity: 0.55; }
+.sm-result .sm-poster { width: 40px; height: 58px; }
+.sm-result-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-result-sub { font-size: 12.5px; color: var(--muted); }
+.sm-result-add { font-size: 20px; font-weight: 800; color: var(--accent-2); width: 26px; text-align: center; flex-shrink: 0; }
+
+/* De rest — vrienden */
+.sm-friend { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 13px; display: flex; flex-direction: column; gap: 8px; }
+.sm-friend-head { display: flex; align-items: center; gap: 10px; }
+.sm-friend-name { font-weight: 700; font-size: 15px; }
+.sm-friend-sub { font-size: 12.5px; color: var(--muted); }
+.sm-watchline { display: flex; align-items: baseline; gap: 8px; padding-left: 42px; font-size: 14px; }
+.sm-wt { font-weight: 600; }
+.sm-same { font-size: 12px; color: var(--accent-2); font-weight: 700; white-space: nowrap; }
+
+/* Instellingen-sheet */
+.sm-sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sm-sheet {
+  width: 100%; max-width: 640px; background: var(--surface);
+  border-radius: 18px 18px 0 0; padding: 16px 16px calc(24px + var(--safe-bottom));
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sm-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sm-sheet-head h2 { font-size: 17px; margin: 0; }
+.sm-setrow { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.sm-set-txt { display: flex; flex-direction: column; gap: 3px; }
+.sm-set-txt b { font-size: 15px; }
+.sm-set-txt span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+/* Onboarding: keuze Normaal / Simpel */
+.mode-choice {
+  text-align: left; width: 100%; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
+  padding: 16px; display: flex; gap: 13px; align-items: flex-start;
+  transition: transform 0.08s ease, border-color 0.12s ease;
+}
+.mode-choice.reco { border-color: var(--accent-2); }
+.mode-choice:active { transform: scale(0.99); }
+.mc-ico { font-size: 26px; line-height: 1; margin-top: 2px; }
+.mc-txt { display: flex; flex-direction: column; gap: 4px; }
+.mc-txt b { font-size: 16px; }
+.mc-txt span { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.mc-tag {
+  align-self: flex-start; margin-top: 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 2px 8px; border-radius: 999px;
+}

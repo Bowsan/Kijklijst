@@ -360,7 +360,7 @@ app.post('/api/rating', async (req, res) => {
   const uid = userId(req);
   if (!uid) return res.status(400).json({ error: 'geen identiteit' });
 
-  const { tmdb_id, score, status, note, service, seasons, clearScore } = req.body || {};
+  const { tmdb_id, score, status, note, service, seasons, clearScore, watchNote } = req.body || {};
   if (!tmdb_id) return res.status(400).json({ error: 'tmdb_id vereist' });
 
   try {
@@ -370,14 +370,15 @@ app.post('/api/rating', async (req, res) => {
     const prev: any = db.prepare('SELECT * FROM ratings WHERE title_id = ? AND user_id = ?').get(tmdb_id, uid);
 
     db.prepare(
-      `INSERT INTO ratings (title_id, user_id, score, status, note, service, seasons, created_at, updated_at)
-       VALUES (@title_id, @user_id, @score, @status, @note, @service, COALESCE(@seasons, '[]'), @updated_at, @updated_at)
+      `INSERT INTO ratings (title_id, user_id, score, status, note, service, seasons, watch_note, created_at, updated_at)
+       VALUES (@title_id, @user_id, @score, @status, @note, @service, COALESCE(@seasons, '[]'), @watch_note, @updated_at, @updated_at)
        ON CONFLICT(title_id, user_id) DO UPDATE SET
          score=CASE WHEN @clear_score = 1 THEN NULL ELSE COALESCE(@score, score) END,
          status=COALESCE(@status, status),
          note=COALESCE(@note, note),
          service=COALESCE(@service, service),
          seasons=COALESCE(@seasons, seasons),
+         watch_note=COALESCE(@watch_note, watch_note),
          updated_at=@updated_at`
     ).run({
       title_id: Number(tmdb_id),
@@ -387,6 +388,8 @@ app.post('/api/rating', async (req, res) => {
       note: note ?? null,
       service: service ?? null,
       seasons: seasons !== undefined ? JSON.stringify(seasons) : null,
+      // Leeg = wissen ('' is niet NULL, dus COALESCE overschrijft); undefined = ongemoeid laten.
+      watch_note: watchNote !== undefined ? String(watchNote) : null,
       clear_score: clearScore ? 1 : 0,
       updated_at: Date.now(),
     });

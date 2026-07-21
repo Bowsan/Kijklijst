@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Snapshot, Title, Profile } from '../lib/types';
 import { saveProfile, identify, fetchState, followUser, enablePush } from '../lib/api';
-import { setUserId, getUserId, setOnboarded } from '../lib/identity';
+import { setUserId, getUserId, setOnboarded, setSimpleMode } from '../lib/identity';
 import { MIN_RATINGS_FOR_PROFILE } from '../lib/compute';
 import { isStandalone } from '../lib/install';
 import Avatar from './Avatar';
@@ -11,7 +11,7 @@ import TitleCard from './TitleCard';
 // collectie (10 bekendste series, gewone lijstkaartjes) → meldingen (alleen als
 // de app al op het beginscherm staat). Alles na de naam is overslaanbaar.
 
-type Step = 'name' | 'friends' | 'rate' | 'push';
+type Step = 'name' | 'friends' | 'mode' | 'rate' | 'push';
 
 export default function Onboarding({ existing = false, onDone }: {
   /** Bestaande gebruiker (naam bekend): sla de naam/vrienden-stappen over. */
@@ -42,6 +42,15 @@ export default function Onboarding({ existing = false, onDone }: {
     setStep('rate');
   };
 
+  // Keuze Normaal/Simpel: Simpel slaat de cijfer-stap over en gaat direct de
+  // simpele modus in; Normaal loopt door naar de gewone collectie-stap.
+  const chooseMode = (simple: boolean) => {
+    setSimpleMode(simple);
+    if (simple) finish();
+    else if (snap) enterRate(snap);
+    else finishOrPush();
+  };
+
   // Bestaande gebruiker: direct naar de collectie-stap.
   useEffect(() => {
     if (!existing) return;
@@ -67,7 +76,7 @@ export default function Onboarding({ existing = false, onDone }: {
       setSnap(s);
       const others = s ? followableProfiles(s) : [];
       if (others.length > 0) setStep('friends');
-      else if (s) enterRate(s);
+      else if (s) setStep('mode');
       else finish();
     } catch {
       /* naam-stap opnieuw proberen */
@@ -147,10 +156,39 @@ export default function Onboarding({ existing = false, onDone }: {
         </div>
         <button
           className="btn primary full"
-          onClick={() => (snap ? enterRate(snap) : finishOrPush())}
+          onClick={() => setStep('mode')}
         >
           {followed.size > 0 ? 'Verder' : 'Overslaan'}
         </button>
+      </div>
+    );
+  }
+
+  if (step === 'mode') {
+    return (
+      <div className="onboard">
+        <div className="hero">
+          <div className="big">🛋️</div>
+          <h1>Hoe wil je Op de Bank gebruiken?</h1>
+          <p className="muted">Je kunt dit later altijd wisselen in Instellingen.</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button className="mode-choice reco" onClick={() => chooseMode(false)}>
+            <span className="mc-ico">✨</span>
+            <span className="mc-txt">
+              <b>Normaal</b>
+              <span>Met cijfers, tips van vrienden, statistieken en het prikbord.</span>
+              <span className="mc-tag">Aanbevolen</span>
+            </span>
+          </button>
+          <button className="mode-choice" onClick={() => chooseMode(true)}>
+            <span className="mc-ico">📝</span>
+            <span className="mc-txt">
+              <b>Simpel</b>
+              <span>Dol op eenvoud? Deze versie bevat minimale functionaliteit.</span>
+            </span>
+          </button>
+        </div>
       </div>
     );
   }

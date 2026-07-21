@@ -81,6 +81,8 @@ export interface RatingUpdate {
   note?: string;
   service?: string;
   seasons?: number[];
+  /** Kort persoonlijk notitieregeltje (simpele modus). '' wist de notitie. */
+  watchNote?: string;
 }
 
 export const saveRating = (u: RatingUpdate) => post('/api/rating', u);

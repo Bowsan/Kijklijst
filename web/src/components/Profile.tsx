@@ -73,6 +73,8 @@ interface Props {
   userId: string;
   blind: boolean;
   setBlindState: (v: boolean) => void;
+  simpleMode: boolean;
+  setSimpleMode: (v: boolean) => void;
   theme: Theme;
   setTheme: (t: Theme) => void;
   onChange: () => void;
@@ -104,7 +106,7 @@ function resizeImage(file: File): Promise<string> {
   });
 }
 
-export default function Profile({ snap, userId, blind, setBlindState, theme, setTheme, onChange, onShare, toast }: Props) {
+export default function Profile({ snap, userId, blind, setBlindState, simpleMode, setSimpleMode, theme, setTheme, onChange, onShare, toast }: Props) {
   const me = profileById(snap, userId);
   const [name, setName] = useState(me?.name || '');
   const [avatar, setAvatar] = useState<string | null>(me?.avatar || null);
@@ -252,6 +254,19 @@ export default function Profile({ snap, userId, blind, setBlindState, theme, set
             <button className={theme === 'dark' ? 'sel' : ''} onClick={() => setTheme('dark')}>🌙 Donker</button>
             <button className={theme === 'system' ? 'sel' : ''} onClick={() => setTheme('system')}>📱 Auto</button>
           </div>
+        </div>
+        <div className="toggle" style={{ marginTop: 6 }}>
+          <div>
+            <div>Simpele modus</div>
+            <div className="muted" style={{ fontSize: 12 }}>Een kaal kijklijstje: wat kijk je en wat kijken je vrienden. Zonder cijfers, tips en statistieken.</div>
+          </div>
+          <button
+            className={`switch ${simpleMode ? 'on' : ''}`}
+            aria-label={simpleMode ? 'Simpele modus uitzetten' : 'Simpele modus aanzetten'}
+            onClick={() => { setSimpleMode(!simpleMode); if (!simpleMode) toast('Simpele modus aan'); }}
+          >
+            <span className="knob" />
+          </button>
         </div>
         <div className="toggle" style={{ marginTop: 6 }}>
           <div>

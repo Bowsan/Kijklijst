@@ -80,9 +80,19 @@ export function setBlind(value: boolean): void {
   localStorage.setItem(BLIND_KEY, value ? '1' : '0');
 }
 
+// Simpele modus: een kaal kijklijstje in plaats van de volledige app. Per apparaat.
+const SIMPLE_KEY = 'opdebank.simpleMode';
+export function getSimpleMode(): boolean {
+  return localStorage.getItem(SIMPLE_KEY) === '1';
+}
+export function setSimpleMode(value: boolean): void {
+  localStorage.setItem(SIMPLE_KEY, value ? '1' : '0');
+}
+
 export function logout(): void {
   localStorage.removeItem(ID_KEY);
   localStorage.removeItem(BLIND_KEY);
+  localStorage.removeItem(SIMPLE_KEY);
 }
 
 // Stabiele kleur per gebruiker, afgeleid van zijn code (voor de initiaal-avatar).

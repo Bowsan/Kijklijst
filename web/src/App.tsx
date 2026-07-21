@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, isOnboarded, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
 import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
@@ -11,6 +11,7 @@ import {
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
+import SimpleApp from './components/SimpleApp';
 import { TopBar, NavBar, type Tab } from './components/Chrome';
 import ListSearchBar from './components/ListSearchBar';
 import StatusBadge from './components/StatusBadge';
@@ -64,7 +65,9 @@ export default function App() {
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [tab, setTab] = useState<Tab>('dashboard');
   const [blind, setBlindState] = useState(getBlind());
+  const [simpleMode, setSimpleModeState] = useState(getSimpleMode());
   const [theme, setThemeState] = useState<Theme>(getTheme());
+  const changeSimpleMode = (v: boolean) => { setSimpleModePref(v); setSimpleModeState(v); };
 
   const changeTheme = (t: Theme) => { setTheme(t); setThemeState(t); };
   const [recommendTarget, setRecommendTarget] = useState<Title | null>(null);
@@ -455,6 +458,8 @@ export default function App() {
   const [showAddHint, setShowAddHint] = useState(false);
   const finishOnboarding = async () => {
     await reload();
+    // De onboarding kan de simpele modus hebben gekozen — die vlag hier oppikken.
+    setSimpleModeState(getSimpleMode());
     setFriend('me');
     setStatus('finished');
     setTab('list');
@@ -530,6 +535,20 @@ export default function App() {
   const scoredByMe = snap.ratings.filter((r) => r.user_id === userId && r.score != null).length;
   if (!me || (!isOnboarded() && scoredByMe < 5)) {
     return <Onboarding existing={!!me} onDone={finishOnboarding} />;
+  }
+
+  // Simpele modus: een kaal kijklijstje in plaats van de volledige app.
+  if (simpleMode) {
+    return (
+      <SimpleApp
+        snap={snap}
+        userId={userId}
+        online={online}
+        onChange={reload}
+        toast={toast}
+        setSimpleMode={changeSimpleMode}
+      />
+    );
   }
 
   return (
@@ -823,7 +842,7 @@ export default function App() {
       )}
 
       {tab === 'profile' && (
-        <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} theme={theme} setTheme={changeTheme} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <Profile snap={snap} userId={userId} blind={blind} setBlindState={setBlindState} simpleMode={simpleMode} setSimpleMode={changeSimpleMode} theme={theme} setTheme={changeTheme} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
       )}
 
       {/* Tijdens zoeken/toevoegen verbergen we de balk: hij is dan overbodig en

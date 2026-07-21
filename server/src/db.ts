@@ -165,15 +165,19 @@ function addTitleColumns(): void {
 }
 addTitleColumns();
 
-// created_at op beoordelingen: de invoervolgorde per gebruiker (de tijdlijn van
-// wanneer je een serie toevoegde). Bestaande rijen krijgen updated_at als beste
-// benadering, zodat de bestaande "Nieuwste/Oudste"-volgorde behouden blijft.
+// Extra kolommen op beoordelingen (additief).
+// - created_at: de invoervolgorde per gebruiker (tijdlijn van wanneer je een
+//   serie toevoegde). Bestaande rijen krijgen updated_at als beste benadering.
+// - watch_note: een kort, persoonlijk notitieregeltje (voor de "simpele modus").
+//   Bewust een eigen kolom, los van 'note' (dat naar het prikbord migreert).
 function addRatingColumns(): void {
   const cols = db.prepare('PRAGMA table_info(ratings)').all() as any[];
-  if (!cols.some((c) => c.name === 'created_at')) {
+  const names = new Set(cols.map((c) => c.name));
+  if (!names.has('created_at')) {
     db.exec('ALTER TABLE ratings ADD COLUMN created_at INTEGER');
     db.exec('UPDATE ratings SET created_at = updated_at WHERE created_at IS NULL');
   }
+  if (!names.has('watch_note')) db.exec('ALTER TABLE ratings ADD COLUMN watch_note TEXT');
 }
 addRatingColumns();
 
