@@ -63,9 +63,18 @@ function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: num
         </div>
       </div>
       <div className="dc-actions">
-        {/* Alleen de IMDb-chip tonen als er een cijfer is; anders geen knop. */}
-        {item.imdb != null && item.imdb > 0 && <ImdbChip rating={item.imdb} url={imdbUrl} />}
-        <button className="btn primary dc-add" onClick={() => onAdd(item.tmdb_id)}>+ Toevoegen</button>
+        {/* Cijfer bekend → de gele chip; anders een kleine IMDb-badge om 'm op te zoeken. */}
+        {item.imdb != null && item.imdb > 0
+          ? <ImdbChip rating={item.imdb} url={imdbUrl} />
+          : (
+            <a className="imdb-search" href={imdbUrl} target="_blank" rel="noopener noreferrer" title="Opzoeken op IMDb" aria-label="Opzoeken op IMDb">
+              <span className="imdb-badge">IMDb</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        <button className="dc-wishlist" onClick={() => onAdd(item.tmdb_id)}>
+          <span aria-hidden="true">🔖</span> Op wishlist
+        </button>
       </div>
     </div>
   );
@@ -121,9 +130,18 @@ function FavSuggestCard({ row, onAdd }: {
         </div>
       </div>
       <div className="dc-actions">
-        {/* Alleen de IMDb-chip tonen als er een cijfer is; anders geen knop. */}
-        {row.imdb != null && row.imdb > 0 && <ImdbChip rating={row.imdb} url={imdbUrl} />}
-        <button className="btn primary dc-add" onClick={() => onAdd(row.tmdb_id)}>+ Toevoegen</button>
+        {/* Cijfer bekend → de gele chip; anders een kleine IMDb-badge om 'm op te zoeken. */}
+        {row.imdb != null && row.imdb > 0
+          ? <ImdbChip rating={row.imdb} url={imdbUrl} />
+          : (
+            <a className="imdb-search" href={imdbUrl} target="_blank" rel="noopener noreferrer" title="Opzoeken op IMDb" aria-label="Opzoeken op IMDb">
+              <span className="imdb-badge">IMDb</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+          )}
+        <button className="dc-wishlist" onClick={() => onAdd(row.tmdb_id)}>
+          <span aria-hidden="true">🔖</span> Op wishlist
+        </button>
       </div>
     </div>
   );
