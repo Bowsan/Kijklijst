@@ -1519,3 +1519,17 @@ input, textarea, select {
   text-transform: uppercase; color: var(--accent);
   background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 2px 8px; border-radius: 999px;
 }
+
+/* Simpele modus — Fase 2: nette lege staten + naam wijzigen */
+.sm-emptyblock {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 6px; padding: 30px 20px; color: var(--muted);
+}
+.sm-empty-ico { font-size: 40px; line-height: 1; opacity: 0.9; }
+.sm-empty-title { font-weight: 700; font-size: 15px; color: var(--text); }
+.sm-empty-sub { font-size: 13px; line-height: 1.5; max-width: 34ch; }
+.sm-setrow-col { flex-direction: column; align-items: stretch; gap: 8px; }
+.sm-setrow-col > b { font-size: 15px; }
+.sm-name-edit { display: flex; gap: 8px; }
+.sm-name-edit .sm-search { flex: 1; }
+.sm-name-edit .btn { flex-shrink: 0; }

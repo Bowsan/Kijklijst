@@ -324,6 +324,15 @@ export function totalWatchHours(snap: Snapshot, userId: string): number {
   return total;
 }
 
+/** Totaal aantal seizoenen dat deze gebruiker als gezien markeerde. */
+export function totalWatchedSeasons(snap: Snapshot, userId: string): number {
+  let total = 0;
+  for (const t of snap.titles) {
+    total += watchedSeasonCount(t, myRating(snap, t.tmdb_id, userId));
+  }
+  return total;
+}
+
 /** Smaakprofiel: gemiddeld cijfer per genre voor deze gebruiker. */
 export function tasteProfile(snap: Snapshot, userId: string): { genre: string; avg: number; count: number }[] {
   const byGenre = new Map<string, number[]>();
