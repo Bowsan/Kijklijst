@@ -53,6 +53,8 @@ export interface Rating {
   note: string | null;
   service: string | null;
   seasons: number[];
+  /** Kort persoonlijk notitieregeltje (simpele modus). */
+  watch_note?: string | null;
   /** Wanneer je deze serie toevoegde (invoervolgorde/tijdlijn). */
   created_at?: number;
   updated_at: number;
