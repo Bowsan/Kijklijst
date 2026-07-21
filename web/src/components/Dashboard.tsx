@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import type { Snapshot } from '../lib/types';
 import { PERSON_IMG, serviceLogoUrl } from '../lib/types';
 import {
-  followingProfiles, watchingTitles, myRating, serviceStats, totalWatchHours,
+  followingProfiles, watchingTitles, myRating, serviceStats, totalWatchHours, totalWatchedSeasons,
   ratedCount, titleById, profileById, visibleUserIds, yearStats,
   favoriteActors, favoriteCreators,
 } from '../lib/compute';
@@ -72,6 +72,7 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
   const scores = myRatings.filter((r) => r.score != null).map((r) => r.score as number);
   const avgScore = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length) : null;
   const hours = totalWatchHours(snap, userId);
+  const seasons = totalWatchedSeasons(snap, userId);
 
   const myGenreCounts = useMemo(() => {
     const counts = new Map<string, { count: number; scores: number[]; rated: { title: typeof snap.titles[number]; score: number }[] }>();
@@ -254,13 +255,13 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
                 <div className="v">{avgScore != null ? <CountUp value={avgScore} decimals={1} /> : '—'}</div>
               </div>
             </div>
-            <button className="stat-box tint-good" onClick={() => onNavigate({ status: 'finished' })}>
-              <span className="stat-ico">✅</span>
+            <div className="stat-box tint-good">
+              <span className="stat-ico">🎞️</span>
               <div className="stat-body">
-                <div className="k">Afgezien</div>
-                <div className="v"><CountUp value={finishedCount} /></div>
+                <div className="k">Aantal seizoenen</div>
+                <div className="v"><CountUp value={seasons} /></div>
               </div>
-            </button>
+            </div>
             <div className="stat-box tint-info">
               <span className="stat-ico">⏱️</span>
               <div className="stat-body">

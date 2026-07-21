@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Snapshot, Title, Rating, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
-import { saveRating, searchTmdb } from '../lib/api';
-import { watchingTitles, followingProfiles } from '../lib/compute';
+import { saveRating, searchTmdb, saveProfile } from '../lib/api';
+import { watchingTitles, followingProfiles, profileById } from '../lib/compute';
 import PosterFallback from './PosterFallback';
 import Avatar from './Avatar';
 
@@ -59,7 +59,7 @@ export default function SimpleApp({ snap, userId, online, onChange, toast, setSi
       </nav>
 
       {showSettings && (
-        <Settings onClose={() => setShowSettings(false)} setSimpleMode={setSimpleMode} toast={toast} />
+        <Settings snap={snap} userId={userId} onClose={() => setShowSettings(false)} onChange={onChange} setSimpleMode={setSimpleMode} toast={toast} />
       )}
     </div>
   );
@@ -79,7 +79,7 @@ function IkKijk({ watching, seen, onChange, toast }: {
       <div className="sm-label">Aan het kijken</div>
       <div className="sm-list">
         {watching.length === 0
-          ? <p className="sm-empty">Nog niets. Voeg hierboven een serie toe die je nu kijkt.</p>
+          ? <EmptyBlock icon="📺" title="Nog niets op je lijst" sub="Tik op ‘Serie toevoegen’ om de serie die je nu kijkt toe te voegen." />
           : watching.map((x) => <SimpleRow key={x.title.tmdb_id} title={x.title} rating={x.rating} done={false} onChange={onChange} toast={toast} />)}
       </div>
 
@@ -242,7 +242,7 @@ function DeRest({ snap, userId }: { snap: Snapshot; userId: string }) {
     return (
       <div className="sm-list-wrap">
         <div className="sm-label">Wat je vrienden kijken</div>
-        <p className="sm-empty">Niemand die je volgt kijkt nu iets — of je volgt nog geen vrienden.</p>
+        <EmptyBlock icon="👥" title="Nog niemand aan het kijken" sub="Niemand die je volgt kijkt nu iets — zodra ze iets starten, zie je het hier." />
       </div>
     );
   }
@@ -273,16 +273,44 @@ function DeRest({ snap, userId }: { snap: Snapshot; userId: string }) {
   );
 }
 
-/** Instellingen: alleen de schakelaar terug naar de volledige app. */
-function Settings({ onClose, setSimpleMode, toast }: {
+/** Vriendelijke lege staat met icoon en uitleg. */
+function EmptyBlock({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
+  return (
+    <div className="sm-emptyblock">
+      <div className="sm-empty-ico" aria-hidden="true">{icon}</div>
+      <div className="sm-empty-title">{title}</div>
+      {sub && <div className="sm-empty-sub">{sub}</div>}
+    </div>
+  );
+}
+
+/** Instellingen: je naam wijzigen en de schakelaar terug naar de volledige app. */
+function Settings({ snap, userId, onClose, onChange, setSimpleMode, toast }: {
+  snap: Snapshot;
+  userId: string;
   onClose: () => void;
+  onChange: () => void;
   setSimpleMode: (v: boolean) => void;
   toast: (m: string) => void;
 }) {
+  const current = profileById(snap, userId)?.name ?? '';
+  const [name, setName] = useState(current);
+  const [saving, setSaving] = useState(false);
+
+  const saveName = async () => {
+    const v = name.trim();
+    if (!v || v === current) return;
+    setSaving(true);
+    try { await saveProfile({ name: v }); onChange(); toast('Naam opgeslagen'); }
+    catch { toast('Naam opslaan lukte niet'); }
+    finally { setSaving(false); }
+  };
+
   const turnOff = () => {
     setSimpleMode(false);
     toast('Volledige app aangezet');
   };
+
   return (
     <div className="sm-sheet-backdrop" onClick={onClose}>
       <div className="sm-sheet" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Instellingen">
@@ -290,6 +318,24 @@ function Settings({ onClose, setSimpleMode, toast }: {
           <h2>Instellingen</h2>
           <button className="sm-add-close" onClick={onClose} aria-label="Sluiten">✕</button>
         </div>
+
+        <div className="sm-setrow sm-setrow-col">
+          <b>Je naam</b>
+          <div className="sm-name-edit">
+            <input
+              className="sm-search"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Hoe heet je?"
+              maxLength={40}
+              aria-label="Je naam"
+            />
+            <button className="btn primary" onClick={saveName} disabled={saving || !name.trim() || name.trim() === current}>
+              Opslaan
+            </button>
+          </div>
+        </div>
+
         <div className="sm-setrow">
           <div className="sm-set-txt">
             <b>Simpele modus</b>
