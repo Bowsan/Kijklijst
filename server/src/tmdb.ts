@@ -85,7 +85,8 @@ export async function getRecommendations(id: number): Promise<SearchResult[]> {
 
 // De nieuwste series ontdekken (voor de "Voor jou" ontdek-sectie).
 // We sorteren op eerste uitzenddatum aflopend, maar eisen een minimum aan stemmen
-// zodat we geen obscure of lege inzendingen tonen.
+// zodat we geen obscure of lege inzendingen tonen. Met de monetization-filter
+// tonen we alleen series die in NL te streamen zijn, zodat de dienst er altijd bij staat.
 export async function getNewTv(): Promise<SearchResult[]> {
   const today = new Date().toISOString().slice(0, 10);
   const data = await tmdb('/discover/tv', {
@@ -94,6 +95,7 @@ export async function getNewTv(): Promise<SearchResult[]> {
     'first_air_date.lte': today,
     'vote_count.gte': '15',
     watch_region: REGION,
+    with_watch_monetization_types: 'flatrate|free|ads',
   });
   const results: SearchResult[] = (data.results || [])
     .filter((r: any) => r.first_air_date)

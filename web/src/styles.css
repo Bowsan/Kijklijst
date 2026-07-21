@@ -1286,8 +1286,20 @@ input, textarea, select {
   overflow: hidden; cursor: pointer;
 }
 .dc-overview.empty-note { font-style: italic; }
-.dc-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.dc-add { flex-shrink: 0; }
+.dc-actions { display: flex; align-items: center; gap: 10px; }
+/* Kleine, klikbare IMDb-badge om de serie op te zoeken als er geen cijfer is. */
+.imdb-search { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--muted); font-size: 12px; }
+.imdb-search span[aria-hidden] { opacity: 0.55; font-size: 11px; }
+/* "Op wishlist"-knop in de wishlist-stijl (amber), altijd rechtsonder. */
+.dc-wishlist {
+  margin-left: auto; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: rgba(255, 209, 102, 0.18); color: var(--warn);
+  border: 1px solid transparent; font-weight: 700; font-size: 13px;
+  cursor: pointer; white-space: nowrap;
+}
+.dc-wishlist:active { transform: scale(0.97); }
 .toast {
   position: fixed; bottom: calc(84px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
