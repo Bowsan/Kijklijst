@@ -128,6 +128,7 @@ export default function App() {
   const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
+  const [compact, setCompact] = useState<boolean>(saved.compact);
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickFilterOpen, setQuickFilterOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
@@ -171,8 +172,8 @@ export default function App() {
 
   // Filterkeuzes onthouden tussen bezoeken (status bewust niet).
   useEffect(() => {
-    savePrefs({ friend, services, genres, sortKey, sortDir });
-  }, [friend, services, genres, sortKey, sortDir]);
+    savePrefs({ friend, services, genres, sortKey, sortDir, compact });
+  }, [friend, services, genres, sortKey, sortDir, compact]);
 
   const toast = (msg: string) => {
     setToastMsg(msg);
@@ -673,18 +674,30 @@ export default function App() {
                 </svg>
                 Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
-              {/* Scope: standaard je eigen lijst (Jij); tik Iedereen voor de groep. */}
-              <div className="scope-toggle">
-                <button className={friend === 'me' ? 'sel' : ''} onClick={() => setFriend('me')}>Jij</button>
-                <button className={friend === '' ? 'sel' : ''} onClick={() => setFriend('')}>Iedereen</button>
-              </div>
               <button
                 className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
                 aria-label="Zoek in deze lijst"
                 onClick={() => { setSearchOpen(false); setQuickFilterOpen((v) => { const next = !v; if (!next) setNameFilter(''); return next; }); }}
               >🔍</button>
             </div>
-            <div style={{ position: 'relative' }}>
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className={`compact-btn ${compact ? 'on' : ''}`}
+                aria-pressed={compact}
+                aria-label={compact ? 'Volledige weergave' : 'Compacte weergave'}
+                title={compact ? 'Volledige weergave' : 'Compacte weergave'}
+                onClick={() => setCompact((v) => !v)}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <circle cx="3.6" cy="6" r="1.2" fill="currentColor" stroke="none" />
+                  <circle cx="3.6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+                  <circle cx="3.6" cy="18" r="1.2" fill="currentColor" stroke="none" />
+                </svg>
+              </button>
+              <div style={{ position: 'relative' }}>
               <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)}>
                 {sortLabel(sortKey)} {sortDir === 'desc' ? '↓' : '↑'}
               </button>
@@ -704,6 +717,7 @@ export default function App() {
                   </div>
                 </>
               )}
+              </div>
             </div>
           </div>
 
@@ -775,6 +789,7 @@ export default function App() {
                     blind={blind}
                     showGroupScore={friend === ''}
                     showWanters={status === 'want' && friend === ''}
+                    compact={compact}
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
                     onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); scroller()?.scrollTo({ top: 0 }); }}
                     onOpenProfile={setProfileTarget}

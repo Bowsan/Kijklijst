@@ -1533,3 +1533,20 @@ input, textarea, select {
 .sm-name-edit { display: flex; gap: 8px; }
 .sm-name-edit .sm-search { flex: 1; }
 .sm-name-edit .btn { flex-shrink: 0; }
+
+/* Compacte-weergave knop naast sorteren */
+.compact-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text);
+}
+.compact-btn.on { background: var(--accent-grad); color: #fff; border-color: transparent; }
+
+/* Compacte lijstkaart: alleen titel (links) + cijfer(s) (rechts) */
+.title-card.compact { padding: 10px 12px; margin-bottom: 8px; }
+.compact-head { align-items: center; }
+.compact-title {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
