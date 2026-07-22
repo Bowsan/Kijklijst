@@ -1,7 +1,7 @@
 // De vaste app-schil: kopbalk (logo + menu-iconen) en de onderste
 // navigatiebalk. Puur presentatie — alle state blijft in App.
 
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 
 export type Tab = 'dashboard' | 'list' | 'foryou' | 'friends' | 'profile';
 
@@ -68,8 +68,12 @@ export function NavBar({ tab, forYouCount, dashboardDot, onTab }: {
   dashboardDot?: boolean;
   onTab: (t: Tab) => void;
 }) {
+  // Actieve index voor de glijdende pil; -1 (Vrienden/Profiel in de kopbalk) → geen pil.
+  const footerTabs: Tab[] = ['dashboard', 'list', 'foryou'];
+  const idx = footerTabs.indexOf(tab);
+  const navStyle = { '--nav-count': footerTabs.length, '--nav-index': Math.max(0, idx), '--nav-op': idx < 0 ? 0 : 1 } as CSSProperties;
   return (
-    <nav className="nav">
+    <nav className="nav" style={navStyle}>
       <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => onTab('dashboard')}>
         <span className="ico"><img src="/icons/nav-home.png" alt="" /></span>Dashboard
         {dashboardDot && <span className="notif-dot nav-dot" aria-label="nieuwe meldingen" />}
