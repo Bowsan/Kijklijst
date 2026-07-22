@@ -653,7 +653,8 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  /* Binnen het witte header-blok; grijs begint eronder. */
+  padding: 8px 14px 10px;
 }
 .filter-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -1549,4 +1550,36 @@ input, textarea, select {
   flex: 1; min-width: 0; margin: 0;
   font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ============================================================
+   Lijst-header: statustabs + werkbalk in één wit blok (met de topbar)
+   ============================================================ */
+/* Op de lijst loopt de topbar naadloos over in de tabrij (geen scheidingslijn). */
+.tab-list .topbar { border-bottom: none; }
+
+.list-head {
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Statustabs: gelijke breedte, groene onderstreping onder de actieve tab,
+   en een dunne scheidingslijn van 1px over de volle breedte eronder. */
+.status-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.status-tabs button {
+  flex: 1 1 0; min-width: 0; min-height: 40px;
+  padding: 9px 4px 8px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  white-space: nowrap; text-align: center;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px; /* onderstreping valt over de 1px scheidingslijn */
+}
+.status-tabs button.sel { color: var(--accent); border-bottom-color: var(--accent); }
+.status-tabs button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -3px; border-radius: 4px;
+}
+/* Smalle schermen: iets kleinere letter zodat "Mee bezig" op één regel blijft. */
+@media (max-width: 360px) {
+  .status-tabs button { font-size: 12px; padding-left: 2px; padding-right: 2px; }
 }
