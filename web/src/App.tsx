@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, getFriendsSeen, setFriendsSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
 import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
 import {
   profileById, myRating, groupAverage, selectTitles, serviceOptions, forYouBadgeCount,
-  unseenNotificationCount,
+  unseenNotificationCount, incomingRecommendations,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -21,7 +21,7 @@ import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import Sheet from './components/Sheet';
 import ForYou from './components/ForYou';
-import Dashboard from './components/Dashboard';
+import Dashboard, { type DashSection } from './components/Dashboard';
 import Friends from './components/Friends';
 import ProfileView from './components/ProfileView';
 import Profile from './components/Profile';
@@ -35,6 +35,12 @@ type StatusTab = 'all' | 'want' | 'watching' | 'finished';
 type StatusValue = StatusTab | 'dropped' | 'notdone';
 
 // De statustabs bovenaan (kijkstatus). Afgehaakt zit in het filterpaneel.
+const DASH_TABS: { key: DashSection; label: string }[] = [
+  { key: 'kijken', label: 'Aan het kijken' },
+  { key: 'actueel', label: 'Actueel' },
+  { key: 'stats', label: 'Statistieken' },
+];
+
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'all', label: 'Alles' },
   { key: 'want', label: 'Wishlist' },
@@ -84,6 +90,9 @@ export default function App() {
   const [showActivity, setShowActivity] = useState(false);
   const [activitySeen, setActivitySeenState] = useState(getActivitySeen());
   const [forYouSeen, setForYouSeenState] = useState(getForYouSeen());
+  const [friendsSeen, setFriendsSeenState] = useState(getFriendsSeen());
+  // Welke dashboard-sectie actief is (Aan het kijken / Actueel / Statistieken).
+  const [dashTab, setDashTab] = useState<DashSection>('kijken');
 
   // Offline-detectie: toon een banner zolang er geen verbinding is.
   const [online, setOnline] = useState(navigator.onLine);
@@ -103,14 +112,16 @@ export default function App() {
     setForYouSeenState(now);
   }, [tab]);
 
-  // Log/notificaties openen → alles als "gezien" markeren (bolletje verdwijnt).
-  const openActivity = () => {
-    setShowActivity((v) => {
-      const next = !v;
-      if (next) { const now = Date.now(); setActivitySeen(now); setActivitySeenState(now); }
-      return next;
-    });
-  };
+  // Alle meldingen tonen (overlay) én als "gezien" markeren.
+  const markActivitySeen = () => { const now = Date.now(); setActivitySeen(now); setActivitySeenState(now); };
+  const openActivity = () => { setShowActivity(true); markActivitySeen(); };
+
+  // Op de "Actueel"-sectie van het dashboard staan de meldingen — dus markeer ze
+  // daar als gezien (het bolletje op Dashboard verdwijnt).
+  useEffect(() => {
+    if (tab === 'dashboard' && dashTab === 'actueel') markActivitySeen();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, dashTab]);
 
   // Filters — statustab springt bij openen terug naar "Alles"; de rest is onthouden.
   const [status, setStatus] = useState<StatusValue>('all');
@@ -512,6 +523,12 @@ export default function App() {
   const unseenMessages = snap ? unseenNotificationCount(snap, userId, activitySeen) : 0;
   const unreadChats = messages.filter((m) => m.to_user === userId && m.read_at == null).length;
   const unreadFrom = (id: string) => messages.filter((m) => m.from_user === id && m.to_user === userId && m.read_at == null).length;
+  // Nieuwe volgers sinds je de vriendenlijst voor het laatst opende.
+  const newFollowers = snap ? snap.follows.filter((f) => f.followee === userId && f.created_at > friendsSeen).length : 0;
+  // Eén rood bolletje op het Vrienden-icoon: berichten + tips + nieuwe vrienden.
+  const friendsDot = !!snap && (unreadChats > 0 || incomingRecommendations(snap, userId).length > 0 || newFollowers > 0);
+  // Rood bolletje op Dashboard bij ongelezen meldingen (het belletje verdween).
+  const dashboardDot = unseenMessages > 0;
 
   // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
   if (!snap) {
@@ -565,22 +582,15 @@ export default function App() {
         items={[
           {
             key: 'friends', label: 'Vrienden', icon: 'top-friends.png',
-            active: tab === 'friends' && friendsSubTab === 'friends',
-            onClick: () => { setTab('friends'); setFriendsSubTab('friends'); },
-          },
-          {
-            key: 'tips', label: 'Tips', icon: '💌',
-            active: tab === 'friends' && friendsSubTab === 'tips',
-            onClick: () => { setTab('friends'); setFriendsSubTab('tips'); },
-          },
-          {
-            key: 'messages', label: 'Berichten', icon: '💬', badge: unreadChats,
-            active: tab === 'friends' && friendsSubTab === 'messages',
-            onClick: () => { setTab('friends'); setFriendsSubTab('messages'); },
-          },
-          {
-            key: 'log', label: 'Log', icon: 'top-bell.png', dot: unseenMessages > 0,
-            onClick: openActivity,
+            active: tab === 'friends',
+            dot: friendsDot,
+            onClick: () => {
+              setTab('friends');
+              setFriendsSubTab('friends');
+              const now = Date.now();
+              setFriendsSeen(now);
+              setFriendsSeenState(now);
+            },
           },
         ]}
       />
@@ -848,14 +858,32 @@ export default function App() {
       )}
 
       {tab === 'dashboard' && (
-        <Dashboard
-          snap={snap}
-          userId={userId}
-          onOpenProfile={setProfileTarget}
-          onAdd={addTitle}
-          onGoFriends={() => setTab('friends')}
-          onNavigate={navigateToList}
-        />
+        <>
+          {/* Dashboard-secties als tabs, net als op de lijst (pinnen bij scrollen). */}
+          <div className="status-tabs" role="tablist" aria-label="Dashboard-secties">
+            {DASH_TABS.map((s) => (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={dashTab === s.key}
+                className={dashTab === s.key ? 'sel' : ''}
+                onClick={() => setDashTab(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <Dashboard
+            snap={snap}
+            userId={userId}
+            dashTab={dashTab}
+            onOpenProfile={setProfileTarget}
+            onAdd={addTitle}
+            onGoFriends={() => setTab('friends')}
+            onNavigate={navigateToList}
+            onShowAllActivity={openActivity}
+          />
+        </>
       )}
 
       {tab === 'foryou' && (
@@ -872,7 +900,7 @@ export default function App() {
 
       {/* Tijdens zoeken/toevoegen verbergen we de balk: hij is dan overbodig en
           neemt ruimte weg van de zoekresultaten. */}
-      {!searchOpen && <NavBar tab={tab} forYouCount={forYouCount} onTab={setTab} />}
+      {!searchOpen && <NavBar tab={tab} forYouCount={forYouCount} dashboardDot={dashboardDot} onTab={setTab} />}
 
       {/* Eénmalig voorstel om meldingen aan te zetten (eerste start vanaf beginscherm). */}
       {showPushAsk && (

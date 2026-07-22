@@ -22,6 +22,16 @@ export function setForYouSeen(ts: number): void {
   localStorage.setItem(FORYOU_SEEN_KEY, String(ts));
 }
 
+// Wanneer je de vriendenlijst voor het laatst opende — bepaalt of er nieuwe
+// volgers zijn (onderdeel van het rode bolletje op het Vrienden-icoon).
+const FRIENDS_SEEN_KEY = 'opdebank.friendsSeen';
+export function getFriendsSeen(): number {
+  return Number(localStorage.getItem(FRIENDS_SEEN_KEY) || 0);
+}
+export function setFriendsSeen(ts: number): void {
+  localStorage.setItem(FRIENDS_SEEN_KEY, String(ts));
+}
+
 export type Theme = 'dark' | 'light' | 'system';
 
 export function getTheme(): Theme {

@@ -156,6 +156,8 @@ input, textarea, select {
   height: 29px;
 }
 .nav button .ico img { width: 25px; height: 25px; object-fit: contain; }
+/* Rood meldingen-bolletje op de Dashboard-tab (rechtsboven het icoon). */
+.nav .nav-dot { top: 4px; right: calc(50% - 18px); }
 .nav .badge {
   position: absolute;
   top: 4px;
@@ -1556,13 +1558,15 @@ input, textarea, select {
 /* ============================================================
    Lijst-header: topbar + werkbalk scrollen weg, de statustabs pinnen bovenin
    ============================================================ */
-/* Op de lijst scrollt de topbar mee (niet meer vastgepind) en loopt naadloos
-   over in de tabrij (geen scheidingslijn). */
-.tab-list .topbar { position: static; border-bottom: none; }
+/* Op de lijst én het dashboard scrollt de topbar mee (niet meer vastgepind) en
+   loopt naadloos over in de tabrij (geen scheidingslijn). */
+.tab-list .topbar,
+.tab-dashboard .topbar { position: static; border-bottom: none; }
 
 /* Vulling achter de statusbalk (systeem-notch) zodat er tijdens het scrollen
    niets onder de statusbalk doorschemert. 0px hoog zonder notch. */
-.tab-list::before {
+.tab-list::before,
+.tab-dashboard::before {
   content: '';
   position: fixed; top: 0; left: 0; right: 0;
   height: var(--safe-top);
@@ -1585,7 +1589,8 @@ input, textarea, select {
   border-bottom: 1px solid var(--border);
 }
 /* Subtiele schaduw zodra de tabbalk "los" van de topbar staat (gescrolld). */
-.tab-list.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
+.tab-list.scrolled .status-tabs,
+.tab-dashboard.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
 .status-tabs button {
   flex: 1 1 0; min-width: 0; min-height: 40px;
   padding: 9px 4px 8px;

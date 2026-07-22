@@ -20,7 +20,7 @@ export const reducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /** Onthul kaarten pas (met stagger) zodra ze in beeld scrollen. */
-export function useReveal(ref: React.RefObject<HTMLDivElement | null>) {
+export function useReveal(ref: React.RefObject<HTMLDivElement | null>, dep?: unknown) {
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
@@ -46,7 +46,9 @@ export function useReveal(ref: React.RefObject<HTMLDivElement | null>) {
     // worden de kaarten na 1,5s alsnog gewoon getoond.
     const failsafe = setTimeout(() => targets.forEach((el) => el.classList.add('in')), 1500);
     return () => { clearTimeout(failsafe); io.disconnect(); };
-  }, [ref]);
+    // dep: bij het wisselen van dashboard-tab opnieuw de nieuwe kaarten onthullen.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, dep]);
 }
 
 /** Teller die soepel naar zijn eindwaarde loopt (ease-out). De eindwaarde is

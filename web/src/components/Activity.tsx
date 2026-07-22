@@ -7,6 +7,8 @@ interface Props {
   snap: Snapshot;
   userId: string;
   onOpenTitle: (titleId: number) => void;
+  /** Maximaal aantal items (bijv. 10 voor de compacte lijst op het dashboard). */
+  limit?: number;
 }
 
 // Twee bronnen samenvoegen in één tijdlijn: de activiteitenlog + berichten van
@@ -15,7 +17,7 @@ type FeedItem =
   | { kind: 'activity'; id: string; created_at: number; a: Snapshot['activity'][number] }
   | { kind: 'comment'; id: string; created_at: number; c: Comment };
 
-export default function ActivityFeed({ snap, userId, onOpenTitle }: Props) {
+export default function ActivityFeed({ snap, userId, onOpenTitle, limit = 40 }: Props) {
   const messages = commentsOnMyList(snap, userId);
 
   const items: FeedItem[] = [
@@ -23,7 +25,7 @@ export default function ActivityFeed({ snap, userId, onOpenTitle }: Props) {
     ...messages.map((c) => ({ kind: 'comment' as const, id: `c-${c.id}`, created_at: c.created_at, c })),
   ]
     .sort((x, y) => y.created_at - x.created_at)
-    .slice(0, 40);
+    .slice(0, limit);
 
   if (items.length === 0) {
     return <p className="muted center" style={{ padding: 20 }}>Nog geen activiteit. Voeg een serie toe om te beginnen.</p>;

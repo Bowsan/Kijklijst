@@ -62,7 +62,11 @@ try {
   await page.waitForSelector('.dash', { timeout: 10000 });
   const body = () => page.evaluate(() => document.body.textContent || '');
 
-  // Dashboard: statistiektegels + minstens één inhoudskaart.
+  // Dashboard: standaard de tab "Aan het kijken"; statistieken staan onder hun tab.
+  if ((await body()).includes('Jij kijkt nu naar')) ok('dashboard: tab Aan het kijken');
+  else fail('dashboard: tab Aan het kijken mist');
+  await page.click('.status-tabs button:has-text("Statistieken")');
+  await page.waitForSelector('.stat-box', { timeout: 10000 });
   if (await page.locator('.stat-box').count() === 4) ok('dashboard: 4 statistiektegels');
   else fail('dashboard: statistiektegels missen');
   if ((await body()).includes('Jouw vaste cast')) ok('dashboard: cast-kaart');
