@@ -553,7 +553,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className={`app tab-${tab}`}>
       <TopBar
         onLogo={() => setTab('dashboard')}
         items={[
@@ -640,23 +640,16 @@ export default function App() {
       )}
 
       {tab === 'list' && !searchActive && (
-        <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' } : undefined}>
-          {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
-          {friend && friend !== 'me' && (
-            <div className="viewing-as">
-              <div className="row" style={{ gap: 8, minWidth: 0 }}>
-                <Avatar profile={profileById(snap, friend)} id={friend} size="sm" />
-                <span>Dit is de lijst van: <b>{profileById(snap, friend)?.name || 'Vriend'}</b></span>
-              </div>
-              <button className="btn ghost" style={{ padding: '4px 10px', flexShrink: 0 }} onClick={() => setFriend('me')}>Naar jouw lijst</button>
-            </div>
-          )}
-
-          {/* Zone 1 — statusbalk (kijkstatus), de hoofdnavigatie */}
-          <div className="status-bar">
+        <>
+        {/* Eén witte header: statustabs + werkbalk. De grijze pagina begint eronder. */}
+        <div className="list-head">
+          {/* Zone 1 — statustabs (kijkstatus), de hoofdnavigatie */}
+          <div className="status-tabs" role="tablist" aria-label="Kijkstatus">
             {STATUS_TABS.map((s) => (
               <button
                 key={s.key}
+                role="tab"
+                aria-selected={status === s.key}
                 className={status === s.key ? 'sel' : ''}
                 onClick={() => setStatus(s.key)}
               >
@@ -720,6 +713,19 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>{/* /.list-head */}
+
+        <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' } : undefined}>
+          {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
+          {friend && friend !== 'me' && (
+            <div className="viewing-as">
+              <div className="row" style={{ gap: 8, minWidth: 0 }}>
+                <Avatar profile={profileById(snap, friend)} id={friend} size="sm" />
+                <span>Dit is de lijst van: <b>{profileById(snap, friend)?.name || 'Vriend'}</b></span>
+              </div>
+              <button className="btn ghost" style={{ padding: '4px 10px', flexShrink: 0 }} onClick={() => setFriend('me')}>Naar jouw lijst</button>
+            </div>
+          )}
 
           {/* Snel zoeken/filteren binnen de huidige lijst (puur filteren, geen toevoegen) */}
           {quickFilterOpen && (
@@ -809,6 +815,7 @@ export default function App() {
             </>
           )}
         </div>
+        </>
       )}
 
       {/* Zweef-knop: zoeken, filteren én toevoegen in één. */}
