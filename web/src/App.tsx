@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, getFriendsSeen, setFriendsSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, colorFor, type Theme } from './lib/identity';
@@ -40,6 +40,11 @@ const DASH_TABS: { key: DashSection; label: string }[] = [
   { key: 'actueel', label: 'Actueel' },
   { key: 'stats', label: 'Statistieken' },
 ];
+
+// CSS-variabelen voor het glijdende onderstreepje (aantal tabs + actieve index).
+// index < 0 (geen actieve tab, bijv. bij een filterstatus) verbergt het streepje.
+const tabStyle = (count: number, index: number): CSSProperties =>
+  ({ '--tab-count': count, '--tab-index': Math.max(0, index), '--tab-op': index < 0 ? 0 : 1 } as CSSProperties);
 
 const STATUS_TABS: { key: StatusTab; label: string }[] = [
   { key: 'all', label: 'Alles' },
@@ -669,7 +674,7 @@ export default function App() {
       {tab === 'list' && !searchActive && (
         <>
           {/* Zone 1 — statustabs: pinnen bovenin bij scrollen (topbar + werkbalk scrollen weg). */}
-          <div className="status-tabs" role="tablist" aria-label="Kijkstatus">
+          <div className="status-tabs" role="tablist" aria-label="Kijkstatus" style={tabStyle(STATUS_TABS.length, STATUS_TABS.findIndex((s) => s.key === status))}>
             {STATUS_TABS.map((s) => (
               <button
                 key={s.key}
@@ -871,7 +876,7 @@ export default function App() {
       {tab === 'dashboard' && (
         <>
           {/* Dashboard-secties als tabs, net als op de lijst (pinnen bij scrollen). */}
-          <div className="status-tabs" role="tablist" aria-label="Dashboard-secties">
+          <div className="status-tabs" role="tablist" aria-label="Dashboard-secties" style={tabStyle(DASH_TABS.length, DASH_TABS.findIndex((s) => s.key === dashTab))}>
             {DASH_TABS.map((s) => (
               <button
                 key={s.key}
@@ -904,7 +909,7 @@ export default function App() {
       {tab === 'friends' && (
         <>
           {/* Vrienden-secties als tabs, consistent met lijst en dashboard. */}
-          <div className="status-tabs" role="tablist" aria-label="Vrienden-secties">
+          <div className="status-tabs" role="tablist" aria-label="Vrienden-secties" style={tabStyle(3, ['friends', 'tips', 'messages'].indexOf(friendsSubTab))}>
             <button role="tab" aria-selected={friendsSubTab === 'friends'} className={friendsSubTab === 'friends' ? 'sel' : ''} onClick={() => setFriendsSubTab('friends')}>Vrienden</button>
             <button role="tab" aria-selected={friendsSubTab === 'tips'} className={friendsSubTab === 'tips' ? 'sel' : ''} onClick={() => setFriendsSubTab('tips')}>Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}</button>
             <button role="tab" aria-selected={friendsSubTab === 'messages'} className={`tab-badged ${friendsSubTab === 'messages' ? 'sel' : ''}`} onClick={() => setFriendsSubTab('messages')}>
