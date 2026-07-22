@@ -442,10 +442,16 @@ export default function App() {
 
   // "Terug naar boven"-knop tonen zodra je een eind naar beneden hebt gescrold.
   const [showScrollTop, setShowScrollTop] = useState(false);
+  // Zodra je voorbij de (weg-scrollende) topbar bent, staat de tabbalk "los" —
+  // dan geven we 'm een subtiele schaduw.
+  const [headerScrolled, setHeaderScrolled] = useState(false);
   useEffect(() => {
     const el = scroller();
     if (!el) return;
-    const onScroll = () => setShowScrollTop(el.scrollTop > 500);
+    const onScroll = () => {
+      setShowScrollTop(el.scrollTop > 500);
+      setHeaderScrolled(el.scrollTop > 40);
+    };
     el.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => el.removeEventListener('scroll', onScroll);
@@ -553,7 +559,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app tab-${tab}`}>
+    <div className={`app tab-${tab}${headerScrolled ? ' scrolled' : ''}`}>
       <TopBar
         onLogo={() => setTab('dashboard')}
         items={[
@@ -641,9 +647,7 @@ export default function App() {
 
       {tab === 'list' && !searchActive && (
         <>
-        {/* Eén witte header: statustabs + werkbalk. De grijze pagina begint eronder. */}
-        <div className="list-head">
-          {/* Zone 1 — statustabs (kijkstatus), de hoofdnavigatie */}
+          {/* Zone 1 — statustabs: pinnen bovenin bij scrollen (topbar + werkbalk scrollen weg). */}
           <div className="status-tabs" role="tablist" aria-label="Kijkstatus">
             {STATUS_TABS.map((s) => (
               <button
@@ -713,7 +717,6 @@ export default function App() {
               </div>
             </div>
           </div>
-        </div>{/* /.list-head */}
 
         <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' } : undefined}>
           {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}

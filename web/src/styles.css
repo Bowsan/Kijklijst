@@ -1554,20 +1554,38 @@ input, textarea, select {
 }
 
 /* ============================================================
-   Lijst-header: statustabs + werkbalk in één wit blok (met de topbar)
+   Lijst-header: topbar + werkbalk scrollen weg, de statustabs pinnen bovenin
    ============================================================ */
-/* Op de lijst loopt de topbar naadloos over in de tabrij (geen scheidingslijn). */
-.tab-list .topbar { border-bottom: none; }
+/* Op de lijst scrollt de topbar mee (niet meer vastgepind) en loopt naadloos
+   over in de tabrij (geen scheidingslijn). */
+.tab-list .topbar { position: static; border-bottom: none; }
 
-.list-head {
+/* Vulling achter de statusbalk (systeem-notch) zodat er tijdens het scrollen
+   niets onder de statusbalk doorschemert. 0px hoog zonder notch. */
+.tab-list::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--safe-top);
+  background: var(--bar-bg);
+  z-index: 16;
+  pointer-events: none;
+}
+
+/* Statustabs: gelijke breedte, groene onderstreping onder de actieve tab, en een
+   dunne scheidingslijn van 1px over de volle breedte eronder. Pint bovenin bij
+   het scrollen (net onder de eventuele notch). */
+.status-tabs {
+  display: flex;
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 15;
   background: var(--bar-bg);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
 }
-
-/* Statustabs: gelijke breedte, groene onderstreping onder de actieve tab,
-   en een dunne scheidingslijn van 1px over de volle breedte eronder. */
-.status-tabs { display: flex; border-bottom: 1px solid var(--border); }
+/* Subtiele schaduw zodra de tabbalk "los" van de topbar staat (gescrolld). */
+.tab-list.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
 .status-tabs button {
   flex: 1 1 0; min-width: 0; min-height: 40px;
   padding: 9px 4px 8px;
