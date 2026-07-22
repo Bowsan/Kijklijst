@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
 import { posterUrl, serviceLogoUrl } from './lib/types';
-import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, getFriendsSeen, setFriendsSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, type Theme } from './lib/identity';
+import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, getFriendsSeen, setFriendsSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, colorFor, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
 import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
 import {
   profileById, myRating, groupAverage, selectTitles, serviceOptions, forYouBadgeCount,
-  unseenNotificationCount, incomingRecommendations,
+  unseenNotificationCount, incomingRecommendations, sentRecommendations,
 } from './lib/compute';
 
 import Onboarding from './components/Onboarding';
@@ -529,6 +529,12 @@ export default function App() {
   const friendsDot = !!snap && (unreadChats > 0 || incomingRecommendations(snap, userId).length > 0 || newFollowers > 0);
   // Rood bolletje op Dashboard bij ongelezen meldingen (het belletje verdween).
   const dashboardDot = unseenMessages > 0;
+  // Aantal verstuurde tips (label op de Vrienden-subtab "Jouw tips").
+  const tipCount = snap ? sentRecommendations(snap, userId).length : 0;
+  // Eigen avatar als Profiel-icoon in de kopbalk: vierkantje met afgeronde hoeken.
+  const profileIcon = me?.avatar
+    ? <img className="topbar-ava" src={me.avatar} alt="" />
+    : <span className="topbar-ava" style={{ background: me?.color || colorFor(userId) }}>{(me?.name || '?').trim().charAt(0).toUpperCase()}</span>;
 
   // Laden: skeleton-kaarten i.p.v. een kale tekstregel.
   if (!snap) {
@@ -591,6 +597,11 @@ export default function App() {
               setFriendsSeen(now);
               setFriendsSeenState(now);
             },
+          },
+          {
+            key: 'profile', label: 'Profiel', iconNode: profileIcon,
+            active: tab === 'profile',
+            onClick: () => setTab('profile'),
           },
         ]}
       />
@@ -891,7 +902,17 @@ export default function App() {
       )}
 
       {tab === 'friends' && (
-        <Friends snap={snap} userId={userId} subTab={friendsSubTab} onSubTab={setFriendsSubTab} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} messages={messages} onOpenChat={setChatTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        <>
+          {/* Vrienden-secties als tabs, consistent met lijst en dashboard. */}
+          <div className="status-tabs" role="tablist" aria-label="Vrienden-secties">
+            <button role="tab" aria-selected={friendsSubTab === 'friends'} className={friendsSubTab === 'friends' ? 'sel' : ''} onClick={() => setFriendsSubTab('friends')}>Vrienden</button>
+            <button role="tab" aria-selected={friendsSubTab === 'tips'} className={friendsSubTab === 'tips' ? 'sel' : ''} onClick={() => setFriendsSubTab('tips')}>Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}</button>
+            <button role="tab" aria-selected={friendsSubTab === 'messages'} className={`tab-badged ${friendsSubTab === 'messages' ? 'sel' : ''}`} onClick={() => setFriendsSubTab('messages')}>
+              Berichten{unreadChats > 0 && <span className="tab-dot" aria-label="ongelezen berichten" />}
+            </button>
+          </div>
+          <Friends snap={snap} userId={userId} subTab={friendsSubTab} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} messages={messages} onOpenChat={setChatTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
+        </>
       )}
 
       {tab === 'profile' && (

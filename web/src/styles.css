@@ -114,6 +114,11 @@ input, textarea, select {
 .topbar .topbar-ico { width: 22px; height: 22px; object-fit: contain; display: block; }
 /* Emoji-icoon op dezelfde maat als de PNG-iconen. */
 .topbar .topbar-ico.emoji { font-size: 19px; line-height: 22px; text-align: center; }
+/* Eigen avatar als Profiel-icoon: vierkantje met afgeronde hoeken (zoals Vrienden). */
+.topbar-ava {
+  width: 24px; height: 24px; border-radius: 7px; object-fit: cover; display: grid;
+  place-items: center; color: #fff; font-weight: 700; font-size: 12px; overflow: hidden;
+}
 .topbar .topbar-item { padding: 6px 8px; position: relative; }
 .topbar .topbar-item.sel { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 10px; }
 
@@ -1558,15 +1563,17 @@ input, textarea, select {
 /* ============================================================
    Lijst-header: topbar + werkbalk scrollen weg, de statustabs pinnen bovenin
    ============================================================ */
-/* Op de lijst én het dashboard scrollt de topbar mee (niet meer vastgepind) en
-   loopt naadloos over in de tabrij (geen scheidingslijn). */
+/* Op de lijst, het dashboard én de vriendenpagina scrollt de topbar mee (niet
+   meer vastgepind) en loopt naadloos over in de tabrij (geen scheidingslijn). */
 .tab-list .topbar,
-.tab-dashboard .topbar { position: static; border-bottom: none; }
+.tab-dashboard .topbar,
+.tab-friends .topbar { position: static; border-bottom: none; }
 
 /* Vulling achter de statusbalk (systeem-notch) zodat er tijdens het scrollen
    niets onder de statusbalk doorschemert. 0px hoog zonder notch. */
 .tab-list::before,
-.tab-dashboard::before {
+.tab-dashboard::before,
+.tab-friends::before {
   content: '';
   position: fixed; top: 0; left: 0; right: 0;
   height: var(--safe-top);
@@ -1590,7 +1597,14 @@ input, textarea, select {
 }
 /* Subtiele schaduw zodra de tabbalk "los" van de topbar staat (gescrolld). */
 .tab-list.scrolled .status-tabs,
-.tab-dashboard.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
+.tab-dashboard.scrolled .status-tabs,
+.tab-friends.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
+/* Klein rood bolletje in een tab (bijv. ongelezen berichten). */
+.status-tabs .tab-badged { position: relative; }
+.status-tabs .tab-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: #e5484d; vertical-align: middle; margin-left: 5px; margin-top: -2px;
+}
 .status-tabs button {
   flex: 1 1 0; min-width: 0; min-height: 40px;
   padding: 9px 4px 8px;

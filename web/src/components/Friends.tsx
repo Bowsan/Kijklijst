@@ -13,9 +13,8 @@ export type FriendsSubTab = 'friends' | 'tips' | 'messages';
 interface Props {
   snap: Snapshot;
   userId: string;
-  /** Actieve sub-tab — in App zodat de kopbalk er direct heen kan linken. */
+  /** Actieve sub-tab — de tabbalk staat in App (consistent met lijst/dashboard). */
   subTab: FriendsSubTab;
-  onSubTab: (t: FriendsSubTab) => void;
   onOpenProfile: (id: string) => void;
   /** Open het profiel van een vriend meteen in "Raad iets aan"-modus. */
   onRecommendTo: (id: string) => void;
@@ -29,13 +28,12 @@ interface Props {
   toast: (m: string) => void;
 }
 
-export default function Friends({ snap, userId, subTab, onSubTab, onOpenProfile, onRecommendTo, onOpenTitle, messages, onOpenChat, onChange, onShare, toast }: Props) {
+export default function Friends({ snap, userId, subTab, onOpenProfile, onRecommendTo, onOpenTitle, messages, onOpenChat, onChange, onShare, toast }: Props) {
   const friends = followingProfiles(snap, userId);
   const suggestions = suggestedProfiles(snap, userId);
   const inactive = inactiveFollowableProfiles(snap, userId);
   const hidden = hiddenProfiles(snap, userId);
   const tipCount = sentRecommendations(snap, userId).length;
-  const unreadMsgs = messages.filter((m) => m.to_user === userId && m.read_at == null).length;
   const [showHidden, setShowHidden] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -68,20 +66,6 @@ export default function Friends({ snap, userId, subTab, onSubTab, onOpenProfile,
 
   return (
     <div className="page">
-      {/* Sub-tabs: vriendenlijsten, jouw verstuurde tips of berichten */}
-      <div className="subtabs" role="tablist">
-        <button role="tab" aria-selected={subTab === 'friends'} className={subTab === 'friends' ? 'sel' : ''} onClick={() => onSubTab('friends')}>
-          Vrienden
-        </button>
-        <button role="tab" aria-selected={subTab === 'tips'} className={subTab === 'tips' ? 'sel' : ''} onClick={() => onSubTab('tips')}>
-          Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}
-        </button>
-        <button role="tab" aria-selected={subTab === 'messages'} className={`subtab-badged ${subTab === 'messages' ? 'sel' : ''}`} onClick={() => onSubTab('messages')}>
-          Berichten
-          {unreadMsgs > 0 && <span className="notif-dot subtab-dot" aria-label={`${unreadMsgs} ongelezen`} />}
-        </button>
-      </div>
-
       {subTab === 'messages' ? (
         <Messages snap={snap} userId={userId} messages={messages} onOpenChat={onOpenChat} />
       ) : subTab === 'tips' ? (

@@ -88,7 +88,8 @@ try {
   await page.click('.nav button:has-text("Voor jou")');
   await page.waitForTimeout(400);
   ok('voor jou: geladen');
-  await page.click('.nav button:has-text("Profiel")');
+  // Profiel staat nu in de kopbalk (eigen avatar), niet meer in de onderbalk.
+  await page.click('.topbar button[title="Profiel"]');
   await page.waitForSelector('.service-grid', { timeout: 5000 });
   ok('profiel: geladen');
 

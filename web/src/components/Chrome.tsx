@@ -11,7 +11,9 @@ export interface TopBarItem {
   /** Toegankelijk label (en tooltip). */
   label: string;
   /** PNG-icoon (pad onder /icons) of een emoji-string. */
-  icon: string;
+  icon?: string;
+  /** Eigen icoon-node (bijv. de avatar); wint van `icon`. */
+  iconNode?: ReactNode;
   /** Rood teltje (bijv. ongelezen berichten). 0 = geen badge. */
   badge?: number;
   /** Klein rood bolletje zonder aantal (bijv. nieuwe log-items). */
@@ -41,7 +43,7 @@ export function TopBar({ items, onLogo }: {
             title={it.label}
             aria-label={it.badge ? `${it.label}, ${it.badge} nieuw` : it.label}
           >
-            <TopBarIcon icon={it.icon} />
+            {it.iconNode ? it.iconNode : <TopBarIcon icon={it.icon || ''} />}
             {it.badge != null && it.badge > 0 && <span className="unread-badge topbar-badge">{it.badge}</span>}
             {it.dot && !it.badge && <span className="notif-dot" />}
           </button>
@@ -76,9 +78,6 @@ export function NavBar({ tab, forYouCount, dashboardDot, onTab }: {
       <button className={tab === 'foryou' ? 'active' : ''} onClick={() => onTab('foryou')}>
         <span className="ico"><img src="/icons/nav-foryou.png" alt="" /></span>Voor jou
         {forYouCount > 0 && <span className="badge">{forYouCount}</span>}
-      </button>
-      <button className={tab === 'profile' ? 'active' : ''} onClick={() => onTab('profile')}>
-        <span className="ico"><img src="/icons/nav-profile.png" alt="" /></span>Profiel
       </button>
     </nav>
   );
