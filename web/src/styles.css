@@ -114,10 +114,13 @@ input, textarea, select {
 .topbar .topbar-ico { width: 22px; height: 22px; object-fit: contain; display: block; }
 /* Emoji-icoon op dezelfde maat als de PNG-iconen. */
 .topbar .topbar-ico.emoji { font-size: 19px; line-height: 22px; text-align: center; }
-/* Eigen avatar als Profiel-icoon: vierkantje met afgeronde hoeken (zoals Vrienden). */
+/* Eigen avatar als Profiel-icoon: vierkantje met afgeronde hoeken (zoals Vrienden).
+   De knop zelf heeft geen rand/opvulling, zodat de avatar het vierkantje vult. */
+.topbar .topbar-item.topbar-item-ava { padding: 0; border: none; background: transparent; border-radius: 9px; }
+.topbar .topbar-item.topbar-item-ava.sel { background: transparent; outline: 2px solid var(--accent); outline-offset: 1px; }
 .topbar-ava {
-  width: 24px; height: 24px; border-radius: 7px; object-fit: cover; display: grid;
-  place-items: center; color: #fff; font-weight: 700; font-size: 12px; overflow: hidden;
+  width: 34px; height: 34px; border-radius: 9px; object-fit: cover; display: grid;
+  place-items: center; color: #fff; font-weight: 700; font-size: 15px; overflow: hidden;
 }
 .topbar .topbar-item { padding: 6px 8px; position: relative; }
 .topbar .topbar-item.sel { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 10px; }
