@@ -1,6 +1,7 @@
 import type { Status } from '../lib/types';
 import { STATUS_LABELS } from '../lib/types';
 import { scoreColor, isGoldScore } from '../lib/score';
+import { fmt1 } from '../lib/format';
 
 // Kleuren per status — gelijk aan de "Verdeling lijst" op het dashboard.
 export const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
@@ -32,7 +33,7 @@ export default function StatusBadge({ status, score }: { status: Status | null; 
         title="Jouw cijfer"
       >
         <CheckIcon />
-        {score}
+        {fmt1(score)}
       </span>
     );
   }

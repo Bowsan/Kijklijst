@@ -224,7 +224,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const serviceOptions = Array.from(new Set([...title.providers, ...NL_SERVICES]));
 
   // De cijfer-pillen rechts in de kop — herbruikt in de normale én de compacte kop.
-  const ratingCol = (
+  // In de compacte weergave verbergen we het status-label (bijv. "Mee bezig"),
+  // zodat de rij niet op twee regels breekt.
+  const ratingCol = (hideStatusLabel: boolean) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
       {compareProfile ? (
         // "Als vriend"-weergave: hun cijfer groot, jouw cijfer klein eronder.
@@ -256,19 +258,20 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
           {/* Jouw cijfer als pil; de status als chip erbij (behalve "Gezien"
               mét cijfer — het vinkje in de pil zegt dat al). */}
           {mine?.score != null && <StatusBadge status={null} score={mine.score} />}
-          {myBadge && (myBadge !== 'finished' || mine?.score == null) && <StatusBadge status={myBadge} score={null} />}
+          {!hideStatusLabel && myBadge && (myBadge !== 'finished' || mine?.score == null) && <StatusBadge status={myBadge} score={null} />}
         </>
       )}
     </div>
   );
 
-  // Compacte kop: geen poster, titel links, cijfer(s) rechts. Klikken opent volledig.
+  // Compacte kop: geen poster, titel links, cijfer(s) rechts (zonder status-label).
+  // Klikken opent de kaart volledig.
   if (compact && !expanded) {
     return (
       <div className="card title-card compact">
         <div className="title-head compact-head" onClick={() => setExpanded(true)} style={{ cursor: 'pointer' }}>
           <h3 className="compact-title">{title.name}</h3>
-          {ratingCol}
+          {ratingCol(true)}
         </div>
       </div>
     );
@@ -333,7 +336,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
         </div>
-        {ratingCol}
+        {ratingCol(false)}
       </div>
 
       {expanded && (
