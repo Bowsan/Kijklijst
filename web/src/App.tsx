@@ -599,7 +599,7 @@ export default function App() {
             },
           },
           {
-            key: 'profile', label: 'Profiel', iconNode: profileIcon,
+            key: 'profile', label: 'Profiel', iconNode: profileIcon, itemClass: 'topbar-item-ava',
             active: tab === 'profile',
             onClick: () => setTab('profile'),
           },

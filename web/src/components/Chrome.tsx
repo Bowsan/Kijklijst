@@ -18,6 +18,8 @@ export interface TopBarItem {
   badge?: number;
   /** Klein rood bolletje zonder aantal (bijv. nieuwe log-items). */
   dot?: boolean;
+  /** Extra class op de knop (bijv. voor de avatar die het vierkantje vult). */
+  itemClass?: string;
   active?: boolean;
   onClick: () => void;
 }
@@ -38,7 +40,7 @@ export function TopBar({ items, onLogo }: {
         {items.map((it) => (
           <button
             key={it.key}
-            className={`btn ghost topbar-item ${it.active ? 'sel' : ''}`}
+            className={`btn ghost topbar-item ${it.itemClass || ''} ${it.active ? 'sel' : ''}`}
             onClick={it.onClick}
             title={it.label}
             aria-label={it.badge ? `${it.label}, ${it.badge} nieuw` : it.label}
