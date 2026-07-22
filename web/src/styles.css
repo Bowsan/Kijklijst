@@ -653,7 +653,8 @@ input, textarea, select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Binnen het witte header-blok; grijs begint eronder. */
+  /* Werkbalk op de grijze paginakleur (net als achter de lijst), niet op wit. */
+  background: var(--bg);
   padding: 8px 14px 10px;
 }
 .filter-btn {
