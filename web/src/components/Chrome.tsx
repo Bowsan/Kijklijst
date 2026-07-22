@@ -57,15 +57,18 @@ function TopBarIcon({ icon }: { icon: string }): ReactNode {
   return <span className="topbar-ico emoji" aria-hidden="true">{icon}</span>;
 }
 
-export function NavBar({ tab, forYouCount, onTab }: {
+export function NavBar({ tab, forYouCount, dashboardDot, onTab }: {
   tab: Tab;
   forYouCount: number;
+  /** Klein rood bolletje op Dashboard bij ongelezen meldingen. */
+  dashboardDot?: boolean;
   onTab: (t: Tab) => void;
 }) {
   return (
     <nav className="nav">
       <button className={tab === 'dashboard' ? 'active' : ''} onClick={() => onTab('dashboard')}>
         <span className="ico"><img src="/icons/nav-home.png" alt="" /></span>Dashboard
+        {dashboardDot && <span className="notif-dot nav-dot" aria-label="nieuwe meldingen" />}
       </button>
       <button className={tab === 'list' ? 'active' : ''} onClick={() => onTab('list')}>
         <span className="ico"><img src="/icons/logo-bank.png" alt="" /></span>Lijst

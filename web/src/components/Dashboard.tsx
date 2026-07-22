@@ -16,19 +16,24 @@ import {
 } from './dashboard/widgets';
 import CompareCards from './dashboard/CompareCards';
 import GroupCards from './dashboard/GroupCards';
+import ActivityFeed from './Activity';
+
+export type DashSection = 'kijken' | 'actueel' | 'stats';
 
 interface Props {
   snap: Snapshot;
   userId: string;
+  dashTab: DashSection;
   onOpenProfile: (id: string) => void;
   onAdd: (tmdbId: number) => void;
   onGoFriends: () => void;
   onNavigate: (opts: NavOpts) => void;
+  onShowAllActivity: () => void;
 }
 
-export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFriends, onNavigate }: Props) {
+export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd, onGoFriends, onNavigate, onShowAllActivity }: Props) {
   const pageRef = useRef<HTMLDivElement>(null);
-  useReveal(pageRef);
+  useReveal(pageRef, dashTab);
 
   const myWatching = watchingTitles(snap, userId);
   const friends = followingProfiles(snap, userId);
@@ -145,6 +150,8 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
   return (
     <div className="page dash" ref={pageRef}>
+      {dashTab === 'kijken' && (
+        <>
       <h2 className="dash-h2"><span className="h2-ico">📺</span>Jij kijkt nu naar</h2>
       {myWatching.length === 0 ? (
         <p className="muted" style={{ margin: '0 4px 8px' }}>Je hebt nog niets als "Mee bezig" gemarkeerd.</p>
@@ -214,7 +221,11 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
           </div>
         </>
       )}
+        </>
+      )}
 
+      {dashTab === 'actueel' && (
+        <>
       {latestComments.length > 0 && (
         <>
           <h2 className="dash-h2"><span className="h2-ico">💬</span>Laatste berichten</h2>
@@ -238,6 +249,16 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
         </>
       )}
 
+      <h2 className="dash-h2"><span className="h2-ico">🔔</span>Meldingen</h2>
+      <div className="card">
+        <ActivityFeed snap={snap} userId={userId} onOpenTitle={(id) => onNavigate({ status: 'all', titleId: id })} limit={10} />
+      </div>
+      <button className="btn full" style={{ marginTop: 4 }} onClick={onShowAllActivity}>Toon alle meldingen</button>
+        </>
+      )}
+
+      {dashTab === 'stats' && (
+        <>
       {totalCount > 0 && (
         <>
           <div className="stat-grid" style={{ marginBottom: 12, marginTop: 12 }}>
@@ -406,6 +427,8 @@ export default function Dashboard({ snap, userId, onOpenProfile, onAdd, onGoFrie
 
       <CompareCards snap={snap} userId={userId} onOpenProfile={onOpenProfile} onNavigate={onNavigate} />
       <GroupCards snap={snap} userId={userId} onNavigate={onNavigate} />
+        </>
+      )}
     </div>
   );
 }
