@@ -41,6 +41,8 @@ interface Props {
   onActor?: (name: string) => void;
   /** Toon de avatars van iedereen die 'm op de wishlist heeft (Iedereen + Wishlist). */
   showWanters?: boolean;
+  /** Compacte weergave: ingeklapt zonder poster, alleen titel + cijfer(s). */
+  compact?: boolean;
   /** Tik op een vriend (avatar/naam) → open diens profiel. */
   onOpenProfile?: (id: string) => void;
   onRecommend: (title: Title) => void;
@@ -51,7 +53,7 @@ interface Props {
   onEditToggle?: (tmdbId: number, open: boolean) => void;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, onOpenProfile, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, compact = false, onOpenProfile, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -221,6 +223,57 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   // De dienst-keuze toont altijd de bekende NL-diensten, plus wat TMDb voor deze serie kent.
   const serviceOptions = Array.from(new Set([...title.providers, ...NL_SERVICES]));
 
+  // De cijfer-pillen rechts in de kop — herbruikt in de normale én de compacte kop.
+  const ratingCol = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+      {compareProfile ? (
+        // "Als vriend"-weergave: hun cijfer groot, jouw cijfer klein eronder.
+        <>
+          {(compareBadge || compareRating?.score != null)
+            ? <StatusBadge status={compareBadge ?? null} score={compareRating?.score ?? null} />
+            : <span className="chip" style={{ fontSize: 12 }}>–</span>}
+          <span className="compare-mine">
+            jij {mine?.score != null ? mine.score : (myBadge ? '·' : '–')}
+          </span>
+        </>
+      ) : (
+        <>
+          {showGroupScore && !hideGroup && avg != null && (
+            <span
+              className={isGoldScore(avg) ? 'score-pill group gold' : 'score-pill group'}
+              style={{ background: scoreColor(avg) }}
+              title="Groepsgemiddelde"
+            >
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="#fff" aria-hidden="true">
+                <circle cx="5.8" cy="5.4" r="2.5" />
+                <path d="M1.3 13.2c0-2.4 2-3.9 4.5-3.9s4.5 1.5 4.5 3.9v.3h-9z" />
+                <circle cx="11.6" cy="6" r="2" />
+                <path d="M11.4 9.4c1.9.1 3.4 1.3 3.4 3.3v.8h-3.2c.2-1.6-.2-3-1.4-4 .4-.1.8-.1 1.2-.1z" />
+              </svg>
+              {fmt1(avg)}
+            </span>
+          )}
+          {/* Jouw cijfer als pil; de status als chip erbij (behalve "Gezien"
+              mét cijfer — het vinkje in de pil zegt dat al). */}
+          {mine?.score != null && <StatusBadge status={null} score={mine.score} />}
+          {myBadge && (myBadge !== 'finished' || mine?.score == null) && <StatusBadge status={myBadge} score={null} />}
+        </>
+      )}
+    </div>
+  );
+
+  // Compacte kop: geen poster, titel links, cijfer(s) rechts. Klikken opent volledig.
+  if (compact && !expanded) {
+    return (
+      <div className="card title-card compact">
+        <div className="title-head compact-head" onClick={() => setExpanded(true)} style={{ cursor: 'pointer' }}>
+          <h3 className="compact-title">{title.name}</h3>
+          {ratingCol}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card title-card">
       {/* Compact header — klikken klapt uit/in */}
@@ -280,41 +333,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
-          {compareProfile ? (
-            // "Als vriend"-weergave: hun cijfer groot, jouw cijfer klein eronder.
-            <>
-              {(compareBadge || compareRating?.score != null)
-                ? <StatusBadge status={compareBadge ?? null} score={compareRating?.score ?? null} />
-                : <span className="chip" style={{ fontSize: 12 }}>–</span>}
-              <span className="compare-mine">
-                jij {mine?.score != null ? mine.score : (myBadge ? '·' : '–')}
-              </span>
-            </>
-          ) : (
-            <>
-              {showGroupScore && !hideGroup && avg != null && (
-                <span
-                  className={isGoldScore(avg) ? 'score-pill group gold' : 'score-pill group'}
-                  style={{ background: scoreColor(avg) }}
-                  title="Groepsgemiddelde"
-                >
-                  <svg width="15" height="15" viewBox="0 0 16 16" fill="#fff" aria-hidden="true">
-                    <circle cx="5.8" cy="5.4" r="2.5" />
-                    <path d="M1.3 13.2c0-2.4 2-3.9 4.5-3.9s4.5 1.5 4.5 3.9v.3h-9z" />
-                    <circle cx="11.6" cy="6" r="2" />
-                    <path d="M11.4 9.4c1.9.1 3.4 1.3 3.4 3.3v.8h-3.2c.2-1.6-.2-3-1.4-4 .4-.1.8-.1 1.2-.1z" />
-                  </svg>
-                  {fmt1(avg)}
-                </span>
-              )}
-              {/* Jouw cijfer als pil; de status als chip erbij (behalve "Gezien"
-                  mét cijfer — het vinkje in de pil zegt dat al). */}
-              {mine?.score != null && <StatusBadge status={null} score={mine.score} />}
-              {myBadge && (myBadge !== 'finished' || mine?.score == null) && <StatusBadge status={myBadge} score={null} />}
-            </>
-          )}
-        </div>
+        {ratingCol}
       </div>
 
       {expanded && (

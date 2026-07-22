@@ -10,6 +10,8 @@ export interface ListPrefs {
   genres: string[];
   sortKey: SortKey;
   sortDir: SortDir;
+  /** Compacte lijstweergave: zonder poster, alleen titel + cijfer(s). */
+  compact: boolean;
 }
 
 // v3: scope "Jij" wordt bewaard als sentinel 'me' (niet als account-id), zodat het
@@ -22,6 +24,7 @@ export const DEFAULT_PREFS: ListPrefs = {
   genres: [],
   sortKey: 'date',
   sortDir: 'desc',
+  compact: false,
 };
 
 export function loadPrefs(): ListPrefs {
@@ -35,6 +38,7 @@ export function loadPrefs(): ListPrefs {
       genres: Array.isArray(p.genres) ? p.genres : [],
       sortKey: p.sortKey === 'name' || p.sortKey === 'rating' || p.sortKey === 'imdb' || p.sortKey === 'release' ? p.sortKey : 'date',
       sortDir: p.sortDir === 'asc' ? 'asc' : 'desc',
+      compact: p.compact === true,
     };
   } catch {
     return { ...DEFAULT_PREFS };
