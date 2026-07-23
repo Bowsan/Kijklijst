@@ -147,9 +147,7 @@ export default function App() {
   const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
-  // Compacte weergave: bewaard voorkeur; de aparte toggle is uit de werkbalk
-  // gehaald, maar bestaande voorkeuren blijven gerespecteerd.
-  const [compact] = useState<boolean>(saved.compact);
+  const [compact, setCompact] = useState<boolean>(saved.compact);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -740,6 +738,22 @@ export default function App() {
                   <line x1="3" y1="16" x2="21" y2="16" />
                   <circle cx="9" cy="8" r="2.4" />
                   <circle cx="15" cy="16" r="2.4" />
+                </svg>
+              </button>
+              <button
+                className={`ab-compact ${compact ? 'on' : ''}`}
+                aria-pressed={compact}
+                aria-label={compact ? 'Volledige weergave' : 'Compacte weergave'}
+                title={compact ? 'Volledige weergave' : 'Compacte weergave'}
+                onClick={() => setCompact((v) => !v)}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <circle cx="3.6" cy="6" r="1.2" fill="currentColor" stroke="none" />
+                  <circle cx="3.6" cy="12" r="1.2" fill="currentColor" stroke="none" />
+                  <circle cx="3.6" cy="18" r="1.2" fill="currentColor" stroke="none" />
                 </svg>
               </button>
             </div>
