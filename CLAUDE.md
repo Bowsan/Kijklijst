@@ -60,5 +60,11 @@ code-commentaar ook in het Nederlands.
   "De rest" = alleen vrienden, één regel notitie per serie.
 
 ## Huidige staat
-- Laatste gemergede werk: PR #155 (glijdende footer-pil), deploy geslaagd.
-- Werkboom schoon, alles gepusht. Reeks tab-animaties (onderstreep + footer) is af.
+- Laatste gemergede werk: PR #158 (footer-pil ~25% smaller), deploy geslaagd.
+- Recente lijst-werkbalk reeks: herbouwd naar 2 regels — zoekbalk + ronde
+  filter-/compact-knoppen (regel 1), filterchips + vaste sorteertekst (regel 2);
+  "Aangepast" → "Gewijzigd" (#156). Minder ruimte boven de lijst +
+  `#root { overflow-x: hidden }` tegen horizontaal pannen (#157). Smallere
+  footer-pil via `scaleX(0.75)` (#158). Filterchips wrappen over meerdere regels
+  (nooit uit beeld te scrollen).
+- Werkboom schoon, alles gepusht.
