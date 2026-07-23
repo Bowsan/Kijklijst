@@ -228,7 +228,7 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         <>
       {latestComments.length > 0 && (
         <>
-          <h2 className="dash-h2"><span className="h2-ico">💬</span>Laatste berichten</h2>
+          <h2 className="dash-h2"><span className="h2-ico">💬</span>Commentaar</h2>
           <div className="card">
             {latestComments.map(({ c, who, title }) => (
               <div key={c.id} className="feed-row" onClick={() => onNavigate({ status: 'all', titleId: title!.tmdb_id })}>
@@ -249,11 +249,11 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         </>
       )}
 
-      <h2 className="dash-h2"><span className="h2-ico">🔔</span>Meldingen</h2>
+      <h2 className="dash-h2"><span className="h2-ico">🔔</span>Activiteit</h2>
       <div className="card">
         <ActivityFeed snap={snap} userId={userId} onOpenTitle={(id) => onNavigate({ status: 'all', titleId: id })} limit={10} />
       </div>
-      <button className="btn full" style={{ marginTop: 4 }} onClick={onShowAllActivity}>Toon alle meldingen</button>
+      <button className="btn full" style={{ marginTop: 4 }} onClick={onShowAllActivity}>Toon alle activiteit</button>
         </>
       )}
 

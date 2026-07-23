@@ -121,6 +121,8 @@ input, textarea, select {
 .topbar-ava {
   width: 34px; height: 34px; border-radius: 9px; object-fit: cover; display: grid;
   place-items: center; color: #fff; font-weight: 700; font-size: 15px; overflow: hidden;
+  /* Zelfde lichtgrijze rand als de iconenknoppen (.btn.ghost). */
+  border: 1px solid var(--border);
 }
 .topbar .topbar-item { padding: 6px 8px; position: relative; }
 .topbar .topbar-item.sel { background: color-mix(in srgb, var(--accent) 14%, transparent); border-radius: 10px; }

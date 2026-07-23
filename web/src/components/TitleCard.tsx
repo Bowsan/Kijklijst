@@ -542,9 +542,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </section>
 
-          {/* ── Sectie: Dit zeggen je vrienden ── */}
+          {/* ── Sectie: Commentaar ── */}
           <section className="tc-section">
-            <div className="tc-label">Dit zeggen je vrienden</div>
+            <div className="tc-label">Commentaar</div>
             <div className="comments">
               {comments.map((c) => {
                 const p = profileById(snap, c.user_id);
