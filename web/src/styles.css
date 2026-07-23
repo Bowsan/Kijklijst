@@ -1404,15 +1404,38 @@ input, textarea, select {
   z-index: 50;
   width: 52px; height: 52px;
   border-radius: 50%;
-  background: var(--accent-grad);
+  /* Stijlvolle diagonale groen-gradient (lichter linksboven → dieper rechtsonder). */
+  background: linear-gradient(140deg, var(--accent-2) 0%, var(--accent) 62%, color-mix(in srgb, var(--accent) 78%, #000) 100%);
   color: #fff;
-  font-size: 22px;
   border: none;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.28);
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
+  /* Nodig om de shimmer binnen de cirkel te clippen. */
+  overflow: hidden;
+  isolation: isolate;
 }
+.fab-plus { display: block; }
 .fab-search:active { transform: scale(0.94); }
+/* Subtiele shimmer: een diagonale lichtveeg die eens per cyclus overtrekt. */
+.fab-search::after {
+  content: '';
+  position: absolute;
+  top: -60%; left: -40%;
+  width: 55%; height: 220%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: translateX(-260%) rotate(18deg);
+  animation: fab-shimmer 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes fab-shimmer {
+  0%   { transform: translateX(-260%) rotate(18deg); }
+  16%  { transform: translateX(320%) rotate(18deg); }
+  100% { transform: translateX(320%) rotate(18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-search::after { animation: none; opacity: 0; }
+}
 
 /* Spraakballonnetje bij de +knop (na de onboarding). */
 .fab-hint {
