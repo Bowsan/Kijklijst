@@ -58,7 +58,7 @@ const STATUS_TABS: { key: StatusTab; label: string }[] = [
 // kiezen (het pijltje toont welke kant op). De `dir` is de standaardrichting.
 const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
   { key: 'name', label: 'Alfabetisch', dir: 'asc' },
-  { key: 'date', label: 'Aangepast', dir: 'desc' },
+  { key: 'date', label: 'Gewijzigd', dir: 'desc' },
   { key: 'release', label: 'Uitgave', dir: 'desc' },
   { key: 'rating', label: 'Rating', dir: 'desc' },
   { key: 'imdb', label: 'IMDb Rating', dir: 'desc' },
@@ -68,7 +68,7 @@ const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
 const scroller = () => document.getElementById('root');
 
 function sortLabel(key: SortKey): string {
-  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Aangepast';
+  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Gewijzigd';
 }
 
 export default function App() {
@@ -147,9 +147,10 @@ export default function App() {
   const [creatorFilter, setCreatorFilter] = useState<string>('');
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
-  const [compact, setCompact] = useState<boolean>(saved.compact);
+  // Compacte weergave: bewaard voorkeur; de aparte toggle is uit de werkbalk
+  // gehaald, maar bestaande voorkeuren blijven gerespecteerd.
+  const [compact] = useState<boolean>(saved.compact);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [quickFilterOpen, setQuickFilterOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
 
@@ -234,6 +235,20 @@ export default function App() {
     services.length + genres.length + (actorFilter ? 1 : 0) + (creatorFilter ? 1 : 0) +
     (friend === '' ? 1 : 0) +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
+
+  // "Wis alles": zet alle actieve chip-filters terug (niet de zoekterm — die
+  // heeft een eigen kruisje in de zoekbalk).
+  const clearAllFilters = () => {
+    setServices([]);
+    setGenres([]);
+    setActorFilter('');
+    setCreatorFilter('');
+    setFriend('me');
+    if (status === 'dropped' || status === 'notdone') setStatus('all');
+  };
+
+  // Naam van de actieve statustab voor de zoek-placeholder ("Zoek in Gezien").
+  const statusLabel = STATUS_TABS.find((s) => s.key === status)?.label ?? 'deze lijst';
 
   const pickSort = (key: SortKey, dir: SortDir) => {
     if (sortKey === key && sortDir === dir) {
@@ -362,7 +377,7 @@ export default function App() {
     if (scopeUser) return snap.ratings.find((r) => r.title_id === tmdbId && r.user_id === scopeUser)?.score ?? null;
     return groupAverage(snap, tmdbId);
   };
-  // "Aangepast": wanneer deze gebruiker de serie voor het laatst wijzigde
+  // "Gewijzigd": wanneer deze gebruiker de serie voor het laatst wijzigde
   // (updated_at), met de titel-datum als terugval voor oudere gegevens.
   const personDate = (t: Title): number => {
     if (!snap || !scopeUser) return t.created_at;
@@ -694,58 +709,100 @@ export default function App() {
             ))}
           </div>
 
-          {/* Zone 2 — actiebalk: links filters + zoeken, rechts sorteren */}
+          {/* Zone 2 — actiebalk: regel 1 = zoeken + filter, regel 2 = chips + sorteren */}
           <div className="action-bar">
-            <div className="row" style={{ gap: 8 }}>
-              <button className={`filter-btn ${activeFilterCount > 0 ? 'on' : ''}`} onClick={() => setShowFilterSheet(true)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            {/* Regel 1: zoekbalk vult de breedte, rond filterknopje rechts */}
+            <div className="ab-search-row">
+              <div className="ab-search">
+                <svg className="ab-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="16.5" y1="16.5" x2="21" y2="21" />
                 </svg>
-                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-              </button>
+                <input
+                  type="search"
+                  value={nameFilter}
+                  onChange={(e) => { setSearchOpen(false); setNameFilter(e.target.value); }}
+                  placeholder={`Zoek in ${statusLabel}`}
+                  aria-label={`Zoek in ${statusLabel}`}
+                />
+                {nameFilter && (
+                  <button className="ab-search-clear" aria-label="Zoekterm wissen" onClick={() => setNameFilter('')}>✕</button>
+                )}
+              </div>
               <button
-                className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
-                aria-label="Zoek in deze lijst"
-                onClick={() => { setSearchOpen(false); setQuickFilterOpen((v) => { const next = !v; if (!next) setNameFilter(''); return next; }); }}
-              >🔍</button>
-            </div>
-            <div className="row" style={{ gap: 8 }}>
-              <button
-                className={`compact-btn ${compact ? 'on' : ''}`}
-                aria-pressed={compact}
-                aria-label={compact ? 'Volledige weergave' : 'Compacte weergave'}
-                title={compact ? 'Volledige weergave' : 'Compacte weergave'}
-                onClick={() => setCompact((v) => !v)}
+                className={`ab-filter ${activeFilterCount > 0 ? 'on' : ''}`}
+                aria-label={activeFilterCount > 0 ? `Filters (${activeFilterCount} actief)` : 'Filters'}
+                title="Filters"
+                onClick={() => setShowFilterSheet(true)}
               >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <circle cx="3.6" cy="6" r="1.2" fill="currentColor" stroke="none" />
-                  <circle cx="3.6" cy="12" r="1.2" fill="currentColor" stroke="none" />
-                  <circle cx="3.6" cy="18" r="1.2" fill="currentColor" stroke="none" />
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="3" y1="8" x2="21" y2="8" />
+                  <line x1="3" y1="16" x2="21" y2="16" />
+                  <circle cx="9" cy="8" r="2.4" />
+                  <circle cx="15" cy="16" r="2.4" />
                 </svg>
               </button>
-              <div style={{ position: 'relative' }}>
-              <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)}>
-                {sortLabel(sortKey)} {sortDir === 'desc' ? '↓' : '↑'}
-              </button>
-              {showSortMenu && (
-                <>
-                  <div className="popover-backdrop" onClick={() => setShowSortMenu(false)} />
-                  <div className="sort-menu">
-                    {SORT_OPTIONS.map((o) => {
-                      const active = sortKey === o.key;
-                      return (
-                        <button key={o.label} className={active ? 'active' : ''} onClick={() => pickSort(o.key, o.dir)}>
-                          {o.label}
-                          {active && <span style={{ float: 'right' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>}
-                        </button>
-                      );
-                    })}
+            </div>
+
+            {/* Regel 2: scrollbare filterchips links, vaste sorteertekst rechts */}
+            <div className="ab-sort-row">
+              {activeFilterCount > 0 ? (
+                <div className="ab-chips-wrap">
+                  <div className="ab-chips">
+                    {friend === '' && (
+                      <button className="active-chip" onClick={() => setFriend('me')}>
+                        <FriendsIcon size={15} style={{ marginRight: 4 }} />Iedereen ✕
+                      </button>
+                    )}
+                    {actorFilter && (
+                      <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
+                    )}
+                    {creatorFilter && (
+                      <button className="active-chip" onClick={() => setCreatorFilter('')}>🎬 {creatorFilter} ✕</button>
+                    )}
+                    {services.map((s) => (
+                      <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
+                    ))}
+                    {genres.map((g) => (
+                      <button key={g} className="active-chip" onClick={() => setGenres((arr) => arr.filter((x) => x !== g))}>{g} ✕</button>
+                    ))}
+                    {status === 'dropped' && (
+                      <button className="active-chip" onClick={() => setStatus('all')}>Afgehaakt ✕</button>
+                    )}
+                    {status === 'notdone' && (
+                      <button className="active-chip" onClick={() => setStatus('all')}>Nog afkijken ✕</button>
+                    )}
+                    {activeFilterCount >= 2 && (
+                      <button className="ab-clear-all" onClick={clearAllFilters}>Wis alles</button>
+                    )}
                   </div>
-                </>
+                </div>
+              ) : (
+                <div className="ab-chips-spacer" />
               )}
+              <div className="ab-sort">
+                <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)} aria-haspopup="listbox" aria-expanded={showSortMenu}>
+                  {sortLabel(sortKey)}
+                  <svg className="sort-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+                {showSortMenu && (
+                  <>
+                    <div className="popover-backdrop" onClick={() => setShowSortMenu(false)} />
+                    <div className="sort-menu">
+                      {SORT_OPTIONS.map((o) => {
+                        const active = sortKey === o.key;
+                        return (
+                          <button key={o.label} className={active ? 'active' : ''} onClick={() => pickSort(o.key, o.dir)}>
+                            {o.label}
+                            {active && <span style={{ float: 'right' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -762,48 +819,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Snel zoeken/filteren binnen de huidige lijst (puur filteren, geen toevoegen) */}
-          {quickFilterOpen && (
-            <div className="quick-search">
-              <input
-                autoFocus
-                placeholder="Filter in deze lijst…"
-                value={nameFilter}
-                onChange={(e) => setNameFilter(e.target.value)}
-              />
-              <button className="close" aria-label="Sluiten" onClick={() => { setNameFilter(''); setQuickFilterOpen(false); }}>✕</button>
-            </div>
-          )}
-
-          {/* Actieve filter-chips — alleen als er filters aanstaan */}
-          {activeFilterCount > 0 && (
-            <div className="active-chips">
-              {friend === '' && (
-                <button className="active-chip" onClick={() => setFriend('me')}>
-                  <FriendsIcon size={15} style={{ marginRight: 4 }} />Iedereen ✕
-                </button>
-              )}
-              {actorFilter && (
-                <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
-              )}
-              {creatorFilter && (
-                <button className="active-chip" onClick={() => setCreatorFilter('')}>🎬 {creatorFilter} ✕</button>
-              )}
-              {services.map((s) => (
-                <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
-              ))}
-              {genres.map((g) => (
-                <button key={g} className="active-chip" onClick={() => setGenres((arr) => arr.filter((x) => x !== g))}>{g} ✕</button>
-              ))}
-              {status === 'dropped' && (
-                <button className="active-chip" onClick={() => setStatus('all')}>Afgehaakt ✕</button>
-              )}
-              {status === 'notdone' && (
-                <button className="active-chip" onClick={() => setStatus('all')}>Nog afkijken ✕</button>
-              )}
-            </div>
-          )}
-
           {visibleTitles.length === 0 ? (
             activeFilterCount > 0 || status !== 'all' || nameFilter.trim() ? (
               <div className="empty">
@@ -812,7 +827,7 @@ export default function App() {
                 <button
                   className="btn"
                   style={{ marginTop: 10 }}
-                  onClick={() => { setStatus('all'); setFriend('me'); setServices([]); setGenres([]); setNameFilter(''); setActorFilter(''); setQuickFilterOpen(false); }}
+                  onClick={() => { setStatus('all'); setFriend('me'); setServices([]); setGenres([]); setNameFilter(''); setActorFilter(''); }}
                 >
                   Wis filters
                 </button>
@@ -870,11 +885,11 @@ export default function App() {
         ) : (
           <>
             {showAddHint && (
-              <button className="fab-hint" onClick={() => { setShowAddHint(false); setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>
+              <button className="fab-hint" onClick={() => { setShowAddHint(false); setNameFilter(''); setSearchOpen(true); }}>
                 Voeg hier jouw series toe!
               </button>
             )}
-            <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setShowAddHint(false); setQuickFilterOpen(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
+            <button className="fab-search" aria-label="Zoek of voeg toe" style={{ fontSize: 30, fontWeight: 300, lineHeight: 1 }} onClick={() => { setShowAddHint(false); setNameFilter(''); setSearchOpen(true); }}>+</button>
           </>
         )
       )}

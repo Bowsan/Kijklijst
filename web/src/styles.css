@@ -680,58 +680,118 @@ input, textarea, select {
 /* ---------- Zone 2: actiebalk ---------- */
 .action-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
   /* Werkbalk op de grijze paginakleur (net als achter de lijst), niet op wit. */
   background: var(--bg);
   padding: 8px 14px 10px;
 }
-.filter-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-}
-.filter-btn.on { border-color: var(--accent); color: var(--accent); }
-.scope-toggle {
-  display: inline-flex;
+
+/* ---- Regel 1: zoekbalk + rond filterknopje ---- */
+.ab-search-row { display: flex; align-items: center; gap: 8px; }
+.ab-search {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  height: 40px; padding: 0 14px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 2px;
 }
-.scope-toggle button {
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
+.ab-search-ico { color: var(--muted); flex-shrink: 0; }
+.ab-search input {
+  flex: 1; min-width: 0; height: 100%;
+  margin: 0; padding: 0; border: none; background: transparent;
+  font-size: 15px; color: var(--text);
+}
+.ab-search input::placeholder { color: var(--muted); }
+.ab-search input:focus { outline: none; }
+/* Eigen kruisje i.p.v. de native zoek-decoraties. */
+.ab-search input[type='search']::-webkit-search-cancel-button,
+.ab-search input[type='search']::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+.ab-search-clear {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); color: var(--muted);
+  font-size: 11px; line-height: 1;
+}
+/* Ruimer, onzichtbaar tikdoel rond de kleine knopjes. */
+.ab-search-clear::before,
+.ab-clear-all::before,
+.sort-btn::before {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px; min-height: 44px;
+  width: 100%; height: 100%;
+}
+.ab-filter {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: var(--muted);
+}
+/* Ruimer, onzichtbaar tikdoel (≥44px) rond het 40px-knopje. */
+.ab-filter::before {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  width: 44px; height: 44px; transform: translate(-50%, -50%);
+}
+.ab-filter.on {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--accent);
+}
+.ab-filter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- Regel 2: scrollbare filterchips links, vaste sorteertekst rechts ---- */
+.ab-sort-row { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.ab-chips-spacer { flex: 1; min-width: 0; }
+.ab-chips-wrap { position: relative; flex: 1; min-width: 0; }
+.ab-chips {
+  display: flex; align-items: center; gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 24px; /* ruimte onder de fade zodat de laatste chip zichtbaar blijft */
+}
+.ab-chips::-webkit-scrollbar { display: none; }
+/* Fade rechts in de lijst-achtergrondkleur → hint dat er meer chips zijn. */
+.ab-chips-wrap::after {
+  content: '';
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
+.ab-clear-all {
+  position: relative;
+  flex-shrink: 0;
+  font-size: 12px; font-weight: 600;
+  color: var(--muted);
+  padding: 4px 8px;
   white-space: nowrap;
 }
-.scope-toggle button.sel { background: var(--accent-grad); color: #fff; }
-.quick-search-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  font-size: 15px;
-}
-.quick-search-btn.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
-.quick-search { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-.quick-search input { flex: 1; margin: 0; }
-.quick-search .close {
-  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
-  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
-  font-size: 16px; display: flex; align-items: center; justify-content: center;
-}
+.ab-sort { position: relative; flex-shrink: 0; }
 .sort-btn {
-  font-size: 13px;
-  color: var(--muted);
-  padding: 6px 4px;
+  position: relative;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text);
+  padding: 8px 4px;
+  white-space: nowrap;
+}
+.sort-chevron { color: var(--muted); flex-shrink: 0; }
+.sort-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 .popover-backdrop { position: fixed; inset: 0; z-index: 40; }
 .sort-menu {
@@ -759,8 +819,9 @@ input, textarea, select {
 .sort-menu button:active { background: var(--surface); }
 
 /* ---------- Actieve filter-chips ---------- */
-.active-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .active-chip {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center;
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 999px;
@@ -1566,13 +1627,6 @@ input, textarea, select {
 .sm-name-edit .btn { flex-shrink: 0; }
 
 /* Compacte-weergave knop naast sorteren */
-.compact-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: 999px;
-  border: 1px solid var(--border); background: var(--surface); color: var(--text);
-}
-.compact-btn.on { background: var(--accent-grad); color: #fff; border-color: transparent; }
-
 /* Compacte lijstkaart: alleen titel (links) + cijfer(s) (rechts) */
 .title-card.compact { padding: 10px 12px; margin-bottom: 8px; }
 .compact-head { align-items: center; }
