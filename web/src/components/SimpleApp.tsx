@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Snapshot, Title, Rating, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
 import { saveRating, searchTmdb, saveProfile } from '../lib/api';
@@ -50,7 +50,7 @@ export default function SimpleApp({ snap, userId, online, onChange, toast, setSi
           : <DeRest snap={snap} userId={userId} />}
       </div>
 
-      <nav className="nav sm-nav">
+      <nav className="nav sm-nav" style={{ '--nav-count': 2, '--nav-index': tab === 'ikkijk' ? 0 : 1, '--nav-op': 1 } as CSSProperties}>
         <button className={tab === 'ikkijk' ? 'active' : ''} onClick={() => setTab('ikkijk')}>
           <span className="ico">📺</span>Ik kijk
         </button>
