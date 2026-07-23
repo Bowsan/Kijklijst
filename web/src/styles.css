@@ -692,6 +692,10 @@ input, textarea, select {
   background: var(--bg);
   padding: 8px 14px 2px;
 }
+/* Minder lucht tussen de sorteerregel (regel 2 van de werkbalk) en de lijst
+   eronder: de lijst-pagina volgt direct op de werkbalk, dus alleen daar de
+   top-padding verkleinen (andere tabs houden hun normale --sp-3). */
+.action-bar + .page { padding-top: 2px; }
 
 /* ---- Regel 1: zoekbalk + rond filterknopje ---- */
 .ab-search-row { display: flex; align-items: center; gap: 8px; }
