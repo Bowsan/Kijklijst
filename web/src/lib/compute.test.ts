@@ -87,6 +87,20 @@ describe('selectTitles', () => {
     expect(selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: ['Drama'], name: '' }).map((t) => t.tmdb_id)).toEqual([1]);
     expect(selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: 'serie 2' }).map((t) => t.tmdb_id)).toEqual([2]);
   });
+
+  it("'noScore' toont alleen series die nog niet becijferd zijn (score == null)", () => {
+    const s = snap({
+      titles: [t1, t2],
+      ratings: [
+        rating(1, 'me', { status: 'finished', score: 8 }),  // becijferd
+        rating(2, 'me', { status: 'finished', score: null }), // zonder cijfer
+      ],
+    });
+    const got = selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '', noScore: true });
+    expect(got.map((t) => t.tmdb_id)).toEqual([2]);
+    // Zonder de vlag komen beide series terug.
+    expect(selectTitles(s, 'me', { status: 'all', friend: 'me', services: [], genres: [], name: '' })).toHaveLength(2);
+  });
 });
 
 // ---- aanbevelingen ----
