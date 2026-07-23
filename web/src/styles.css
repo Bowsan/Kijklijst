@@ -757,24 +757,13 @@ input, textarea, select {
 }
 
 /* ---- Regel 2: scrollbare filterchips links, vaste sorteertekst rechts ---- */
-.ab-sort-row { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.ab-sort-row { display: flex; align-items: flex-start; gap: 8px; min-height: 30px; }
 .ab-chips-spacer { flex: 1; min-width: 0; }
-.ab-chips-wrap { position: relative; flex: 1; min-width: 0; }
+.ab-chips-wrap { flex: 1; min-width: 0; }
+/* Chips lopen over meerdere regels (wrappen) zodat je nooit een filter uit
+   beeld kunt scrollen; geen horizontale scroll meer. */
 .ab-chips {
-  display: flex; align-items: center; gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-  padding-right: 24px; /* ruimte onder de fade zodat de laatste chip zichtbaar blijft */
-}
-.ab-chips::-webkit-scrollbar { display: none; }
-/* Fade rechts in de lijst-achtergrondkleur → hint dat er meer chips zijn. */
-.ab-chips-wrap::after {
-  content: '';
-  position: absolute; top: 0; right: 0; bottom: 0;
-  width: 28px;
-  background: linear-gradient(to right, transparent, var(--bg));
-  pointer-events: none;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
 }
 .ab-clear-all {
   position: relative;
