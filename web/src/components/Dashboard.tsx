@@ -9,6 +9,7 @@ import {
 import { fmt1, timeAgo } from '../lib/format';
 import Thumb from './Thumb';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 import StatusBadge from './StatusBadge';
 import {
   useReveal, useSvcLogos, CountUp, TitleRow, BarRow, GenreStat, TLink, IconRow, Donut,
@@ -163,10 +164,10 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         </div>
       )}
 
-      <h2 className="dash-h2"><span className="h2-ico">👥</span>Jouw vrienden kijken</h2>
+      <h2 className="dash-h2"><span className="h2-ico"><FriendsIcon size={22} /></span>Jouw vrienden kijken</h2>
       {friends.length === 0 ? (
         <div className="empty">
-          <div className="big">👥</div>
+          <div className="big"><FriendsIcon size={46} /></div>
           <p>Je volgt nog geen vrienden.</p>
           <button className="btn" style={{ marginTop: 8 }} onClick={onGoFriends}>Vrienden toevoegen</button>
         </div>

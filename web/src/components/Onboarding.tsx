@@ -5,6 +5,7 @@ import { setUserId, getUserId, setOnboarded, setSimpleMode } from '../lib/identi
 import { MIN_RATINGS_FOR_PROFILE } from '../lib/compute';
 import { isStandalone } from '../lib/install';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 import TitleCard from './TitleCard';
 
 // Onboarding in korte stappen: naam → vrienden volgen → een eerste stap met je
@@ -137,7 +138,7 @@ export default function Onboarding({ existing = false, onDone }: {
     return (
       <div className="onboard">
         <div className="hero">
-          <div className="big">👥</div>
+          <div className="big"><FriendsIcon size={50} /></div>
           <h1>Wie wil je volgen?</h1>
           <p className="muted">Van de vrienden die je volgt zie je de lijsten, cijfers en tips.</p>
         </div>

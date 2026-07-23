@@ -3,6 +3,7 @@ import { selectTitles, followingProfiles, type StatusValue } from '../lib/comput
 import Sheet from './Sheet';
 import Avatar from './Avatar';
 import ServiceLogo from './ServiceLogo';
+import FriendsIcon from './FriendsIcon';
 
 interface Props {
   snap: Snapshot;
@@ -45,13 +46,13 @@ export default function FilterSheet({
   }).length;
 
   return (
-    <Sheet title="Filters" onClose={onClose}>
+    <Sheet title="Filter" onClose={onClose}>
       {/* Vrienden — wiens lijst */}
       <div className="filter-section">
         <div className="fs-label">Wiens lijst</div>
         <div className="friend-filter">
           <button className={friend === '' ? 'sel' : ''} onClick={() => onFriend('')}>
-            <span className="ff-icon">👥</span>Iedereen
+            <FriendsIcon size={26} className="ff-icon" />Iedereen
           </button>
           <button className={friend === 'me' ? 'sel' : ''} onClick={() => onFriend('me')}>
             <Avatar profile={me} id={userId} size="sm" />Jij

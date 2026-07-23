@@ -17,6 +17,7 @@ import ListSearchBar from './components/ListSearchBar';
 import StatusBadge from './components/StatusBadge';
 import Avatar from './components/Avatar';
 import FilterSheet from './components/FilterSheet';
+import FriendsIcon from './components/FriendsIcon';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
 import Sheet from './components/Sheet';
@@ -132,7 +133,9 @@ export default function App() {
   const [status, setStatus] = useState<StatusValue>('all');
   // Scope van de lijst: 'me' = Jij (lost altijd op naar het huidige account, ook
   // na inloggen met een bestaande naam), '' = Iedereen, of een specifiek vriend-id.
-  const [friend, setFriend] = useState<string>(saved.friend ?? 'me');
+  // De scope start altijd op "Jij": het is een filter dat je zichtbaar aan-/uitzet
+  // (als groene chip), niet iets dat over sessies blijft plakken.
+  const [friend, setFriend] = useState<string>('me');
   // Het echte gebruikers-id waarop we filteren ('me' → jouw account, '' → groep).
   const scopeUser = friend === 'me' ? userId : friend;
   const [services, setServices] = useState<string[]>(saved.services);
@@ -186,10 +189,11 @@ export default function App() {
     }
   }, [snap]);
 
-  // Filterkeuzes onthouden tussen bezoeken (status bewust niet).
+  // Filterkeuzes onthouden tussen bezoeken (status én scope bewust niet: die
+  // starten altijd op "Alles" resp. "Jij").
   useEffect(() => {
-    savePrefs({ friend, services, genres, sortKey, sortDir, compact });
-  }, [friend, services, genres, sortKey, sortDir, compact]);
+    savePrefs({ friend: null, services, genres, sortKey, sortDir, compact });
+  }, [services, genres, sortKey, sortDir, compact]);
 
   const toast = (msg: string) => {
     setToastMsg(msg);
@@ -223,10 +227,12 @@ export default function App() {
     setTab('list');
   };
 
-  // "Jij" heeft een eigen knop en een vriend-scope toont z'n eigen banner,
-  // dus die tellen hier niet mee als paneelfilter.
+  // "Jij" is de standaard-scope en telt niet mee; een specifieke vriend toont z'n
+  // eigen banner en telt ook niet mee. "Iedereen" heeft geen banner en is dus een
+  // zichtbaar filter (groene chip) dat wél meetelt.
   const activeFilterCount =
     services.length + genres.length + (actorFilter ? 1 : 0) + (creatorFilter ? 1 : 0) +
+    (friend === '' ? 1 : 0) +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
@@ -695,7 +701,7 @@ export default function App() {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                 </svg>
-                Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                Filter{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
               </button>
               <button
                 className={`quick-search-btn ${nameFilter.trim() ? 'on' : ''}`}
@@ -772,6 +778,11 @@ export default function App() {
           {/* Actieve filter-chips — alleen als er filters aanstaan */}
           {activeFilterCount > 0 && (
             <div className="active-chips">
+              {friend === '' && (
+                <button className="active-chip" onClick={() => setFriend('me')}>
+                  <FriendsIcon size={15} style={{ marginRight: 4 }} />Iedereen ✕
+                </button>
+              )}
               {actorFilter && (
                 <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
               )}
