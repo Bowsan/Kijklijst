@@ -48,6 +48,9 @@ html, body { height: 100%; margin: 0; overflow: hidden; overscroll-behavior: non
 #root {
   height: 100%;
   overflow-y: auto;
+  /* Nooit horizontaal pannen: interne scrollzones (bijv. de filterchips)
+     houden hun eigen overflow-x, maar de pagina zelf mag niet meebewegen. */
+  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
@@ -681,10 +684,10 @@ input, textarea, select {
 .action-bar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   /* Werkbalk op de grijze paginakleur (net als achter de lijst), niet op wit. */
   background: var(--bg);
-  padding: 8px 14px 10px;
+  padding: 8px 14px 2px;
 }
 
 /* ---- Regel 1: zoekbalk + rond filterknopje ---- */
@@ -751,7 +754,7 @@ input, textarea, select {
 }
 
 /* ---- Regel 2: scrollbare filterchips links, vaste sorteertekst rechts ---- */
-.ab-sort-row { display: flex; align-items: center; gap: 8px; min-height: 34px; }
+.ab-sort-row { display: flex; align-items: center; gap: 8px; min-height: 30px; }
 .ab-chips-spacer { flex: 1; min-width: 0; }
 .ab-chips-wrap { position: relative; flex: 1; min-width: 0; }
 .ab-chips {
