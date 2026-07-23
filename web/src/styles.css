@@ -169,7 +169,10 @@ input, textarea, select {
   top: 5px; bottom: calc(5px + var(--safe-bottom));
   left: 0;
   width: calc(100% / var(--nav-count, 1));
-  transform: translateX(calc(var(--nav-index, 0) * 100%));
+  /* scaleX(0.75) maakt de pil ~25% smaller, gecentreerd in het tab-vak; de
+     translateX blijft per tab een heel vak verspringen (gebruikt de
+     ongeschaalde breedte). */
+  transform: translateX(calc(var(--nav-index, 0) * 100%)) scaleX(0.75);
   background: color-mix(in srgb, var(--accent) 13%, transparent);
   border-radius: 14px;
   opacity: var(--nav-op, 1);
