@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Snapshot, Title, Rating, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
 import { saveRating, searchTmdb, saveProfile } from '../lib/api';
 import { watchingTitles, followingProfiles, profileById } from '../lib/compute';
 import PosterFallback from './PosterFallback';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 
 interface Props {
   snap: Snapshot;
@@ -54,7 +55,7 @@ export default function SimpleApp({ snap, userId, online, onChange, toast, setSi
           <span className="ico">📺</span>Ik kijk
         </button>
         <button className={tab === 'derest' ? 'active' : ''} onClick={() => setTab('derest')}>
-          <span className="ico">👥</span>De rest
+          <span className="ico"><FriendsIcon size={25} /></span>De rest
         </button>
       </nav>
 
@@ -242,7 +243,7 @@ function DeRest({ snap, userId }: { snap: Snapshot; userId: string }) {
     return (
       <div className="sm-list-wrap">
         <div className="sm-label">Wat je vrienden kijken</div>
-        <EmptyBlock icon="👥" title="Nog niemand aan het kijken" sub="Niemand die je volgt kijkt nu iets — zodra ze iets starten, zie je het hier." />
+        <EmptyBlock icon={<FriendsIcon size={40} />} title="Nog niemand aan het kijken" sub="Niemand die je volgt kijkt nu iets — zodra ze iets starten, zie je het hier." />
       </div>
     );
   }
@@ -274,7 +275,7 @@ function DeRest({ snap, userId }: { snap: Snapshot; userId: string }) {
 }
 
 /** Vriendelijke lege staat met icoon en uitleg. */
-function EmptyBlock({ icon, title, sub }: { icon: string; title: string; sub?: string }) {
+function EmptyBlock({ icon, title, sub }: { icon: ReactNode; title: string; sub?: string }) {
   return (
     <div className="sm-emptyblock">
       <div className="sm-empty-ico" aria-hidden="true">{icon}</div>

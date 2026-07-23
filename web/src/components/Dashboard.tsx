@@ -9,6 +9,7 @@ import {
 import { fmt1, timeAgo } from '../lib/format';
 import Thumb from './Thumb';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 import StatusBadge from './StatusBadge';
 import {
   useReveal, useSvcLogos, CountUp, TitleRow, BarRow, GenreStat, TLink, IconRow, Donut,
@@ -163,10 +164,10 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         </div>
       )}
 
-      <h2 className="dash-h2"><span className="h2-ico">👥</span>Jouw vrienden kijken</h2>
+      <h2 className="dash-h2"><span className="h2-ico"><FriendsIcon size={22} /></span>Jouw vrienden kijken</h2>
       {friends.length === 0 ? (
         <div className="empty">
-          <div className="big">👥</div>
+          <div className="big"><FriendsIcon size={46} /></div>
           <p>Je volgt nog geen vrienden.</p>
           <button className="btn" style={{ marginTop: 8 }} onClick={onGoFriends}>Vrienden toevoegen</button>
         </div>
@@ -228,7 +229,7 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         <>
       {latestComments.length > 0 && (
         <>
-          <h2 className="dash-h2"><span className="h2-ico">💬</span>Laatste berichten</h2>
+          <h2 className="dash-h2"><span className="h2-ico">💬</span>Commentaar</h2>
           <div className="card">
             {latestComments.map(({ c, who, title }) => (
               <div key={c.id} className="feed-row" onClick={() => onNavigate({ status: 'all', titleId: title!.tmdb_id })}>
@@ -249,11 +250,11 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
         </>
       )}
 
-      <h2 className="dash-h2"><span className="h2-ico">🔔</span>Meldingen</h2>
+      <h2 className="dash-h2"><span className="h2-ico">🔔</span>Activiteit</h2>
       <div className="card">
         <ActivityFeed snap={snap} userId={userId} onOpenTitle={(id) => onNavigate({ status: 'all', titleId: id })} limit={10} />
       </div>
-      <button className="btn full" style={{ marginTop: 4 }} onClick={onShowAllActivity}>Toon alle meldingen</button>
+      <button className="btn full" style={{ marginTop: 4 }} onClick={onShowAllActivity}>Toon alle activiteit</button>
         </>
       )}
 

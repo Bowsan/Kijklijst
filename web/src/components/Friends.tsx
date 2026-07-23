@@ -5,6 +5,7 @@ import {
 } from '../lib/compute';
 import { followUser, unfollowUser, setProfileHidden } from '../lib/api';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 import MyTips from './MyTips';
 import Messages from './Messages';
 
@@ -85,7 +86,7 @@ export default function Friends({ snap, userId, subTab, onOpenProfile, onRecomme
       <h2>Wie je volgt</h2>
       {friends.length === 0 ? (
         <div className="empty">
-          <div className="big">👥</div>
+          <div className="big"><FriendsIcon size={46} /></div>
           <p>Je volgt nog niemand.</p>
           <p className="muted">Volg vrienden om hun series in je "Alles"-lijst en op je dashboard te zien.</p>
         </div>

@@ -8,6 +8,7 @@ import { scoreColor, isGoldScore } from '../lib/score';
 import { fmt1, fmtDate, fmtDateTime, fmtISODate } from '../lib/format';
 import ServiceLogo from './ServiceLogo';
 import Avatar from './Avatar';
+import FriendsIcon from './FriendsIcon';
 import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
@@ -301,7 +302,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                 // Groen als je alle seizoenen zag, anders lichtgrijs (nog niet af).
                 <span className={`mchip${watchedSeasonCount >= totalSeasons ? ' seasons' : ''}`}>{watchedSeasonCount}/{totalSeasons} seizoen{totalSeasons === 1 ? '' : 'en'}</span>
               )}
-              {showOthers && <span className="mchip">👥 {others.length}</span>}
+              {showOthers && <span className="mchip"><FriendsIcon size={14} /> {others.length}</span>}
               {totalRecCount > 0 && <span className="mchip">💌 {totalRecCount}</span>}
               {reasonActor && <span className="mchip actor" title={`Met jouw favoriet ${reasonActor}`}>🎭 {reasonActor}</span>}
             </div>
@@ -542,9 +543,9 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             )}
           </section>
 
-          {/* ── Sectie: Dit zeggen je vrienden ── */}
+          {/* ── Sectie: Commentaar ── */}
           <section className="tc-section">
-            <div className="tc-label">Dit zeggen je vrienden</div>
+            <div className="tc-label">Commentaar</div>
             <div className="comments">
               {comments.map((c) => {
                 const p = profileById(snap, c.user_id);

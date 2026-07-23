@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { Snapshot } from '../../lib/types';
 import { followingProfiles, visibleUserIds, titleById, profileById } from '../../lib/compute';
 import Thumb from '../Thumb';
+import FriendsIcon from '../FriendsIcon';
 import { BarRow, GenreStat, TitleRow, SvcLabel, useSvcLogos, type NavOpts } from './widgets';
 
 interface Props {
@@ -118,7 +119,7 @@ export default function GroupCards({ snap, userId, onNavigate }: Props) {
                   {avg != null && <span className="pstrip-score">{avg.toFixed(1)}</span>}
                 </div>
                 <div className="pstrip-name">{title.name}</div>
-                <div className="pstrip-sub">👥 {listCount}</div>
+                <div className="pstrip-sub"><FriendsIcon size={13} /> {listCount}</div>
               </button>
             ))}
           </div>

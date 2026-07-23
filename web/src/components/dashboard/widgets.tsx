@@ -241,8 +241,8 @@ export function Donut({ parts, total, onPick }: { parts: DonutPart[]; total: num
             return el;
           })}
         </g>
-        <text x="60" y="58" textAnchor="middle" className="donut-num"><CountUp value={total} /></text>
-        <text x="60" y="74" textAnchor="middle" className="donut-lbl">series</text>
+        <text x="60" y="56" textAnchor="middle" dominantBaseline="central" className="donut-num"><CountUp value={total} /></text>
+        <text x="60" y="74" textAnchor="middle" dominantBaseline="central" className="donut-lbl">series</text>
       </svg>
       <div className="donut-legend">
         {parts.map((p) => (
