@@ -141,6 +141,8 @@ export interface ListFilters {
   actor?: string;
   /** Alleen series van deze maker/bedenker (exacte naam uit creators). */
   creator?: string;
+  /** Alleen series die (door de betrokken persoon) nog niet becijferd zijn (score == null). */
+  noScore?: boolean;
 }
 
 /** Voldoet een beoordeling (van deze persoon, voor deze titel) aan de statusfilter? */
@@ -173,6 +175,16 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
   if (f.actor) list = list.filter((t) => t.cast.includes(f.actor!));
 
   if (f.creator) list = list.filter((t) => (t.creators ?? []).some((c) => c.name === f.creator));
+
+  // "Zonder cijfer": alleen series waarvan de betrokken persoon (of iemand in de
+  // scope bij "Iedereen") een beoordeling heeft die nog geen cijfer draagt.
+  if (f.noScore) {
+    list = list.filter((t) =>
+      snap.ratings.some(
+        (r) => r.title_id === t.tmdb_id && personSet.has(r.user_id) && matchesStatus(r, t, f.status) && r.score == null,
+      ),
+    );
+  }
 
   if (f.services.length) {
     const me = profileById(snap, userId);

@@ -145,6 +145,8 @@ export default function App() {
   const [actorFilter, setActorFilter] = useState<string>('');
   // Makersfilter: gezet door op een seriemaker te tikken op het dashboard.
   const [creatorFilter, setCreatorFilter] = useState<string>('');
+  // "Zonder cijfer": toont alleen series die nog niet becijferd zijn.
+  const [noScore, setNoScore] = useState<boolean>(false);
   const [sortKey, setSortKey] = useState<SortKey>(saved.sortKey);
   const [sortDir, setSortDir] = useState<SortDir>(saved.sortDir);
   const [compact, setCompact] = useState<boolean>(saved.compact);
@@ -232,6 +234,7 @@ export default function App() {
   const activeFilterCount =
     services.length + genres.length + (actorFilter ? 1 : 0) + (creatorFilter ? 1 : 0) +
     (friend === '' ? 1 : 0) +
+    (noScore ? 1 : 0) +
     (status === 'dropped' || status === 'notdone' ? 1 : 0);
 
   // "Wis alles": zet alle actieve chip-filters terug (niet de zoekterm — die
@@ -241,6 +244,7 @@ export default function App() {
     setGenres([]);
     setActorFilter('');
     setCreatorFilter('');
+    setNoScore(false);
     setFriend('me');
     if (status === 'dropped' || status === 'notdone') setStatus('all');
   };
@@ -260,7 +264,7 @@ export default function App() {
   };
 
   // Pagina resetten bij filterwijziging
-  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter, creatorFilter]);
+  useEffect(() => { setListPage(1); }, [status, genres, services, sortKey, sortDir, friend, nameFilter, actorFilter, creatorFilter, noScore]);
 
   // Toevoegen vanuit een gefilterde lijst erft die status (Wishlist/Mee bezig/
   // Gezien/Afgehaakt); overal anders is de wishlist de standaard.
@@ -389,7 +393,7 @@ export default function App() {
 
   const visibleTitles = useMemo(() => {
     if (!snap) return [];
-    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter, actor: actorFilter || undefined, creator: creatorFilter || undefined });
+    const list = selectTitles(snap, userId, { status, friend: scopeUser, services, genres, name: nameFilter, actor: actorFilter || undefined, creator: creatorFilter || undefined, noScore });
 
     list.sort((a, b) => {
       let cmp: number;
@@ -408,7 +412,7 @@ export default function App() {
     });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap, status, friend, services, genres, nameFilter, actorFilter, creatorFilter, sortKey, sortDir, userId]);
+  }, [snap, status, friend, services, genres, nameFilter, actorFilter, creatorFilter, noScore, sortKey, sortDir, userId]);
 
   // Kaarten die open staan om te bewerken. Zolang er één open is, bevriezen we
   // de lijstvolgorde en -selectie: een statuswijziging laat de kaart dan niet
@@ -425,7 +429,7 @@ export default function App() {
   }, []);
   const editing = editingIds.size > 0;
   const frozenListRef = useRef<Title[] | null>(null);
-  useEffect(() => { frozenListRef.current = null; }, [status, friend, services, genres, nameFilter, actorFilter, creatorFilter, sortKey, sortDir, tab]);
+  useEffect(() => { frozenListRef.current = null; }, [status, friend, services, genres, nameFilter, actorFilter, creatorFilter, noScore, sortKey, sortDir, tab]);
   useEffect(() => { if (!editing) frozenListRef.current = null; }, [editing]);
 
   let listTitles = visibleTitles;
@@ -786,6 +790,9 @@ export default function App() {
                     {status === 'notdone' && (
                       <button className="active-chip" onClick={() => setStatus('all')}>Nog afkijken ✕</button>
                     )}
+                    {noScore && (
+                      <button className="active-chip" onClick={() => setNoScore(false)}>Zonder cijfer ✕</button>
+                    )}
                     {activeFilterCount >= 2 && (
                       <button className="ab-clear-all" onClick={clearAllFilters}>Wis alles</button>
                     )}
@@ -1019,7 +1026,9 @@ export default function App() {
           onToggleGenre={(g) => setGenres((arr) => (arr.includes(g) ? arr.filter((x) => x !== g) : [...arr, g]))}
           onToggleDropped={() => setStatus((st) => (st === 'dropped' ? 'all' : 'dropped'))}
           onToggleNotDone={() => setStatus((st) => (st === 'notdone' ? 'all' : 'notdone'))}
-          onClear={() => { setFriend('me'); setServices([]); setGenres([]); setStatus((st) => (st === 'dropped' || st === 'notdone' ? 'all' : st)); }}
+          noScore={noScore}
+          onToggleNoScore={() => setNoScore((v) => !v)}
+          onClear={() => { setFriend('me'); setServices([]); setGenres([]); setNoScore(false); setStatus((st) => (st === 'dropped' || st === 'notdone' ? 'all' : st)); }}
           onClose={() => setShowFilterSheet(false)}
         />
       )}

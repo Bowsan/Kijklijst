@@ -23,14 +23,16 @@ interface Props {
   onToggleGenre: (g: string) => void;
   onToggleDropped: () => void;
   onToggleNotDone: () => void;
+  noScore: boolean;
+  onToggleNoScore: () => void;
   onClear: () => void;
   onClose: () => void;
 }
 
 export default function FilterSheet({
   snap, userId, allServices, allGenres, status,
-  friend, services, genres, myServices,
-  onFriend, onToggleService, onMyServices, onToggleGenre, onToggleDropped, onToggleNotDone, onClear, onClose,
+  friend, services, genres, myServices, noScore,
+  onFriend, onToggleService, onMyServices, onToggleGenre, onToggleDropped, onToggleNotDone, onToggleNoScore, onClear, onClose,
 }: Props) {
   const friends = followingProfiles(snap, userId);
   const me = snap.profiles.find((p) => p.id === userId);
@@ -42,7 +44,7 @@ export default function FilterSheet({
   const count = selectTitles(snap, userId, {
     status,
     friend: friend === 'me' ? userId : friend,
-    services, genres, name: '',
+    services, genres, name: '', noScore,
   }).length;
 
   return (
@@ -107,6 +109,9 @@ export default function FilterSheet({
           </button>
           <button className={`chip-toggle ${notDone ? 'on' : ''}`} onClick={onToggleNotDone}>
             Nog afkijken
+          </button>
+          <button className={`chip-toggle ${noScore ? 'on' : ''}`} onClick={onToggleNoScore}>
+            Zonder cijfer
           </button>
         </div>
       </div>
