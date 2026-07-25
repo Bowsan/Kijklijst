@@ -6,21 +6,35 @@ code-commentaar ook in het Nederlands.
 
 ## Stack & structuur
 - **web/** — React + Vite + TypeScript. Belangrijkste bestanden:
-  - `src/App.tsx` — hoofdstate, tabs, topbar-items, status-tabs (groot bestand).
+  - `src/App.tsx` — hoofdstate, tabs, filters, sheets (nog steeds het grootste
+    bestand, maar de presentatie zit in losse componenten hieronder).
   - `src/components/Chrome.tsx` — `TopBar` + `NavBar` (footer). Puur presentatie.
+  - `src/components/TabStrip.tsx` — de tabbalk met glijdend onderstreepje; wordt
+    door lijst, dashboard én vrienden gebruikt (incl. `tabStyle`).
+  - `src/components/list/ListToolbar.tsx` — werkbalk boven de lijst (zoeken,
+    filterknoppen, chips, sorteren). Chips komen binnen als `FilterChip[]`.
+  - `src/components/SearchOverlay.tsx` — zoekscherm van de lijst (+ suggestie-rij).
+  - `src/components/Poster.tsx` (grote kaartposter) / `Thumb.tsx` (miniatuur) —
+    gebruik deze i.p.v. zelf `posterUrl` + `PosterFallback` combineren.
   - `src/components/Dashboard.tsx` — dashboard met tabs `kijken|actueel|stats`.
   - `src/components/Friends.tsx`, `Activity.tsx`, `SimpleApp.tsx` (Simpele modus).
-  - `src/styles.css` — alle CSS (groot; zoek op class-namen).
+  - `src/styles.css` — **alleen een import-lijst**; de echte CSS staat in
+    `src/styles/*.css` per thema. De volgorde van de imports = de cascade,
+    dus verplaats blokken niet zomaar tussen bestanden.
   - `src/lib/` — `identity.ts` (localStorage-keys), `compute.ts` (afgeleide data),
-    `api.ts`, `types.ts`.
-- **server/** — Node + Express + better-sqlite3. `src/index.ts` (routes),
-  `src/db.ts` (schema + **additieve** migraties), `src/tmdb.ts`, `src/titles.ts`.
+    `api.ts`, `types.ts`, `listOptions.ts` (statustabs + sorteeropties),
+    `links.ts` (IMDb-URL's), `scroll.ts` (`scroller()` + `useScrollState`).
+- **server/** — Node + Express + better-sqlite3. `src/index.ts` is alleen opzet,
+  montage van de routers en de opstarttaken; de routes staan in
+  `src/routes/*.ts` (elke router draagt zijn eigen volledige paden).
+  Verder `src/db.ts` (schema + **additieve** migraties), `src/tmdb.ts`,
+  `src/titles.ts`, `src/http.ts` (`userId()`).
 - **e2e/smoke.mjs** — Playwright-rooktest die de gebouwde server doorloopt.
 - PWA: `#root` is de scroll-container; safe-area via `--safe-top`/`--safe-bottom`.
 
 ## Ship-pipeline (elke wijziging)
 1. `cd web && npm run build`
-2. `npm run test` (vitest, ~50 tests)
+2. `npm run test` (vitest, 51 tests)
 3. `rm -rf server/public && cp -r web/dist server/public`
 4. Playwright-verificatie + `node e2e/smoke.mjs`
 5. commit → push naar de branch → PR → squash-merge
@@ -47,7 +61,8 @@ code-commentaar ook in het Nederlands.
   een enkele `::after`/`::before` met `transform: translateX(calc(var(--index) * 100%))`.
   Curve: `cubic-bezier(0.34, 1.56, 0.64, 1)` @ 0.42s. Bij actieve index `< 0`
   (bijv. Vrienden/Profiel in de kopbalk) fadet de indicator via opacity weg.
-  Respecteert `prefers-reduced-motion`. Helper `tabStyle(count, index)` in App.tsx.
+  Respecteert `prefers-reduced-motion`. Gebruik `TabStrip` (helper `tabStyle`
+  zit daarin); schrijf de tabbalk niet opnieuw uit.
 - **Gepinde status-tabs bij scrollen** (variant A): `.status-tabs { position: sticky;
   top: var(--safe-top) }`; topbar los op `.tab-list/.tab-dashboard/.tab-friends`.
 - **Topbar-iconen:** alleen Vrienden (aggregaat rood bolletje: ongelezen berichten +
@@ -60,11 +75,14 @@ code-commentaar ook in het Nederlands.
   "De rest" = alleen vrienden, één regel notitie per serie.
 
 ## Huidige staat
-- Laatste gemergede werk: PR #158 (footer-pil ~25% smaller), deploy geslaagd.
-- Recente lijst-werkbalk reeks: herbouwd naar 2 regels — zoekbalk + ronde
-  filter-/compact-knoppen (regel 1), filterchips + vaste sorteertekst (regel 2);
-  "Aangepast" → "Gewijzigd" (#156). Minder ruimte boven de lijst +
-  `#root { overflow-x: hidden }` tegen horizontaal pannen (#157). Smallere
-  footer-pil via `scaleX(0.75)` (#158). Filterchips wrappen over meerdere regels
-  (nooit uit beeld te scrollen).
+- Laatste gemergede werk: PR #164 — technische opschoning (dedupliceren +
+  opsplitsen in kleine modules), zonder zichtbare wijziging voor de gebruiker.
+- Daarvoor: filterchips wrappen (#159), plus-knop met gradient + shimmer (#160),
+  simpele-modus footer-pil gefixt (#161), minder ruimte tussen sorteerregel en
+  lijst (#162), filter "Zonder cijfer" (#163).
+- Verificatie-truc die goed werkte bij refactors: bouw voor én na, vergelijk de
+  **gebouwde CSS-bundel** (md5) en dump de **DOM** van herbouwde onderdelen om
+  te bewijzen dat er niets verandert. Let bij screenshotvergelijking op lopende
+  animaties (`CountUp` telt 900 ms, FAB-shimmer): die geven vals alarm — check
+  altijd of twee runs van dezelfde code net zo veel afwijken.
 - Werkboom schoon, alles gepusht.
