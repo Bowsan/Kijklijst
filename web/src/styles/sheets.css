@@ -1,0 +1,49 @@
+/* Modals/sheets en onboarding. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Modal / sheet ---------- */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet {
+  position: relative;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 640px;
+  padding: 18px 16px calc(20px + var(--safe-bottom));
+  max-height: 86vh;
+  overflow-y: auto;
+  animation: slideUp 0.22s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet h3 { margin: 0 0 12px; padding-right: 40px; }
+.sheet-handle { width: 44px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 14px; cursor: pointer; }
+.sheet-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2;
+}
+
+/* ---------- Onboarding ---------- */
+.onboard { display: flex; flex-direction: column; gap: 16px; padding: 40px 24px; min-height: 100vh; justify-content: center; }
+.onboard .hero { text-align: center; }
+.onboard .hero .big { font-size: 48px; }
+.onboard .hero h1 { font-size: 26px; margin: 8px 0 4px; }
+/* Lange stappen (zoals cijfers geven) beginnen bovenaan, met de
+   overslaan/klaar-knop boven de vouw en de lijst eronder. */
+.onboard.onboard-top { justify-content: flex-start; padding-top: 24px; }
+.onboard .hero.compact .big { font-size: 32px; }
+.onboard .hero.compact h1 { font-size: 21px; margin: 4px 0 2px; }
+.onboard .hero.compact p { margin: 0; font-size: 14px; }

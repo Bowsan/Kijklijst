@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Snapshot, Title, SearchResult } from '../lib/types';
-import { posterUrl, PERSON_IMG } from '../lib/types';
+import { PERSON_IMG } from '../lib/types';
 import {
   ratedCount, computedRecommendations, incomingRecommendations, MIN_RATINGS_FOR_PROFILE,
   newSeasonForYou, myRating, sharedFavoriteActor, favoriteSuggestions,
@@ -8,7 +8,8 @@ import {
 } from '../lib/compute';
 import { dismissRecommendation, respondRecommendation, saveRating, discoverNewTv, discoverByPeople, fetchSimilar, type PersonSuggestion, type SuggestPerson } from '../lib/api';
 import TitleCard from './TitleCard';
-import PosterFallback from './PosterFallback';
+import Poster from './Poster';
+import { imdbSearchUrl } from '../lib/links';
 import ActionSheet, { type ActionOption } from './ActionSheet';
 import ImdbChip from './ImdbChip';
 
@@ -35,14 +36,11 @@ const passesQuality = (v?: number | null) => v == null || v >= QUALITY_MIN;
 // IMDb-link en een knop om 'm op de wishlist te zetten.
 function DiscoverCard({ item, onAdd }: { item: SearchResult; onAdd: (tmdbId: number) => void }) {
   const [open, setOpen] = useState(false);
-  const [posterFailed, setPosterFailed] = useState(false);
-  const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${item.name} ${item.year || ''}`.trim())}&s=tt&ttype=tv`;
+  const imdbUrl = imdbSearchUrl(item.name, item.year);
   return (
     <div className="card discover-card">
       <div className="title-head">
-        {item.poster_path && !posterFailed
-          ? <img className="poster" src={posterUrl(item.poster_path)} alt="" loading="lazy" onError={() => setPosterFailed(true)} />
-          : <PosterFallback name={item.name} />}
+        <Poster path={item.poster_path} name={item.name} />
         <div className="title-meta">
           <h3>{item.name}</h3>
           <div className="title-sub">
@@ -99,14 +97,11 @@ function FavSuggestCard({ row, onAdd }: {
   onAdd: (tmdbId: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [posterFailed, setPosterFailed] = useState(false);
-  const imdbUrl = `https://www.imdb.com/find/?q=${encodeURIComponent(`${row.name} ${row.year || ''}`.trim())}&s=tt&ttype=tv`;
+  const imdbUrl = imdbSearchUrl(row.name, row.year);
   return (
     <div className="card discover-card">
       <div className="title-head">
-        {row.poster_path && !posterFailed
-          ? <img className="poster" src={posterUrl(row.poster_path)} alt="" loading="lazy" onError={() => setPosterFailed(true)} />
-          : <PosterFallback name={row.name} />}
+        <Poster path={row.poster_path} name={row.name} />
         <div className="title-meta">
           <h3>{row.name}</h3>
           <div className="title-sub">

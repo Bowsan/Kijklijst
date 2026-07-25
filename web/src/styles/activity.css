@@ -1,0 +1,151 @@
+/* Meldingen, tips en de offline-banner. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Activiteit ---------- */
+.activity-item { display: flex; gap: 10px; align-items: center; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.activity-item:last-child { border-bottom: none; }
+.activity-text { font-size: 13px; }
+.activity-text b { font-weight: 700; }
+.activity-time { font-size: 11px; color: var(--muted); }
+.act-emoji { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; background: var(--surface-2); flex-shrink: 0; }
+
+/* Bericht van een vriend bij jouw serie: valt extra op (lichtgeel) en is klikbaar. */
+.activity-item.message {
+  background: color-mix(in srgb, #f5c518 22%, var(--surface));
+  border: 1px solid color-mix(in srgb, #f5c518 45%, var(--border));
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 6px 0;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+}
+
+/* Jouw tips aan vrienden */
+.tip-row { display: flex; gap: 10px; }
+.tip-row:not(:last-child) { border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+.tip-poster { width: 48px; height: 72px; border-radius: 6px; object-fit: cover; flex-shrink: 0; background: var(--surface-2); }
+.tip-poster.empty { background: var(--surface-2); }
+.tip-title { font-weight: 600; font-size: 14px; }
+.tip-status {
+  display: inline-block; font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid; background: transparent;
+}
+.tip-note { font-size: 13px; color: var(--muted); font-style: italic; margin-top: 6px; }
+.tip-open { cursor: pointer; }
+.tip-title.tip-open:active { color: var(--accent); }
+
+/* Bolletje op de bel als er ongelezen berichten zijn. */
+.notif-dot {
+  position: absolute; top: 2px; right: 3px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #e5484d; border: 1.5px solid var(--bar-bg);
+}
+
+/* Offline-banner onder de topbar. */
+.offline-banner {
+  background: color-mix(in srgb, #f5c518 25%, var(--surface));
+  border-bottom: 1px solid color-mix(in srgb, #f5c518 50%, var(--border));
+  color: var(--text);
+  font-size: 13px; text-align: center; padding: 7px 12px;
+}
+
+/* Sub-tabs (segmented control) binnen een pagina. */
+.subtabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border-radius: 12px; padding: 4px;
+  margin-bottom: 14px;
+}
+.subtabs button {
+  flex: 1; padding: 8px 10px; border-radius: 9px;
+  font-size: 14px; font-weight: 600; color: var(--muted);
+}
+.subtabs button.sel { background: var(--surface); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+.subtab-badged { position: relative; }
+.subtab-dot { top: 4px; right: 6px; }
+
+/* Berichten-tab: gesprekkenlijst. */
+.convo-row {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 4px; text-align: left; background: none; position: relative;
+}
+.convo-row + .convo-row { border-top: 1px solid var(--border); }
+.convo-body { flex: 1; min-width: 0; }
+.convo-top { display: flex; align-items: baseline; gap: 8px; }
+.convo-name { font-weight: 600; font-size: 14.5px; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.convo-name.unread { font-weight: 700; }
+.convo-time { font-size: 11.5px; color: var(--muted); flex-shrink: 0; }
+.convo-preview { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.convo-preview.unread { color: var(--text); font-weight: 500; }
+.convo-dot { position: static; margin-left: 4px; flex-shrink: 0; }
+
+/* Emoji-reacties op prikbordberichten. */
+.comment-reactions { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.creact {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 13px; padding: 2px 7px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: var(--surface-2);
+}
+.creact .cnt { font-size: 11px; font-weight: 700; color: var(--muted); }
+.creact.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.creact.on .cnt { color: var(--accent); }
+.creact.idle { opacity: 0.45; }
+.creact.idle:active { opacity: 1; }
+
+/* Jaaroverzicht op het dashboard. */
+.year-card { background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface)); }
+/* Jaarkaart: hoogste cijfer als visuele held met grote poster. */
+.year-hero { display: flex; gap: 14px; align-items: center; cursor: pointer; margin-bottom: 12px; }
+.year-hero img, .year-hero .poster { box-shadow: 0 6px 16px -8px rgba(0, 0, 0, 0.55); }
+.yh-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.yh-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 700; }
+.yh-name { font-size: 17px; font-weight: 700; line-height: 1.25; }
+.year-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.year-chips .chip { font-size: 12px; padding: 5px 11px; }
+.year-rows { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+
+/* Icoon-rijen: het icoon staat in een eigen kolom zodat omlopende tekst er
+   niet onderdoor loopt; de titelregel kapt af met puntjes en de toelichting
+   staat altijd op de regel eronder. */
+.icon-row { display: flex; gap: 10px; align-items: flex-start; }
+.icon-row-ico { flex-shrink: 0; width: 20px; text-align: center; line-height: 1.45; }
+.icon-row-body { flex: 1; min-width: 0; }
+.icon-row-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-row-sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+
+/* "De Bank vergelijkt": streng/mild-labels in de jury-kaart. */
+.jury-tag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 7px; border-radius: 999px;
+}
+.jury-tag.strict { background: color-mix(in srgb, #b47b7b 18%, var(--surface)); color: #b47b7b; }
+.jury-tag.mild { background: color-mix(in srgb, var(--good) 16%, var(--surface)); color: var(--good); }
+
+/* Skeleton-laadstatus: pulserende vlakken op de plek van echte inhoud. */
+.skel {
+  background: var(--surface-2);
+  border-radius: 8px;
+  animation: skelPulse 1.3s ease-in-out infinite;
+}
+@keyframes skelPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.skel-card { display: flex; gap: 12px; }
+.skel-poster { width: 64px; height: 96px; border-radius: 10px; flex-shrink: 0; }
+.skel-bar { height: 13px; margin-bottom: 9px; }
+
+/* Snelcijfer-knopjes in de onboarding. */
+.quick-score {
+  width: 34px; height: 30px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface-2); color: var(--text);
+  font-weight: 700; font-size: 13px;
+}
+.quick-score:active { background: var(--accent); color: #fff; }
+
+/* Zichtbare focus voor toetsenbordgebruik (alleen bij toetsenbord-navigatie). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}

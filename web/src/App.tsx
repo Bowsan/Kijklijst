@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Snapshot, Title, Status, SearchResult, Message } from './lib/types';
-import { posterUrl, serviceLogoUrl } from './lib/types';
+import { serviceLogoUrl } from './lib/types';
 import { getUserId, getBlind, getTheme, setTheme, getActivitySeen, setActivitySeen, getForYouSeen, setForYouSeen, getFriendsSeen, setFriendsSeen, isOnboarded, getSimpleMode, setSimpleMode as setSimpleModePref, colorFor, type Theme } from './lib/identity';
 import { loadPrefs, savePrefs, type SortKey, type SortDir } from './lib/prefs';
+import { scroller, useScrollState } from './lib/scroll';
+import { STATUS_TABS, statusTabLabel, type StatusValue } from './lib/listOptions';
 import { fetchState, subscribe, saveRating, createManualTitle, searchTmdb, fetchMessages, enablePush, isPushEnabled } from './lib/api';
 import { isStandalone, shouldAskPush, clearAskPush } from './lib/install';
 import {
@@ -14,9 +16,11 @@ import Onboarding from './components/Onboarding';
 import SimpleApp from './components/SimpleApp';
 import { TopBar, NavBar, type Tab } from './components/Chrome';
 import ListSearchBar from './components/ListSearchBar';
-import StatusBadge from './components/StatusBadge';
 import Avatar from './components/Avatar';
 import FilterSheet from './components/FilterSheet';
+import SearchOverlay from './components/SearchOverlay';
+import TabStrip from './components/TabStrip';
+import ListToolbar, { type FilterChip } from './components/list/ListToolbar';
 import FriendsIcon from './components/FriendsIcon';
 import TitleCard from './components/TitleCard';
 import ActivityFeed from './components/Activity';
@@ -32,44 +36,12 @@ import ShareSheet from './components/ShareSheet';
 import ManualAddSheet from './components/ManualAddSheet';
 import ChatSheet from './components/ChatSheet';
 
-type StatusTab = 'all' | 'want' | 'watching' | 'finished';
-type StatusValue = StatusTab | 'dropped' | 'notdone';
-
 // De statustabs bovenaan (kijkstatus). Afgehaakt zit in het filterpaneel.
 const DASH_TABS: { key: DashSection; label: string }[] = [
   { key: 'kijken', label: 'Aan het kijken' },
   { key: 'actueel', label: 'Actueel' },
   { key: 'stats', label: 'Statistieken' },
 ];
-
-// CSS-variabelen voor het glijdende onderstreepje (aantal tabs + actieve index).
-// index < 0 (geen actieve tab, bijv. bij een filterstatus) verbergt het streepje.
-const tabStyle = (count: number, index: number): CSSProperties =>
-  ({ '--tab-count': count, '--tab-index': Math.max(0, index), '--tab-op': index < 0 ? 0 : 1 } as CSSProperties);
-
-const STATUS_TABS: { key: StatusTab; label: string }[] = [
-  { key: 'all', label: 'Alles' },
-  { key: 'want', label: 'Wishlist' },
-  { key: 'watching', label: 'Mee bezig' },
-  { key: 'finished', label: 'Gezien' },
-];
-
-// Eén optie per sleutel; de richting togglet door dezelfde optie opnieuw te
-// kiezen (het pijltje toont welke kant op). De `dir` is de standaardrichting.
-const SORT_OPTIONS: { key: SortKey; label: string; dir: SortDir }[] = [
-  { key: 'name', label: 'Alfabetisch', dir: 'asc' },
-  { key: 'date', label: 'Gewijzigd', dir: 'desc' },
-  { key: 'release', label: 'Uitgave', dir: 'desc' },
-  { key: 'rating', label: 'Rating', dir: 'desc' },
-  { key: 'imdb', label: 'IMDb Rating', dir: 'desc' },
-];
-
-// Het scroll-element van de app (zie styles.css): #root, niet het document.
-const scroller = () => document.getElementById('root');
-
-function sortLabel(key: SortKey): string {
-  return SORT_OPTIONS.find((o) => o.key === key)?.label ?? 'Gewijzigd';
-}
 
 export default function App() {
   const userId = getUserId();
@@ -152,7 +124,6 @@ export default function App() {
   const [compact, setCompact] = useState<boolean>(saved.compact);
   const [searchOpen, setSearchOpen] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
-  const [showSortMenu, setShowSortMenu] = useState(false);
 
   // Paginering: in stappen bijladen tijdens het scrollen.
   const PAGE_SIZE = 30;
@@ -228,14 +199,24 @@ export default function App() {
     setTab('list');
   };
 
-  // "Jij" is de standaard-scope en telt niet mee; een specifieke vriend toont z'n
-  // eigen banner en telt ook niet mee. "Iedereen" heeft geen banner en is dus een
-  // zichtbaar filter (groene chip) dat wél meetelt.
-  const activeFilterCount =
-    services.length + genres.length + (actorFilter ? 1 : 0) + (creatorFilter ? 1 : 0) +
-    (friend === '' ? 1 : 0) +
-    (noScore ? 1 : 0) +
-    (status === 'dropped' || status === 'notdone' ? 1 : 0);
+  // De actieve filters als wegklikbare chips in de werkbalk. "Jij" is de
+  // standaard-scope en hoort er niet bij; een specifieke vriend toont z'n eigen
+  // banner. "Iedereen" heeft geen banner en is dus wél een zichtbaar filter.
+  const filterChips: FilterChip[] = [
+    ...(friend === '' ? [{
+      key: 'iedereen',
+      label: <><FriendsIcon size={15} style={{ marginRight: 4 }} />Iedereen</>,
+      onRemove: () => setFriend('me'),
+    }] : []),
+    ...(actorFilter ? [{ key: 'actor', label: `🎭 ${actorFilter}`, onRemove: () => setActorFilter('') }] : []),
+    ...(creatorFilter ? [{ key: 'creator', label: `🎬 ${creatorFilter}`, onRemove: () => setCreatorFilter('') }] : []),
+    ...services.map((s) => ({ key: `svc-${s}`, label: s, onRemove: () => setServices((arr) => arr.filter((x) => x !== s)) })),
+    ...genres.map((g) => ({ key: `genre-${g}`, label: g, onRemove: () => setGenres((arr) => arr.filter((x) => x !== g)) })),
+    ...(status === 'dropped' ? [{ key: 'dropped', label: 'Afgehaakt', onRemove: () => setStatus('all') }] : []),
+    ...(status === 'notdone' ? [{ key: 'notdone', label: 'Nog afkijken', onRemove: () => setStatus('all') }] : []),
+    ...(noScore ? [{ key: 'noscore', label: 'Zonder cijfer', onRemove: () => setNoScore(false) }] : []),
+  ];
+  const activeFilterCount = filterChips.length;
 
   // "Wis alles": zet alle actieve chip-filters terug (niet de zoekterm — die
   // heeft een eigen kruisje in de zoekbalk).
@@ -250,7 +231,7 @@ export default function App() {
   };
 
   // Naam van de actieve statustab voor de zoek-placeholder ("Zoek in Gezien").
-  const statusLabel = STATUS_TABS.find((s) => s.key === status)?.label ?? 'deze lijst';
+  const statusLabel = statusTabLabel(status);
 
   const pickSort = (key: SortKey, dir: SortDir) => {
     if (sortKey === key && sortDir === dir) {
@@ -260,7 +241,6 @@ export default function App() {
       setSortKey(key);
       setSortDir(dir);
     }
-    setShowSortMenu(false);
   };
 
   // Pagina resetten bij filterwijziging
@@ -479,22 +459,8 @@ export default function App() {
     return () => obs.disconnect();
   }, [tab, visibleTitles, listPage]);
 
-  // "Terug naar boven"-knop tonen zodra je een eind naar beneden hebt gescrold.
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  // Zodra je voorbij de (weg-scrollende) topbar bent, staat de tabbalk "los" —
-  // dan geven we 'm een subtiele schaduw.
-  const [headerScrolled, setHeaderScrolled] = useState(false);
-  useEffect(() => {
-    const el = scroller();
-    if (!el) return;
-    const onScroll = () => {
-      setShowScrollTop(el.scrollTop > 500);
-      setHeaderScrolled(el.scrollTop > 40);
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
+  // Scrollpositie: "terug naar boven"-knop en de schaduw onder de tabbalk.
+  const { showScrollTop, headerScrolled } = useScrollState();
 
   // Na de onboarding-instructie "zet op je beginscherm" (iOS): bij de eerste
   // start vanaf het beginscherm alsnog éénmalig meldingen voorstellen.
@@ -648,185 +614,38 @@ export default function App() {
       )}
 
       {tab === 'list' && searchActive && (
-        <div className="page" style={{ paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' }}>
-          {/* Al op je lijst — zodat je dubbel toevoegen voorkomt */}
-          {myMatches.length > 0 && (
-            <>
-              <div className="lsp-label" style={{ marginTop: 4 }}>Al op je lijst:</div>
-              {myMatches.map((t) => {
-                const r = myRating(snap, t.tmdb_id, userId);
-                const badge: Status | null = r?.status ?? null;
-                return (
-                  <button key={t.tmdb_id} className="suggestion" onClick={() => openExisting(t.tmdb_id)}>
-                    {t.poster_path ? <img src={posterUrl(t.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="s-name">{t.name}</div>
-                      <div className="title-sub">{t.year || '—'}</div>
-                    </div>
-                    {(badge || r?.score != null) && <StatusBadge status={badge} score={r?.score ?? null} />}
-                  </button>
-                );
-              })}
-            </>
-          )}
-
-          {/* Toevoegen — TMDb-suggesties die nog niet op je lijst staan */}
-          <div className="lsp-label" style={{ marginTop: myMatches.length > 0 ? 16 : 4 }}>
-            {myMatches.length > 0 ? 'Andere series toevoegen:' : 'Toevoegen:'}
-          </div>
-          {addableResults.map((r) => (
-            <button key={r.tmdb_id} className="suggestion" onClick={() => addTitle(r.tmdb_id, listAddStatus())}>
-              {r.poster_path ? <img src={posterUrl(r.poster_path, 'small')} alt="" /> : <div className="poster" style={{ width: 36, height: 54 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="s-name">{r.name}</div>
-                <div className="title-sub">{r.year || '—'}</div>
-              </div>
-              <span className="chip" style={{ flexShrink: 0, color: 'var(--accent)', borderColor: 'var(--accent)' }}>+ Toevoegen</span>
-            </button>
-          ))}
-          <button className="suggestion" onClick={() => { setManualAddQuery(searchQuery); setSearchOpen(false); }}>
-            <div className="poster" style={{ width: 36, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>➕</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="s-name">"{searchQuery}" handmatig toevoegen</div>
-              <div className="title-sub">Niet gevonden? Voeg de serie zelf toe.</div>
-            </div>
-          </button>
-        </div>
+        <SearchOverlay
+          snap={snap}
+          userId={userId}
+          searchQuery={searchQuery}
+          myMatches={myMatches}
+          addableResults={addableResults}
+          onOpenExisting={openExisting}
+          onAdd={(id) => addTitle(id, listAddStatus())}
+          onManualAdd={() => { setManualAddQuery(searchQuery); setSearchOpen(false); }}
+        />
       )}
 
       {tab === 'list' && !searchActive && (
         <>
           {/* Zone 1 — statustabs: pinnen bovenin bij scrollen (topbar + werkbalk scrollen weg). */}
-          <div className="status-tabs" role="tablist" aria-label="Kijkstatus" style={tabStyle(STATUS_TABS.length, STATUS_TABS.findIndex((s) => s.key === status))}>
-            {STATUS_TABS.map((s) => (
-              <button
-                key={s.key}
-                role="tab"
-                aria-selected={status === s.key}
-                className={status === s.key ? 'sel' : ''}
-                onClick={() => setStatus(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          <TabStrip label="Kijkstatus" tabs={STATUS_TABS} active={status as never} onSelect={(k) => setStatus(k)} />
 
-          {/* Zone 2 — actiebalk: regel 1 = zoeken + filter, regel 2 = chips + sorteren */}
-          <div className="action-bar">
-            {/* Regel 1: zoekbalk vult de breedte, rond filterknopje rechts */}
-            <div className="ab-search-row">
-              <div className="ab-search">
-                <svg className="ab-search-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7" />
-                  <line x1="16.5" y1="16.5" x2="21" y2="21" />
-                </svg>
-                <input
-                  type="search"
-                  value={nameFilter}
-                  onChange={(e) => { setSearchOpen(false); setNameFilter(e.target.value); }}
-                  placeholder={`Zoek in ${statusLabel}`}
-                  aria-label={`Zoek in ${statusLabel}`}
-                />
-                {nameFilter && (
-                  <button className="ab-search-clear" aria-label="Zoekterm wissen" onClick={() => setNameFilter('')}>✕</button>
-                )}
-              </div>
-              <button
-                className={`ab-filter ${activeFilterCount > 0 ? 'on' : ''}`}
-                aria-label={activeFilterCount > 0 ? `Filters (${activeFilterCount} actief)` : 'Filters'}
-                title="Filters"
-                onClick={() => setShowFilterSheet(true)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="3" y1="8" x2="21" y2="8" />
-                  <line x1="3" y1="16" x2="21" y2="16" />
-                  <circle cx="9" cy="8" r="2.4" />
-                  <circle cx="15" cy="16" r="2.4" />
-                </svg>
-              </button>
-              <button
-                className={`ab-compact ${compact ? 'on' : ''}`}
-                aria-pressed={compact}
-                aria-label={compact ? 'Volledige weergave' : 'Compacte weergave'}
-                title={compact ? 'Volledige weergave' : 'Compacte weergave'}
-                onClick={() => setCompact((v) => !v)}
-              >
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="8" y1="6" x2="21" y2="6" />
-                  <line x1="8" y1="12" x2="21" y2="12" />
-                  <line x1="8" y1="18" x2="21" y2="18" />
-                  <circle cx="3.6" cy="6" r="1.2" fill="currentColor" stroke="none" />
-                  <circle cx="3.6" cy="12" r="1.2" fill="currentColor" stroke="none" />
-                  <circle cx="3.6" cy="18" r="1.2" fill="currentColor" stroke="none" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Regel 2: scrollbare filterchips links, vaste sorteertekst rechts */}
-            <div className="ab-sort-row">
-              {activeFilterCount > 0 ? (
-                <div className="ab-chips-wrap">
-                  <div className="ab-chips">
-                    {friend === '' && (
-                      <button className="active-chip" onClick={() => setFriend('me')}>
-                        <FriendsIcon size={15} style={{ marginRight: 4 }} />Iedereen ✕
-                      </button>
-                    )}
-                    {actorFilter && (
-                      <button className="active-chip" onClick={() => setActorFilter('')}>🎭 {actorFilter} ✕</button>
-                    )}
-                    {creatorFilter && (
-                      <button className="active-chip" onClick={() => setCreatorFilter('')}>🎬 {creatorFilter} ✕</button>
-                    )}
-                    {services.map((s) => (
-                      <button key={s} className="active-chip" onClick={() => setServices((arr) => arr.filter((x) => x !== s))}>{s} ✕</button>
-                    ))}
-                    {genres.map((g) => (
-                      <button key={g} className="active-chip" onClick={() => setGenres((arr) => arr.filter((x) => x !== g))}>{g} ✕</button>
-                    ))}
-                    {status === 'dropped' && (
-                      <button className="active-chip" onClick={() => setStatus('all')}>Afgehaakt ✕</button>
-                    )}
-                    {status === 'notdone' && (
-                      <button className="active-chip" onClick={() => setStatus('all')}>Nog afkijken ✕</button>
-                    )}
-                    {noScore && (
-                      <button className="active-chip" onClick={() => setNoScore(false)}>Zonder cijfer ✕</button>
-                    )}
-                    {activeFilterCount >= 2 && (
-                      <button className="ab-clear-all" onClick={clearAllFilters}>Wis alles</button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="ab-chips-spacer" />
-              )}
-              <div className="ab-sort">
-                <button className="sort-btn" onClick={() => setShowSortMenu((v) => !v)} aria-haspopup="listbox" aria-expanded={showSortMenu}>
-                  {sortLabel(sortKey)}
-                  <svg className="sort-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9" />
-                  </svg>
-                </button>
-                {showSortMenu && (
-                  <>
-                    <div className="popover-backdrop" onClick={() => setShowSortMenu(false)} />
-                    <div className="sort-menu">
-                      {SORT_OPTIONS.map((o) => {
-                        const active = sortKey === o.key;
-                        return (
-                          <button key={o.label} className={active ? 'active' : ''} onClick={() => pickSort(o.key, o.dir)}>
-                            {o.label}
-                            {active && <span style={{ float: 'right' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* Zone 2 — actiebalk: zoeken/filteren boven, chips + sorteren onder */}
+          <ListToolbar
+            search={nameFilter}
+            onSearch={(v) => { setSearchOpen(false); setNameFilter(v); }}
+            searchScope={statusLabel}
+            activeFilterCount={activeFilterCount}
+            onOpenFilters={() => setShowFilterSheet(true)}
+            compact={compact}
+            onToggleCompact={() => setCompact((v) => !v)}
+            chips={filterChips}
+            onClearAll={clearAllFilters}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onPickSort={pickSort}
+          />
 
         <div className="page" style={searchOpen ? { paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' } : undefined}>
           {/* Banner wanneer je de lijst van een vriend bekijkt ("als die vriend"). */}
@@ -928,19 +747,7 @@ export default function App() {
       {tab === 'dashboard' && (
         <>
           {/* Dashboard-secties als tabs, net als op de lijst (pinnen bij scrollen). */}
-          <div className="status-tabs" role="tablist" aria-label="Dashboard-secties" style={tabStyle(DASH_TABS.length, DASH_TABS.findIndex((s) => s.key === dashTab))}>
-            {DASH_TABS.map((s) => (
-              <button
-                key={s.key}
-                role="tab"
-                aria-selected={dashTab === s.key}
-                className={dashTab === s.key ? 'sel' : ''}
-                onClick={() => setDashTab(s.key)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          <TabStrip label="Dashboard-secties" tabs={DASH_TABS} active={dashTab} onSelect={setDashTab} />
           <Dashboard
             snap={snap}
             userId={userId}
@@ -961,13 +768,20 @@ export default function App() {
       {tab === 'friends' && (
         <>
           {/* Vrienden-secties als tabs, consistent met lijst en dashboard. */}
-          <div className="status-tabs" role="tablist" aria-label="Vrienden-secties" style={tabStyle(3, ['friends', 'tips', 'messages'].indexOf(friendsSubTab))}>
-            <button role="tab" aria-selected={friendsSubTab === 'friends'} className={friendsSubTab === 'friends' ? 'sel' : ''} onClick={() => setFriendsSubTab('friends')}>Vrienden</button>
-            <button role="tab" aria-selected={friendsSubTab === 'tips'} className={friendsSubTab === 'tips' ? 'sel' : ''} onClick={() => setFriendsSubTab('tips')}>Jouw tips{tipCount > 0 ? ` (${tipCount})` : ''}</button>
-            <button role="tab" aria-selected={friendsSubTab === 'messages'} className={`tab-badged ${friendsSubTab === 'messages' ? 'sel' : ''}`} onClick={() => setFriendsSubTab('messages')}>
-              Berichten{unreadChats > 0 && <span className="tab-dot" aria-label="ongelezen berichten" />}
-            </button>
-          </div>
+          <TabStrip
+            label="Vrienden-secties"
+            active={friendsSubTab}
+            onSelect={setFriendsSubTab}
+            tabs={[
+              { key: 'friends', label: 'Vrienden' },
+              { key: 'tips', label: `Jouw tips${tipCount > 0 ? ` (${tipCount})` : ''}` },
+              {
+                key: 'messages',
+                className: 'tab-badged',
+                label: <>Berichten{unreadChats > 0 && <span className="tab-dot" aria-label="ongelezen berichten" />}</>,
+              },
+            ]}
+          />
           <Friends snap={snap} userId={userId} subTab={friendsSubTab} onOpenProfile={setProfileTarget} onRecommendTo={openRecommendTo} onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })} messages={messages} onOpenChat={setChatTarget} onChange={reload} onShare={() => setShowShare(true)} toast={toast} />
         </>
       )}

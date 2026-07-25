@@ -1,0 +1,159 @@
+/* Seizoenen, avatars, vriendcijfers en genre-kaarten. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Seizoenen ---------- */
+.seasons { display: flex; gap: 5px; flex-wrap: wrap; }
+.seasons button {
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.seasons button.on { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
+
+/* ---------- Avatars ---------- */
+.avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--surface);
+}
+.avatar.xs { width: 16px; height: 16px; font-size: 8px; }
+.avatar.sm { width: 32px; height: 32px; font-size: 13px; }
+.avatar.lg { width: 64px; height: 64px; font-size: 24px; }
+
+/* Vriendcijfers als kleine chips op de ingeklapte kaart. */
+.metarow.friend-scores { margin-top: 6px; }
+.fscore {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); border-radius: 999px;
+  padding: 2px 8px 2px 3px; font-size: 12px;
+}
+.fscore b { font-weight: 700; }
+
+/* "Als vriend"-weergave: jouw cijfer klein onder dat van de vriend. */
+.compare-mine { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+/* Klikbare serie-rij in het profiel-overzicht. */
+.pv-row {
+  display: flex; gap: 10px; align-items: center;
+  cursor: pointer; border-radius: 8px;
+  margin: 0 -6px; padding: 3px 6px;
+}
+.pv-row:active { background: var(--surface-2); }
+
+/* Banner boven de lijst als je 'm als een vriend bekijkt. */
+.viewing-as {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: color-mix(in srgb, var(--info) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--info) 35%, var(--border));
+  border-radius: 12px; padding: 8px 10px; margin-bottom: 10px;
+  font-size: 14px;
+}
+.avatar-stack { display: flex; }
+.avatar-stack .avatar:not(:first-child) { margin-left: -8px; }
+
+.watchers { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.watcher { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.watcher .badge-score { color: var(--accent); font-weight: 700; }
+
+/* Aanraden: vriendenlijst met status + dienst-beschikbaarheid */
+.rec-friends { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.rec-friend {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  text-align: left;
+  width: 100%;
+}
+.rec-friend.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+.rec-friend .rf-name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rec-friend .rf-info { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.rf-svc { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.rf-svc.ok { color: var(--good); }
+.rf-svc.no { color: var(--muted); }
+
+/* IMDb-link onder de omschrijving */
+.imdb-link {
+  display: inline-flex; align-items: center; gap: 8px;
+  align-self: flex-start;
+  font-size: 13px; color: var(--muted); text-decoration: none;
+}
+.imdb-badge {
+  background: #f5c518; color: #000; font-weight: 800; font-size: 11px;
+  padding: 2px 6px; border-radius: 4px; letter-spacing: 0.02em;
+}
+/* IMDb-cijfer naast de badge (via OMDb). */
+.imdb-score { color: #b28b00; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+/* TMDb-publiekscijfer als klein sterretje op ontdek-/tipkaarten. */
+
+/* IMDb-chip (variant B): volledig IMDb-geel, hele chip is de externe link.
+   #f5c518 is de vaste merkkleur van IMDb — bewust geen app-token. */
+.imdb-chip {
+  display: inline-flex; align-items: center; align-self: flex-start;
+  background: #f5c518; color: #1a1a1a;
+  border-radius: 12px; padding: 7px 12px;
+  text-decoration: none; user-select: none;
+  box-shadow: 0 2px 6px rgba(224, 178, 7, 0.35);
+  transition: transform 0.06s ease, filter 0.12s ease;
+}
+.imdb-chip:active { transform: scale(0.97); }
+.imdb-chip:focus-visible { outline: 2px solid #1a1a1a; outline-offset: 2px; }
+.imdb-chip-merk { font-weight: 900; font-size: 12.5px; letter-spacing: -0.02em; }
+.imdb-chip-ster { font-size: 14px; line-height: 1; color: #1a1a1a; margin-left: 7px; position: relative; top: -1.5px; }
+.imdb-chip-cijfer { font-weight: 900; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.imdb-chip-pijl { font-size: 12px; opacity: 0.6; margin-left: 7px; }
+
+/* Genre-kaart op het dashboard: icoon links, rechts naam+gemiddelde,
+   drie voorbeeldseries en de balk met aantal. */
+.genre-card {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+}
+.genre-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.genre-icon {
+  flex-shrink: 0; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; background: var(--surface-2); border-radius: 12px;
+}
+.genre-main { flex: 1; min-width: 0; }
+.genre-titlerow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.genre-name {
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.genre-avg { flex-shrink: 0; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* Voorbeeldseries op één regel; afgekapt met puntjes als het niet past. */
+.genre-examples {
+  font-size: 12px; color: var(--muted); margin: 3px 0 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.genre-sep { color: var(--muted); }
+.genre-serie {
+  color: var(--text); cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 2px;
+}
+.genre-serie:active { color: var(--accent); text-decoration-color: var(--accent); }
+.genre-serie:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.genre-barrow { display: flex; align-items: center; gap: 10px; }
+.genre-count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.genre-count b { color: var(--text); font-weight: 650; }
+
+/* Status + cijfer per gevolgde vriend, één regel per vriend */
+.friend-status-list { display: flex; flex-direction: column; gap: 6px; }
+.friend-status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.friend-status-row .fsr-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-status-row .fsr-val { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-weight: 600; }

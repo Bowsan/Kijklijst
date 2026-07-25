@@ -1,0 +1,42 @@
+/* Zoeken, suggesties en het filterknopje. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Zoeken / suggesties ---------- */
+.search-wrap { position: relative; }
+.suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 40;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.suggestion {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  width: 100%;
+  text-align: left;
+}
+.suggestion:last-child { border-bottom: none; }
+.suggestion img { width: 36px; height: 54px; border-radius: 6px; object-fit: cover; background: var(--surface-2); }
+.suggestion .s-name { font-weight: 600; font-size: 14px; }
+
+/* ---------- Filters ---------- */
+.filters { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; }
+.filters::-webkit-scrollbar { display: none; }
+.filters button {
+  white-space: nowrap;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+.filters button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }

@@ -1,0 +1,397 @@
+/* Diversen, zweef-zoekknop en schermbrede uitzonderingen. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Diversen ---------- */
+.row { display: flex; align-items: center; gap: 10px; }
+.spread { justify-content: space-between; }
+.toggle { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 10px 0; }
+.switch { width: 46px; height: 28px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); position: relative; flex-shrink: 0; }
+.switch.on { background: var(--accent); border-color: var(--accent); }
+.switch .knob { position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.15s; }
+.switch.on .knob { transform: translateX(18px); }
+.theme-switch { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 3px; flex-shrink: 0; }
+.theme-switch button { padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.theme-switch button.sel { background: var(--accent-grad); color: #fff; font-weight: 600; }
+.service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.service-grid button { padding: 10px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border); font-size: 13px; }
+.service-grid button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+.empty .big { font-size: 44px; margin-bottom: 12px; }
+.qr { display: flex; justify-content: center; padding: 16px; background: #fff; border-radius: 14px; margin: 12px 0; }
+.qr img { width: 200px; height: 200px; }
+.note { font-size: 13px; color: var(--muted); font-style: italic; }
+/* Toelichting boven een tip: een lichte losse regel i.p.v. een zwaar kadertje. */
+.rec-reason {
+  display: flex; align-items: flex-start; gap: 6px;
+  margin: 2px 4px 7px; font-size: 12.5px; line-height: 1.45; color: var(--muted);
+}
+.rec-reason .ric { flex-shrink: 0; }
+.rec-reason b { color: var(--text); font-weight: 600; }
+
+/* Ontdek-kaart voor nog niet toegevoegde TMDb-series */
+.discover-card { display: flex; flex-direction: column; gap: 12px; }
+.dc-overview { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 8px 0 0; }
+.dc-overview.clamp {
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden; cursor: pointer;
+}
+.dc-overview.empty-note { font-style: italic; }
+.dc-actions { display: flex; align-items: center; gap: 10px; }
+/* Kleine, klikbare IMDb-badge om de serie op te zoeken als er geen cijfer is. */
+.imdb-search { display: inline-flex; align-items: center; gap: 5px; text-decoration: none; color: var(--muted); font-size: 12px; }
+.imdb-search span[aria-hidden] { opacity: 0.55; font-size: 11px; }
+/* "Op wishlist"-knop in de wishlist-stijl (amber), altijd rechtsonder. */
+.dc-wishlist {
+  margin-left: auto; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 999px;
+  background: rgba(255, 209, 102, 0.18); color: var(--warn);
+  border: 1px solid transparent; font-weight: 700; font-size: 13px;
+  cursor: pointer; white-space: nowrap;
+}
+.dc-wishlist:active { transform: scale(0.97); }
+.toast {
+  position: fixed; bottom: calc(84px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 16px; border-radius: 999px; font-size: 13px; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+.load-more { text-align: center; color: var(--muted); font-size: 13px; padding: 16px 0; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+/* ---------- Zweef-zoekknop ---------- */
+.fab-search {
+  position: fixed;
+  right: 16px;
+  bottom: calc(78px + var(--safe-bottom));
+  z-index: 50;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  /* Stijlvolle diagonale groen-gradient (lichter linksboven → dieper rechtsonder). */
+  background: linear-gradient(140deg, var(--accent-2) 0%, var(--accent) 62%, color-mix(in srgb, var(--accent) 78%, #000) 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.28);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  /* Nodig om de shimmer binnen de cirkel te clippen. */
+  overflow: hidden;
+  isolation: isolate;
+}
+.fab-plus { display: block; }
+.fab-search:active { transform: scale(0.94); }
+/* Subtiele shimmer: een diagonale lichtveeg die eens per cyclus overtrekt. */
+.fab-search::after {
+  content: '';
+  position: absolute;
+  top: -60%; left: -40%;
+  width: 55%; height: 220%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: translateX(-260%) rotate(18deg);
+  animation: fab-shimmer 5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes fab-shimmer {
+  0%   { transform: translateX(-260%) rotate(18deg); }
+  16%  { transform: translateX(320%) rotate(18deg); }
+  100% { transform: translateX(320%) rotate(18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-search::after { animation: none; opacity: 0; }
+}
+
+/* Spraakballonnetje bij de +knop (na de onboarding). */
+.fab-hint {
+  position: fixed;
+  right: 16px;
+  bottom: calc(140px + var(--safe-bottom));
+  z-index: 50;
+  background: var(--accent-grad);
+  color: #fff;
+  font-size: 13.5px; font-weight: 600;
+  border: none; border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  animation: hint-pop 0.35s ease-out;
+}
+.fab-hint::after {
+  content: '';
+  position: absolute;
+  right: 20px; bottom: -6px;
+  width: 12px; height: 12px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+@keyframes hint-pop {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.scroll-top {
+  position: fixed;
+  left: 16px;
+  bottom: calc(80px + var(--safe-bottom));
+  z-index: 45;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.scroll-top:active { transform: scale(0.94); }
+.fab-search-bar {
+  position: fixed;
+  left: 0; right: 0;
+  /* De onderste navigatiebalk is tijdens zoeken verborgen, dus staat de
+     zoekbalk zelf onderaan (boven de veilige zone). Met open toetsenbord
+     schuift hij mee omhoog via --kb-inset. */
+  bottom: var(--kb-inset, 0px);
+  z-index: 50;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 14px calc(8px + var(--safe-bottom));
+  background: var(--bar-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+}
+.fab-search-bar .fsb-row { display: flex; gap: 8px; align-items: center; }
+.fab-search-bar input { flex: 1; margin: 0; }
+/* Subtiele importknop onder de zoekbalk. */
+.fab-search-bar .fsb-import {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: none; padding: 2px 2px;
+  font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer;
+}
+.fab-search-bar .fsb-import img { width: 15px; height: 15px; object-fit: contain; opacity: 0.75; }
+.lsp-label {
+  font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 4px 2px;
+}
+.fab-search-bar .close {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   Simpele modus — kaal kijklijstje ("Ik kijk" + "De rest")
+   ============================================================ */
+.sm-page { padding-bottom: calc(84px + var(--safe-bottom)); }
+.sm-gear { font-size: 19px; line-height: 1; }
+.sm-nav button { max-width: 200px; margin: 5px auto; }
+
+.sm-list-wrap { display: flex; flex-direction: column; gap: 12px; }
+.sm-label {
+  font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin: 6px 2px 0;
+}
+.sm-list { display: flex; flex-direction: column; gap: 10px; }
+.sm-empty { color: var(--muted); font-size: 13.5px; font-style: italic; padding: 12px 4px; margin: 0; }
+
+/* Serie-regel */
+.sm-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px;
+}
+.sm-poster { width: 46px; height: 66px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.sm-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-row-title { font-weight: 700; font-size: 15.5px; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-note {
+  font-size: 13px; color: var(--muted); font-style: italic; line-height: 1.35;
+  background: transparent; border: 0; padding: 2px 4px; margin-left: -4px; border-radius: 6px;
+  width: 100%; font-family: inherit;
+}
+.sm-note::placeholder { font-style: normal; opacity: 0.6; color: var(--muted); }
+.sm-note:focus { outline: none; font-style: normal; background: var(--surface-2); box-shadow: 0 0 0 2px var(--accent-2); }
+.sm-check {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); background: transparent; color: transparent; font-size: 15px;
+  display: grid; place-items: center; transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.sm-check:active { transform: scale(0.9); }
+.sm-row.done .sm-check { background: var(--good); border-color: var(--good); color: #fff; }
+.sm-row.done .sm-poster { opacity: 0.72; }
+.sm-row.done .sm-row-title { color: var(--muted); }
+
+/* Toevoegen */
+.sm-addbar {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  background: var(--surface); border: 1px dashed var(--border); color: var(--muted);
+  font-size: 14.5px; font-weight: 600;
+}
+.sm-plus { color: var(--accent-2); font-size: 18px; font-weight: 800; }
+.sm-add { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.sm-add-head { display: flex; align-items: center; gap: 8px; }
+.sm-search {
+  flex: 1; padding: 10px 12px; border-radius: 10px; font-size: 15px; font-family: inherit;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+}
+.sm-search:focus { outline: none; border-color: var(--accent-2); }
+.sm-add-close {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; font-size: 15px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--muted);
+}
+.sm-results { display: flex; flex-direction: column; gap: 6px; max-height: 46vh; overflow-y: auto; }
+.sm-result {
+  display: flex; align-items: center; gap: 10px; text-align: left; width: 100%;
+  padding: 6px; border-radius: 10px; background: transparent; border: 1px solid transparent;
+}
+.sm-result:not(:disabled):active { background: var(--surface-2); }
+.sm-result:disabled { opacity: 0.55; }
+.sm-result .sm-poster { width: 40px; height: 58px; }
+.sm-result-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sm-result-sub { font-size: 12.5px; color: var(--muted); }
+.sm-result-add { font-size: 20px; font-weight: 800; color: var(--accent-2); width: 26px; text-align: center; flex-shrink: 0; }
+
+/* De rest — vrienden */
+.sm-friend { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px 13px; display: flex; flex-direction: column; gap: 8px; }
+.sm-friend-head { display: flex; align-items: center; gap: 10px; }
+.sm-friend-name { font-weight: 700; font-size: 15px; }
+.sm-friend-sub { font-size: 12.5px; color: var(--muted); }
+.sm-watchline { display: flex; align-items: baseline; gap: 8px; padding-left: 42px; font-size: 14px; }
+.sm-wt { font-weight: 600; }
+.sm-same { font-size: 12px; color: var(--accent-2); font-weight: 700; white-space: nowrap; }
+
+/* Instellingen-sheet */
+.sm-sheet-backdrop {
+  position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.45);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sm-sheet {
+  width: 100%; max-width: 640px; background: var(--surface);
+  border-radius: 18px 18px 0 0; padding: 16px 16px calc(24px + var(--safe-bottom));
+  display: flex; flex-direction: column; gap: 12px;
+}
+.sm-sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sm-sheet-head h2 { font-size: 17px; margin: 0; }
+.sm-setrow { display: flex; align-items: center; gap: 12px; justify-content: space-between; }
+.sm-set-txt { display: flex; flex-direction: column; gap: 3px; }
+.sm-set-txt b { font-size: 15px; }
+.sm-set-txt span { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+/* Onboarding: keuze Normaal / Simpel */
+.mode-choice {
+  text-align: left; width: 100%; cursor: pointer;
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 16px;
+  padding: 16px; display: flex; gap: 13px; align-items: flex-start;
+  transition: transform 0.08s ease, border-color 0.12s ease;
+}
+.mode-choice.reco { border-color: var(--accent-2); }
+.mode-choice:active { transform: scale(0.99); }
+.mc-ico { font-size: 26px; line-height: 1; margin-top: 2px; }
+.mc-txt { display: flex; flex-direction: column; gap: 4px; }
+.mc-txt b { font-size: 16px; }
+.mc-txt span { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.mc-tag {
+  align-self: flex-start; margin-top: 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent); padding: 2px 8px; border-radius: 999px;
+}
+
+/* Simpele modus — Fase 2: nette lege staten + naam wijzigen */
+.sm-emptyblock {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 6px; padding: 30px 20px; color: var(--muted);
+}
+.sm-empty-ico { font-size: 40px; line-height: 1; opacity: 0.9; }
+.sm-empty-title { font-weight: 700; font-size: 15px; color: var(--text); }
+.sm-empty-sub { font-size: 13px; line-height: 1.5; max-width: 34ch; }
+.sm-setrow-col { flex-direction: column; align-items: stretch; gap: 8px; }
+.sm-setrow-col > b { font-size: 15px; }
+.sm-name-edit { display: flex; gap: 8px; }
+.sm-name-edit .sm-search { flex: 1; }
+.sm-name-edit .btn { flex-shrink: 0; }
+
+/* Compacte-weergave knop naast sorteren */
+/* Compacte lijstkaart: alleen titel (links) + cijfer(s) (rechts) */
+.title-card.compact { padding: 10px 12px; margin-bottom: 8px; }
+.compact-head { align-items: center; }
+.compact-title {
+  flex: 1; min-width: 0; margin: 0;
+  font-size: 15px; font-weight: 700; letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ============================================================
+   Lijst-header: topbar + werkbalk scrollen weg, de statustabs pinnen bovenin
+   ============================================================ */
+/* Op de lijst, het dashboard én de vriendenpagina scrollt de topbar mee (niet
+   meer vastgepind) en loopt naadloos over in de tabrij (geen scheidingslijn). */
+.tab-list .topbar,
+.tab-dashboard .topbar,
+.tab-friends .topbar { position: static; border-bottom: none; }
+
+/* Vulling achter de statusbalk (systeem-notch) zodat er tijdens het scrollen
+   niets onder de statusbalk doorschemert. 0px hoog zonder notch. */
+.tab-list::before,
+.tab-dashboard::before,
+.tab-friends::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--safe-top);
+  background: var(--bar-bg);
+  z-index: 16;
+  pointer-events: none;
+}
+
+/* Statustabs: gelijke breedte, groene onderstreping onder de actieve tab, en een
+   dunne scheidingslijn van 1px over de volle breedte eronder. Pint bovenin bij
+   het scrollen (net onder de eventuele notch). */
+.status-tabs {
+  display: flex;
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 15;
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+/* Subtiele schaduw zodra de tabbalk "los" van de topbar staat (gescrolld). */
+.tab-list.scrolled .status-tabs,
+.tab-dashboard.scrolled .status-tabs,
+.tab-friends.scrolled .status-tabs { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09); }
+/* Klein rood bolletje in een tab (bijv. ongelezen berichten). */
+.status-tabs .tab-badged { position: relative; }
+.status-tabs .tab-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: #e5484d; vertical-align: middle; margin-left: 5px; margin-top: -2px;
+}
+.status-tabs button {
+  flex: 1 1 0; min-width: 0; min-height: 40px;
+  padding: 9px 4px 8px;
+  font-size: 13px; font-weight: 600; color: var(--muted);
+  white-space: nowrap; text-align: center;
+  border-bottom: 3px solid transparent; /* ruimte voor de onderstreping */
+  margin-bottom: -1px;
+}
+.status-tabs button.sel { color: var(--accent); }
+.status-tabs button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: -3px; border-radius: 4px;
+}
+/* Eén glijdend streepje dat met een speelse curve naar de actieve tab beweegt.
+   --tab-count = aantal tabs, --tab-index = index van de actieve tab. */
+.status-tabs::after {
+  content: '';
+  position: absolute;
+  left: 0; bottom: -1px;
+  height: 3px;
+  width: calc(100% / var(--tab-count, 1));
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+  opacity: var(--tab-op, 1);
+  transform: translateX(calc(var(--tab-index, 0) * 100%));
+  transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-tabs::after { transition: none; }
+}
+/* Smalle schermen: iets kleinere letter zodat "Mee bezig" op één regel blijft. */
+@media (max-width: 360px) {
+  .status-tabs button { font-size: 12px; padding-left: 2px; padding-right: 2px; }
+}

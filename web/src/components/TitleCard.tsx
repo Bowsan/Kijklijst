@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
-import { STATUS_ORDER, STATUS_LABELS, posterUrl } from '../lib/types';
+import { STATUS_ORDER, STATUS_LABELS } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
@@ -12,7 +12,8 @@ import FriendsIcon from './FriendsIcon';
 import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
-import PosterFallback from './PosterFallback';
+import Poster from './Poster';
+import { imdbUrlFor } from '../lib/links';
 import ImdbChip from './ImdbChip';
 
 // De vaste set emoji voor reacties op prikbordberichten.
@@ -62,9 +63,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     snap.ratings.some((r) => r.title_id === title.tmdb_id && r.user_id === p.id),
   );
   // Directe IMDb-link als we het imdb_id kennen, anders een zoekresultaat op naam + jaar.
-  const imdbUrl = title.imdb_id
-    ? `https://www.imdb.com/title/${title.imdb_id}/`
-    : `https://www.imdb.com/find/?q=${encodeURIComponent(`${title.name} ${title.year || ''}`.trim())}&s=tt&ttype=tv`;
+  const imdbUrl = imdbUrlFor(title.imdb_id, title.name, title.year);
   // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
   const visible = new Set(visibleUserIds(snap, userId));
   const others = snap.ratings.filter(
@@ -131,7 +130,6 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
 
   const [expanded, setExpanded] = useState(initialExpanded);
   // Laadt de poster niet (netwerk/TMDb)? Dan de initiaal-placeholder tonen.
-  const [posterFailed, setPosterFailed] = useState(false);
   // Open/dicht doorgeven (incl. opruimen bij unmount), voor de lijst-bevriezing.
   useEffect(() => {
     if (!onEditToggle) return;
@@ -282,9 +280,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     <div className="card title-card">
       {/* Compact header — klikken klapt uit/in */}
       <div className="title-head" onClick={() => setExpanded((v) => !v)} style={{ cursor: 'pointer' }}>
-        {title.poster_path && !posterFailed
-          ? <img className="poster" src={posterUrl(title.poster_path)} alt="" loading="lazy" onError={() => setPosterFailed(true)} />
-          : <PosterFallback name={title.name} />}
+        <Poster path={title.poster_path} name={title.name} />
         <div className="title-meta">
           <h3>{title.name}</h3>
           <div className="title-sub">
