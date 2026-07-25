@@ -1,0 +1,189 @@
+/* Pagina-inhoud, seriekaarten, cijferknoppen en status. Onderdeel van styles.css — de volgorde van de imports daar
+   bepaalt de cascade, dus verplaats blokken niet zomaar tussen bestanden. */
+/* ---------- Content ---------- */
+.page { padding: var(--sp-3) 14px; }
+.page h2 { font-size: 16px; margin: var(--sp-5) var(--sp-1) var(--sp-2); }
+.page h2:first-child { margin-top: var(--sp-2); }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.title-card { display: flex; flex-direction: column; gap: 10px; }
+.title-head { display: flex; gap: 12px; }
+
+/* Meta-rij op de ingeklapte kaart: seizoen-voortgang, kijkers, aanraders */
+.title-head .metarow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+.mchip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2); color: var(--muted);
+  border-radius: 999px; padding: 3px 9px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.mchip.seasons { background: color-mix(in srgb, var(--good) 14%, var(--surface)); color: var(--good); }
+.mchip.newseason { background: color-mix(in srgb, #f5c518 22%, var(--surface)); color: #a67c00; border: 1px solid color-mix(in srgb, #f5c518 45%, var(--border)); }
+
+/* Secties in het opengeklapte kaartje: duidelijk gescheiden blokken */
+.tc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 2px;
+}
+.tc-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tc-field { display: flex; flex-direction: column; gap: 6px; }
+
+/* Cijfer-slider (1–10, halve stappen) — balk verkleurt mee met het cijfer */
+.score-slider { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 0; }
+.score-slider .ss-top { display: flex; align-items: baseline; gap: 10px; }
+.score-slider .ss-value { font-size: 32px; font-weight: 800; line-height: 1; min-width: 52px; }
+.score-slider .ss-hint { font-size: 12px; }
+.score-slider input[type='range'] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 30px;   /* ruimte voor de thumb */
+  background: transparent;
+  outline: none;
+  margin: 2px 0;
+}
+.score-slider input[type='range'].unset { opacity: 0.5; }
+/* WebKit: track + thumb */
+.score-slider input[type='range']::-webkit-slider-runnable-track {
+  height: 9px; border-radius: 999px;
+  background: var(--track-bg);
+}
+.score-slider input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  box-sizing: border-box;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--thumb);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border), 0 2px 8px color-mix(in srgb, var(--thumb) 55%, transparent);
+  margin-top: -9.5px;   /* (9 - 28) / 2 → thumb midden op de track */
+  cursor: pointer;
+}
+/* Firefox: track + thumb */
+.score-slider input[type='range']::-moz-range-track {
+  height: 9px; border-radius: 999px;
+  background: var(--track-bg);
+}
+.score-slider input[type='range']::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--thumb);
+  border: 3px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border), 0 2px 8px color-mix(in srgb, var(--thumb) 55%, transparent);
+  cursor: pointer;
+}
+.score-slider .ss-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); padding: 0 2px; }
+.tc-sublabel { font-size: 11px; color: var(--muted); }
+.tc-meta { font-size: 12px; color: var(--muted); }
+.rec-note {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.poster {
+  width: 72px;
+  height: 108px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+.poster.lg { width: 80px; height: 120px; }
+.title-meta { flex: 1; min-width: 0; }
+.title-meta h3 { margin: 0 0 2px; font-size: 16px; }
+.title-sub { color: var(--muted); font-size: 13px; }
+.genres { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.chip {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Cijfer-pil: gevulde pil met wit icoon + cijfer (jouw cijfer = groen met
+   vinkje, groepsgemiddelde = grijsblauw met poppetjes). */
+.score-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--accent);
+  color: #fff; font-weight: 700; font-size: 14px; line-height: 1;
+  padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+}
+.score-pill svg { display: block; flex-shrink: 0; }
+.score-pill.group { background: #5d7191; }
+
+/* Een 10 krijgt om de eigen kleur een gouden, glimmende rand met shimmer. */
+.score-pill { position: relative; overflow: hidden; }
+.score-pill.gold {
+  overflow: visible;
+  box-shadow: 0 0 0 2px #e8b923, 0 0 6px rgba(232, 185, 35, 0.45);
+  animation: goldRing 2.4s ease-in-out infinite;
+}
+@keyframes goldRing {
+  50% { box-shadow: 0 0 0 2px #ffe08a, 0 0 12px rgba(255, 214, 80, 0.85); }
+}
+/* Gouden 10 in de cijfer-slider: shimmer door het cijfer zelf. */
+.ss-value.gold {
+  background: linear-gradient(100deg, #c9930a 25%, #ffe9a3 45%, #c9930a 65%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: goldTextShimmer 2.2s linear infinite;
+}
+@keyframes goldTextShimmer {
+  to { background-position: -220% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .score-pill.gold { animation: none; }
+  .ss-value.gold { animation: none; background: none; color: #c9930a; }
+}
+
+/* ---------- Cijferknoppen ---------- */
+.scores { display: flex; gap: 5px; flex-wrap: wrap; }
+.scores button {
+  flex: 1;
+  min-width: 28px;
+  aspect-ratio: 1;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 13px;
+  transition: transform 0.05s;
+}
+.scores button:active { transform: scale(0.92); }
+.scores button.sel { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---------- Status ---------- */
+.status-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.status-row button {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+/* De geselecteerde status krijgt inline dezelfde badge-kleuren als op de kaart. */
