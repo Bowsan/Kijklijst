@@ -187,25 +187,5 @@ export async function unfollowUser(followee: string): Promise<any> {
   return res.json();
 }
 
-// Realtime: luister naar wijzigingen van anderen via Server-Sent Events.
-export function subscribe(onChange: () => void): () => void {
-  let es: EventSource | null = null;
-  let closed = false;
-
-  const connect = () => {
-    if (closed) return;
-    es = new EventSource('/api/stream');
-    es.addEventListener('state', onChange);
-    es.addEventListener('profile', onChange);
-    es.onerror = () => {
-      es?.close();
-      if (!closed) setTimeout(connect, 3000);
-    };
-  };
-  connect();
-
-  return () => {
-    closed = true;
-    es?.close();
-  };
-}
+// Realtime meekijken zit in lib/live.ts (verbinding + verversen bij hervatten).
+export { subscribe } from './live';
