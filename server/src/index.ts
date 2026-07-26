@@ -30,7 +30,12 @@ process.on('uncaughtException', (err) => {
 
 const app = express();
 app.use(cors());
-app.use(compression());
+// De SSE-stream mag NOOIT door compressie: gzip buffert de uitvoer, waardoor
+// events pas veel later (of helemaal niet) bij de client aankomen en live
+// bijwerken dus stilletjes stuk is. De rest comprimeren we gewoon.
+app.use(compression({
+  filter: (req, res) => (req.path === '/api/stream' ? false : compression.filter(req, res)),
+}));
 app.use(express.json({ limit: '2mb' })); // ruimte voor kleine avatar-afbeeldingen
 
 // Geüploade avatars en covers (bestanden op het data-volume).
