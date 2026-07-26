@@ -84,6 +84,47 @@ try {
   else fail('kaart: prikbordbericht mist');
   await page.locator('.title-card').first().locator('.title-head').click();
 
+  // Live bijwerken — de hele keten: iemand anders wijzigt iets, de server
+  // stuurt een event over de stream en de open app toont het zonder herladen.
+  // Deze controle vangt onder meer het geval waarin de stream gecomprimeerd
+  // (en dus gebufferd) wordt: dan komt er niets door.
+  const alsAnna = (pad, body) => fetch(`http://localhost:${PORT}${pad}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-user-id': 'user-a' },
+    body: JSON.stringify(body),
+  });
+  await page.locator('.title-card').first().locator('.title-head').click();
+  await page.waitForSelector('.status-row', { timeout: 5000 });
+  await alsAnna('/api/comment', { tmdb_id: 9000, text: 'Live vanuit de smoke' });
+  const liveGezien = await page
+    .waitForFunction(() => document.body.textContent.includes('Live vanuit de smoke'), null, { timeout: 10000 })
+    .then(() => true).catch(() => false);
+  if (liveGezien) ok('live: bericht van een ander verschijnt zonder herladen');
+  else fail('live: bericht van een ander kwam niet door op de open app');
+
+  // Terugkeren naar de app: wat er tijdens de achtergrond gebeurde moet er
+  // staan zodra je 'm weer opent (de stream ligt in de achtergrond stil).
+  let stateVerzoeken = 0;
+  page.on('request', (r) => { if (r.url().includes('/api/state')) stateVerzoeken += 1; });
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await page.waitForTimeout(300);
+  await alsAnna('/api/comment', { tmdb_id: 9000, text: 'Geplaatst tijdens de achtergrond' });
+  await page.waitForTimeout(500);
+  const voorTerugkeer = stateVerzoeken;
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  const naGezien = await page
+    .waitForFunction(() => document.body.textContent.includes('Geplaatst tijdens de achtergrond'), null, { timeout: 10000 })
+    .then(() => true).catch(() => false);
+  if (naGezien && stateVerzoeken > voorTerugkeer) ok('live: bij terugkeer wordt opnieuw opgehaald en getoond');
+  else fail('live: wijziging tijdens de achtergrond kwam niet in beeld na terugkeer');
+  await page.locator('.title-card').first().locator('.title-head').click();
+
   // Voor jou + Profiel: renderen zonder crash.
   await page.click('.nav button:has-text("Voor jou")');
   await page.waitForTimeout(400);
