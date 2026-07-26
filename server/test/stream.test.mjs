@@ -54,6 +54,42 @@ test('de stream wordt niet gecomprimeerd en levert meteen een event', async () =
   });
 });
 
+test('een wijziging bereikt een verbonden client als state-event', async () => {
+  await metServer(async () => {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 10000);
+    const res = await fetch(`http://localhost:${PORT}/api/stream`, { signal: ctrl.signal });
+    const dec = new TextDecoder();
+    let buf = '';
+
+    // Meelezen op de achtergrond en ondertussen iemand een bericht laten plaatsen.
+    const meelezen = (async () => {
+      for await (const chunk of res.body) {
+        buf += dec.decode(chunk, { stream: true });
+        if (buf.includes('event: state')) return true;
+      }
+      return false;
+    })();
+
+    // Even wachten tot de verbinding er echt staat voor we iets wijzigen.
+    await new Promise((r) => setTimeout(r, 300));
+    const post = await fetch(`http://localhost:${PORT}/api/comment`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-user-id': 'user-a' },
+      body: JSON.stringify({ tmdb_id: 9000, text: 'Test-bericht' }),
+    });
+    assert.ok(post.ok, 'bericht plaatsen mislukte');
+
+    const gezien = await Promise.race([
+      meelezen,
+      new Promise((r) => setTimeout(() => r(false), 5000)),
+    ]);
+    clearTimeout(t);
+    ctrl.abort();
+    assert.ok(gezien, 'wijziging kwam niet als state-event op de stream aan');
+  });
+});
+
 test('gewone API-antwoorden worden wél nog gecomprimeerd', async () => {
   await metServer(async () => {
     const res = await fetch(`http://localhost:${PORT}/api/state`, {

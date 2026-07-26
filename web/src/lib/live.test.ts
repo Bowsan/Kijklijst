@@ -116,6 +116,35 @@ describe('subscribe (live bijwerken)', () => {
     stop();
   });
 
+  it('verbindt opnieuw na een fout, met oplopende wachttijd', () => {
+    const stop = subscribe(() => {}, { now });
+    expect(FakeES.instances).toHaveLength(1);
+
+    // Eerste fout: na 2s een nieuwe poging.
+    FakeES.instances[0].onerror!();
+    vi.advanceTimersByTime(1_900);
+    expect(FakeES.instances).toHaveLength(1);
+    vi.advanceTimersByTime(200);
+    expect(FakeES.instances).toHaveLength(2);
+
+    // Tweede fout op rij: nu pas na 4s (oplopend).
+    FakeES.instances[1].onerror!();
+    vi.advanceTimersByTime(2_100);
+    expect(FakeES.instances).toHaveLength(2);
+    vi.advanceTimersByTime(2_000);
+    expect(FakeES.instances).toHaveLength(3);
+    stop();
+  });
+
+  it('probeert niet te herverbinden terwijl de app in de achtergrond staat', () => {
+    const stop = subscribe(() => {}, { now });
+    zetZichtbaar('hidden');
+    FakeES.instances[0].onerror!();
+    vi.advanceTimersByTime(30_000);
+    expect(FakeES.instances).toHaveLength(1);
+    stop();
+  });
+
   it('ruimt alles op na afmelden', () => {
     const onChange = vi.fn();
     const stop = subscribe(onChange, { now });
