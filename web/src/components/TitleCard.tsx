@@ -13,6 +13,7 @@ import StatusBadge, { STATUS_COLORS, CheckIcon } from './StatusBadge';
 import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
 import Poster from './Poster';
+import RichText from './RichText';
 import { imdbUrlFor } from '../lib/links';
 import ImdbChip from './ImdbChip';
 
@@ -47,6 +48,8 @@ interface Props {
   compact?: boolean;
   /** Tik op een vriend (avatar/naam) → open diens profiel. */
   onOpenProfile?: (id: string) => void;
+  /** Naar een andere serie springen (genoemd in een prikbordbericht). */
+  onOpenTitle?: (tmdbId: number) => void;
   onRecommend: (title: Title) => void;
   onChange: () => void;
   toast: (msg: string) => void;
@@ -55,7 +58,7 @@ interface Props {
   onEditToggle?: (tmdbId: number, open: boolean) => void;
 }
 
-export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, compact = false, onOpenProfile, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
+export default function TitleCard({ snap, title, userId, blind, showGroupScore = false, compareUserId, showFriendScores = false, reasonActor = null, onActor, showWanters = false, compact = false, onOpenProfile, onOpenTitle, onRecommend, onChange, toast, initialExpanded = false, onEditToggle }: Props) {
   const mine = myRating(snap, title.tmdb_id, userId);
   const avg = groupAverage(snap, title.tmdb_id);
   // Alleen de gevolgde vrienden die deze serie óók op hun lijst hebben.
@@ -563,7 +566,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                         {c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}
                         <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
                       </div>
-                      <div className="comment-text">{c.text}</div>
+                      <div className="comment-text"><RichText text={c.text} snap={snap} onOpenTitle={onOpenTitle} /></div>
                       {/* Emoji-reacties: tik om aan/uit te zetten. */}
                       <div className="comment-reactions">
                         {COMMENT_EMOJI.map((emoji) => {

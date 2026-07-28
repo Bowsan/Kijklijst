@@ -702,6 +702,7 @@ export default function App() {
                     compareUserId={friend && friend !== 'me' ? friend : undefined}
                     onActor={(name) => { setActorFilter(name); toast(`Gefilterd op ${name}`); scroller()?.scrollTo({ top: 0 }); }}
                     onOpenProfile={setProfileTarget}
+                    onOpenTitle={(id) => navigateToList({ status: 'all', titleId: id })}
                     onRecommend={setRecommendTarget}
                     onChange={reload}
                     toast={toast}
@@ -821,6 +822,7 @@ export default function App() {
           withId={chatTarget}
           messages={messages}
           onRefresh={reloadMessages}
+          onOpenTitle={(id) => { setChatTarget(null); navigateToList({ status: 'all', titleId: id }); }}
           onClose={() => setChatTarget(null)}
           toast={toast}
         />

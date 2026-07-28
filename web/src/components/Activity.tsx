@@ -1,6 +1,7 @@
 import type { Snapshot, Comment } from '../lib/types';
 import { profileById, titleById, commentsOnMyList } from '../lib/compute';
 import Avatar from './Avatar';
+import TitleLink from './TitleLink';
 import { timeAgo } from '../lib/format';
 
 interface Props {
@@ -19,6 +20,10 @@ type FeedItem =
 
 export default function ActivityFeed({ snap, userId, onOpenTitle, limit = 40 }: Props) {
   const messages = commentsOnMyList(snap, userId);
+
+  // Serietitel in een melding: aanklikbaar zodra we de serie kennen.
+  const serie = (t: { tmdb_id: number; name: string } | undefined, terugval = 'een serie') =>
+    (t ? <TitleLink onOpen={() => onOpenTitle(t.tmdb_id)}>{t.name}</TitleLink> : <b>{terugval}</b>);
 
   const items: FeedItem[] = [
     ...snap.activity.map((a) => ({ kind: 'activity' as const, id: a.id, created_at: a.created_at, a })),
@@ -49,7 +54,7 @@ export default function ActivityFeed({ snap, userId, onOpenTitle, limit = 40 }: 
               <Avatar profile={who} id={c.user_id} size="sm" />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="activity-text">
-                  💬 Bericht van <b>{who?.name || 'Iemand'}</b> bij <b>{title?.name || 'een serie'}</b>
+                  💬 Bericht van <b>{who?.name || 'Iemand'}</b> bij {serie(title)}
                 </div>
                 <div className="activity-time">{timeAgo(c.created_at)}</div>
               </div>
@@ -67,7 +72,7 @@ export default function ActivityFeed({ snap, userId, onOpenTitle, limit = 40 }: 
             <div className="activity-item" key={item.id}>
               <div className="act-emoji">🎉</div>
               <div style={{ flex: 1 }}>
-                <div className="activity-text"><b>{title?.name || 'Een serie'}</b> heeft een nieuw seizoen (seizoen {String(a.meta.to)})</div>
+                <div className="activity-text">{serie(title, 'Een serie')} heeft een nieuw seizoen (seizoen {String(a.meta.to)})</div>
                 <div className="activity-time">{timeAgo(a.created_at)}</div>
               </div>
             </div>
@@ -77,12 +82,12 @@ export default function ActivityFeed({ snap, userId, onOpenTitle, limit = 40 }: 
         let text: React.ReactNode = null;
 
         if (a.type === 'rating') {
-          text = <><b>{who?.name || 'Iemand'}</b> gaf <b>{title?.name}</b> een {String(a.meta.score)}</>;
+          text = <><b>{who?.name || 'Iemand'}</b> gaf {serie(title)} een {String(a.meta.score)}</>;
         } else if (a.type === 'added') {
-          text = <><b>{who?.name || 'Iemand'}</b> voegde <b>{title?.name}</b> toe</>;
+          text = <><b>{who?.name || 'Iemand'}</b> voegde {serie(title)} toe</>;
         } else if (a.type === 'recommend') {
           const to = profileById(snap, String(a.meta.to_user));
-          text = <><b>{who?.name || 'Iemand'}</b> raadt <b>{title?.name}</b> aan{to ? <> aan {to.name}</> : null}</>;
+          text = <><b>{who?.name || 'Iemand'}</b> raadt {serie(title)} aan{to ? <> aan {to.name}</> : null}</>;
         } else {
           text = <><b>{who?.name || 'Iemand'}</b> deed iets</>;
         }
