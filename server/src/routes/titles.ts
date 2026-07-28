@@ -99,6 +99,19 @@ router.post('/api/title/:id/enrich', async (req, res) => {
   const existing: any = db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(titleId);
   if (!existing) return res.status(404).json({ error: 'serie niet gevonden' });
 
+  // Rechtstreeks aan een TMDb-serie koppelen (gekozen uit "opnieuw zoeken").
+  // Handig als de serie eerder handmatig is toegevoegd omdat het zoeken toen
+  // niet werkte: je hoeft dan geen IMDb-link te zoeken.
+  const gekozenTmdb = Number(req.body?.tmdb_id);
+  if (Number.isFinite(gekozenTmdb) && gekozenTmdb > 0) {
+    if (titleId > 0) return res.status(400).json({ error: 'deze serie komt al van TMDb' });
+    const newId = promoteToTmdbId(titleId, gekozenTmdb, uid);
+    if (!newId) return res.status(409).json({ error: 'die serie staat al op je lijst' });
+    await refreshTitle(newId).catch(() => {});
+    broadcast('state', 1);
+    return res.json({ found: true, source: 'TMDb', tmdb_id: newId });
+  }
+
   const imdb = parseImdbId(req.body?.imdb);
   if (!imdb) return res.status(400).json({ error: 'geen geldige IMDb-link of -id' });
 

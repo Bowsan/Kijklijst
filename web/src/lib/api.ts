@@ -128,6 +128,9 @@ export const createManualTitle = (name: string, service?: string, seasons?: numb
 // Serie-info aanvullen via een IMDb-link (TMDb → TVmaze).
 export const enrichTitle = (id: number, imdb: string): Promise<{ found: boolean; source?: string }> =>
   post(`/api/title/${id}/enrich`, { imdb });
+// Een handmatig toegevoegde serie alsnog koppelen aan de juiste TMDb-serie.
+export const linkToTmdb = (id: number, tmdbId: number): Promise<{ found: boolean; tmdb_id: number }> =>
+  post(`/api/title/${id}/enrich`, { tmdb_id: tmdbId });
 // Serie-info handmatig invullen (jaar, genres, cover, omschrijving).
 export const setTitleMeta = (id: number, meta: { year?: number | null; genres?: string; poster?: string; overview?: string }) =>
   post(`/api/title/${id}/meta`, meta);
