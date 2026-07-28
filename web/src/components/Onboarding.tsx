@@ -288,6 +288,10 @@ export default function Onboarding({ existing = false, onDone }: {
           Geen account nodig. Je naam laat de groep zien wie wat vindt. Een foto kun je later toevoegen.
         </p>
       </div>
+      {/* Vereiste bronvermelding voor het gebruik van de TMDb-API. */}
+      <p className="tmdb-attributie">
+        This product uses the TMDB API but is not endorsed or certified by TMDB.
+      </p>
     </div>
   );
 }

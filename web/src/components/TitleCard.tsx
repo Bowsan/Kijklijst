@@ -131,6 +131,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const initIsCustom = !!initService && !title.providers.includes(initService) && !NL_SERVICES.includes(initService);
 
   const [expanded, setExpanded] = useState(initialExpanded);
+  // De aanvul-chip hoort alleen bij een opengeklapte kaart.
+  const toonAanvullen = zelfToegevoegd && expanded;
   // Laadt de poster niet (netwerk/TMDb)? Dan de initiaal-placeholder tonen.
   // Open/dicht doorgeven (incl. opruimen bij unmount), voor de lijst-bevriezing.
   useEffect(() => {
@@ -293,11 +295,11 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
           {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
-          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor || zelfToegevoegd) && (
+          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor || toonAanvullen) && (
             <div className="metarow">
-              {/* Zelf toegevoegde serie: altijd zichtbaar dat de info nog
-                  aangevuld kan worden — ook zonder de kaart uit te klappen. */}
-              {zelfToegevoegd && (
+              {/* Zelf toegevoegde serie: aanvullen aanbieden zodra de kaart
+                  openstaat (ingeklapt houden we de rij rustig). */}
+              {toonAanvullen && (
                 <button
                   className="mchip enrich"
                   title="Gegevens ophalen bij TMDb"
