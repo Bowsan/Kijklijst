@@ -187,3 +187,12 @@
   color: var(--muted);
 }
 /* De geselecteerde status krijgt inline dezelfde badge-kleuren als op de kaart. */
+
+/* Zelf toegevoegde serie: chip die de aanvul-sheet opent. Ziet er hetzelfde uit
+   als de andere meta-chips, maar is aanklikbaar. */
+.mchip.enrich {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  cursor: pointer;
+}

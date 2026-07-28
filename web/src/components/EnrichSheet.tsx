@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
-import type { Title } from '../lib/types';
+import { useEffect, useRef, useState } from 'react';
+import type { Title, SearchResult } from '../lib/types';
 import { posterUrl } from '../lib/types';
-import { enrichTitle, setTitleMeta } from '../lib/api';
+import { enrichTitle, setTitleMeta, searchTmdb, linkToTmdb } from '../lib/api';
 import Sheet from './Sheet';
+import Thumb from './Thumb';
 
 interface Props {
   title: Title;
@@ -45,6 +46,45 @@ export default function EnrichSheet({ title, onClose, onChange, toast }: Props) 
   const [cover, setCover] = useState<string | null>(title.poster_path || null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Opnieuw zoeken bij TMDb. Dit is meestal de snelste weg: als de serie de
+  // vorige keer niet gevonden werd door een storing, staat hij er nu gewoon.
+  const handmatig = title.tmdb_id < 0;
+  const [treffers, setTreffers] = useState<SearchResult[] | null>(null);
+  const [zoeken, setZoeken] = useState(false);
+  const [zoekFout, setZoekFout] = useState<string | null>(null);
+
+  const zoekOpnieuw = async () => {
+    setZoeken(true);
+    setZoekFout(null);
+    try {
+      setTreffers(await searchTmdb(title.name));
+    } catch (e: any) {
+      setZoekFout(e?.message || 'zoeken mislukte');
+      setTreffers(null);
+    } finally {
+      setZoeken(false);
+    }
+  };
+  // Bij openen meteen één poging doen, zodat je vaak niets hoeft te doen.
+  useEffect(() => {
+    if (handmatig) zoekOpnieuw();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const koppel = async (r: SearchResult) => {
+    setZoeken(true);
+    try {
+      await linkToTmdb(title.tmdb_id, r.tmdb_id);
+      toast(`Gekoppeld aan ${r.name} — info wordt aangevuld`);
+      onChange();
+      onClose();
+    } catch (e: any) {
+      toast(e?.message || 'Koppelen mislukt');
+    } finally {
+      setZoeken(false);
+    }
+  };
+
   const fetchImdb = async () => {
     if (!imdb.trim()) { toast('Plak eerst een IMDb-link'); return; }
     setLoading(true);
@@ -86,9 +126,44 @@ export default function EnrichSheet({ title, onClose, onChange, toast }: Props) 
 
   return (
     <Sheet title="Serie-info aanvullen" onClose={onClose}>
-      <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
-        Plak de IMDb-link van <b>{title.name}</b>. We proberen jaar, genres, poster en seizoenen
-        automatisch op te halen (via TMDb en TVmaze).
+      {/* Eerst het makkelijke pad: opnieuw bij TMDb zoeken op de naam. */}
+      {handmatig && (
+        <div className="enrich-zoek">
+          <div className="row spread" style={{ alignItems: 'center' }}>
+            <b style={{ fontSize: 14 }}>Opnieuw zoeken bij TMDb</b>
+            <button className="btn ghost" style={{ padding: '4px 8px', fontSize: 13 }} disabled={zoeken} onClick={zoekOpnieuw}>
+              {zoeken ? 'Bezig…' : '↻ Opnieuw'}
+            </button>
+          </div>
+          <p className="muted" style={{ fontSize: 13, margin: '2px 0 8px' }}>
+            Staat <b>{title.name}</b> er inmiddels wel bij? Kies 'm dan hier — daarna
+            worden jaar, genres, poster en seizoenen automatisch bijgehouden.
+          </p>
+
+          {zoekFout && <div className="search-error" style={{ margin: '0 0 8px' }}>
+            <b>Zoeken lukt nu even niet.</b>
+            <div className="search-error-detail">{zoekFout}</div>
+          </div>}
+
+          {treffers && treffers.length > 0 && treffers.slice(0, 6).map((r) => (
+            <button key={r.tmdb_id} className="suggestion" disabled={zoeken} onClick={() => koppel(r)}>
+              <Thumb path={r.poster_path} name={r.name} w={36} h={54} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="s-name">{r.name}</div>
+                <div className="title-sub">{r.year || '—'}</div>
+              </div>
+              <span className="chip" style={{ flexShrink: 0, color: 'var(--accent)', borderColor: 'var(--accent)' }}>Koppel</span>
+            </button>
+          ))}
+          {treffers && treffers.length === 0 && !zoekFout && (
+            <div className="muted" style={{ fontSize: 13 }}>Nog steeds niets gevonden bij TMDb.</div>
+          )}
+        </div>
+      )}
+
+      <p className="muted" style={{ fontSize: 13, marginTop: handmatig ? 16 : 0 }}>
+        {handmatig ? 'Lukt dat niet? Plak dan de IMDb-link' : 'Plak de IMDb-link'} van <b>{title.name}</b>.
+        We proberen jaar, genres, poster en seizoenen automatisch op te halen (via TMDb en TVmaze).
       </p>
 
       <label className="muted" style={{ fontSize: 13, display: 'block', margin: '8px 0 4px' }}>IMDb-link of -id</label>

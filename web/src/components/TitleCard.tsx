@@ -64,6 +64,8 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   );
   // Directe IMDb-link als we het imdb_id kennen, anders een zoekresultaat op naam + jaar.
   const imdbUrl = imdbUrlFor(title.imdb_id, title.name, title.year);
+  // Handmatig toegevoegde series hebben een negatief id (nog geen TMDb-serie).
+  const zelfToegevoegd = title.tmdb_id < 0;
   // Alleen de vrienden die je volgt (niet jijzelf) die deze serie op hun lijst hebben.
   const visible = new Set(visibleUserIds(snap, userId));
   const others = snap.ratings.filter(
@@ -291,8 +293,19 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
             <div className="title-sub" style={{ marginTop: 2 }}>{title.genres.join(', ')}</div>
           )}
           {/* Uitgelijnde meta-rij: nieuw seizoen, seizoen-voortgang, kijkers en aanraders */}
-          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor) && (
+          {(newSeason || seasonsChip || showOthers || totalRecCount > 0 || reasonActor || zelfToegevoegd) && (
             <div className="metarow">
+              {/* Zelf toegevoegde serie: altijd zichtbaar dat de info nog
+                  aangevuld kan worden — ook zonder de kaart uit te klappen. */}
+              {zelfToegevoegd && (
+                <button
+                  className="mchip enrich"
+                  title="Gegevens ophalen bij TMDb"
+                  onClick={(e) => { e.stopPropagation(); setShowEnrich(true); }}
+                >
+                  🧩 Info aanvullen
+                </button>
+              )}
               {newSeason && <span className="mchip newseason">🎉 Nieuw seizoen</span>}
               {seasonsChip && (
                 // Groen als je alle seizoenen zag, anders lichtgrijs (nog niet af).
@@ -524,12 +537,6 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                   <span className="imdb-badge">IMDb</span> Bekijk op IMDb ↗
                 </a>
               )}
-            {/* Handmatig toegevoegde serie (negatief id): info aanvullen via IMDb/TVmaze. */}
-            {title.tmdb_id < 0 && (
-              <button className="btn ghost" style={{ alignSelf: 'flex-start', color: 'var(--accent)', padding: '4px 0', fontSize: 13 }} onClick={() => setShowEnrich(true)}>
-                🧩 Serie-info aanvullen
-              </button>
-            )}
             {(addedBy || mine) && (
               <div className="tc-meta">
                 {addedBy && <>Toegevoegd door {title.added_by === userId ? 'jou' : addedBy.name}</>}
