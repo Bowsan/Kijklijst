@@ -60,7 +60,10 @@
 .action-item.cancel { justify-content: center; background: transparent; color: var(--muted); margin-top: 2px; }
 
 /* Aanklikbare naam (naar profiel) en de reageer-op-tip-knop. */
-.link-name { cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
+/* Namen die ergens heen linken: zelfde subtiele accentkleur als serietitels
+   (.tlink), zodat je aan de opmaak ziet dat er iets achter zit. */
+.link-name { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
+.link-name:active { opacity: 0.7; }
 .tip-react-btn { margin-top: 8px; }
 
 /* Reactieknoppen onder een ontvangen tip. */

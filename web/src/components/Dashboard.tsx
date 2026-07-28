@@ -8,6 +8,8 @@ import {
 } from '../lib/compute';
 import { fmt1, timeAgo } from '../lib/format';
 import Thumb from './Thumb';
+import TitleLink from './TitleLink';
+import RichText from './RichText';
 import Avatar from './Avatar';
 import FriendsIcon from './FriendsIcon';
 import StatusBadge from './StatusBadge';
@@ -238,10 +240,10 @@ export default function Dashboard({ snap, userId, dashTab, onOpenProfile, onAdd,
                 </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="feed-meta">
-                    <b className="link-name" onClick={(e) => { e.stopPropagation(); onOpenProfile(c.user_id); }}>{c.user_id === userId ? 'Jij' : who!.name.split(' ')[0]}</b> over <b>{title!.name}</b>
+                    <b className="link-name" onClick={(e) => { e.stopPropagation(); onOpenProfile(c.user_id); }}>{c.user_id === userId ? 'Jij' : who!.name.split(' ')[0]}</b> over <TitleLink onOpen={() => onNavigate({ status: 'all', titleId: title!.tmdb_id })}>{title!.name}</TitleLink>
                     <span className="muted"> · {timeAgo(c.created_at)}</span>
                   </div>
-                  <div className="feed-text">“{c.text}”</div>
+                  <div className="feed-text">“<RichText text={c.text} snap={snap} onOpenTitle={(id) => onNavigate({ status: 'all', titleId: id })} />”</div>
                 </div>
                 <Thumb path={title!.poster_path} name={title!.name} w={40} h={60} />
               </div>

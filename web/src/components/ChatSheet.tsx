@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Snapshot, Message } from '../lib/types';
 import { sendMessage, markMessagesRead } from '../lib/api';
+import RichText from './RichText';
 import { profileById } from '../lib/compute';
 import { fmtDateTime } from '../lib/format';
 import Sheet from './Sheet';
@@ -15,12 +16,14 @@ interface Props {
   messages: Message[];
   /** Berichten opnieuw ophalen (na verzenden / gelezen-markeren). */
   onRefresh: () => void;
+  /** Naar een serie springen die in een bericht genoemd wordt. */
+  onOpenTitle?: (tmdbId: number) => void;
   onClose: () => void;
   toast: (m: string) => void;
 }
 
 /** 1-op-1 gesprek met een vriend: bubbels + invoerveld. */
-export default function ChatSheet({ snap, userId, withId, messages, onRefresh, onClose, toast }: Props) {
+export default function ChatSheet({ snap, userId, withId, messages, onRefresh, onOpenTitle, onClose, toast }: Props) {
   const friend = profileById(snap, withId);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -72,7 +75,7 @@ export default function ChatSheet({ snap, userId, withId, messages, onRefresh, o
             <div key={m.id} className={`chat-row ${mine ? 'mine' : ''}`}>
               {!mine && <Avatar profile={friend} id={withId} size="xs" />}
               <div className={`chat-bubble ${mine ? 'mine' : ''}`}>
-                <div className="chat-text">{m.text}</div>
+                <div className="chat-text"><RichText text={m.text} snap={snap} onOpenTitle={onOpenTitle} /></div>
                 <div className="chat-time">{fmtDateTime(m.created_at)}</div>
               </div>
             </div>
