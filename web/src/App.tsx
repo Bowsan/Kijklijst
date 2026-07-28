@@ -313,16 +313,23 @@ export default function App() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const searchAbort = useRef<AbortController | null>(null);
 
+  // Mislukte zoekopdracht: we tonen dat expliciet, want "geen resultaten" en
+  // "zoeken werkt even niet" horen niet hetzelfde te lijken.
+  const [searchError, setSearchError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!searchActive) { setSearchResults([]); return; }
+    if (!searchActive) { setSearchResults([]); setSearchError(null); return; }
     const t = setTimeout(async () => {
       searchAbort.current?.abort();
       const ctrl = new AbortController();
       searchAbort.current = ctrl;
       try {
         setSearchResults(await searchTmdb(searchQuery, ctrl.signal));
-      } catch {
-        /* afgebroken of mislukt */
+        setSearchError(null);
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return; // vervangen door een nieuwere zoekactie
+        setSearchResults([]);
+        setSearchError(e?.message || 'zoeken mislukte');
       }
     }, 300);
     return () => clearTimeout(t);
@@ -620,6 +627,7 @@ export default function App() {
           searchQuery={searchQuery}
           myMatches={myMatches}
           addableResults={addableResults}
+          searchError={searchError}
           onOpenExisting={openExisting}
           onAdd={(id) => addTitle(id, listAddStatus())}
           onManualAdd={() => { setManualAddQuery(searchQuery); setSearchOpen(false); }}

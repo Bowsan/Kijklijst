@@ -33,6 +33,8 @@ interface Props {
   myMatches: Title[];
   /** TMDb-treffers die nog niet op je lijst staan. */
   addableResults: SearchResult[];
+  /** Gevuld als het zoeken zelf mislukte (dus niet: "niets gevonden"). */
+  searchError?: string | null;
   onOpenExisting: (tmdbId: number) => void;
   onAdd: (tmdbId: number) => void;
   onManualAdd: () => void;
@@ -41,7 +43,7 @@ interface Props {
 /** Het zoekscherm van de lijst: al-op-je-lijst, toe te voegen TMDb-treffers en
  *  als laatste altijd de mogelijkheid om handmatig toe te voegen. */
 export default function SearchOverlay({
-  snap, userId, searchQuery, myMatches, addableResults, onOpenExisting, onAdd, onManualAdd,
+  snap, userId, searchQuery, myMatches, addableResults, searchError, onOpenExisting, onAdd, onManualAdd,
 }: Props) {
   return (
     <div className="page" style={{ paddingBottom: 'calc(84px + var(--safe-bottom) + var(--kb-inset, 0px))' }}>
@@ -67,10 +69,27 @@ export default function SearchOverlay({
         </>
       )}
 
+      {/* Zoeken zelf ging mis — dat is iets anders dan "niet gevonden". */}
+      {searchError && (
+        <div className="search-error">
+          <b>Zoeken lukt nu even niet.</b>
+          <div className="muted">
+            De serie bestaat waarschijnlijk gewoon; de zoekdienst antwoordt alleen
+            niet. Probeer het zo nog eens, of voeg 'm hieronder handmatig toe.
+          </div>
+          <div className="search-error-detail">{searchError}</div>
+        </div>
+      )}
+
       {/* Toevoegen — TMDb-suggesties die nog niet op je lijst staan */}
       <div className="lsp-label" style={{ marginTop: myMatches.length > 0 ? 16 : 4 }}>
         {myMatches.length > 0 ? 'Andere series toevoegen:' : 'Toevoegen:'}
       </div>
+      {!searchError && addableResults.length === 0 && (
+        <div className="muted" style={{ padding: '4px 2px 8px', fontSize: 13 }}>
+          Geen series gevonden voor "{searchQuery}".
+        </div>
+      )}
       {addableResults.map((r) => (
         <SuggestionRow
           key={r.tmdb_id}
