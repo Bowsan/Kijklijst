@@ -40,3 +40,22 @@
   color: var(--muted);
 }
 .filters button.sel { background: var(--accent-grad); color: #fff; border-color: var(--accent); }
+
+/* Zoeken mislukt — duidelijk onderscheiden van "niets gevonden", zodat je niet
+   denkt dat een serie niet bestaat terwijl de zoekdienst gewoon hapert. */
+.search-error {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--warn) 40%, var(--border));
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 4px 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.search-error .muted { margin-top: 2px; }
+.search-error-detail {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  word-break: break-word;
+}

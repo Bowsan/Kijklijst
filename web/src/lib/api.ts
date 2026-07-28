@@ -22,7 +22,12 @@ export async function fetchState(): Promise<Snapshot> {
 
 export async function searchTmdb(q: string, signal?: AbortSignal): Promise<SearchResult[]> {
   const res = await fetch(`/api/tmdb/search?q=${encodeURIComponent(q)}`, { signal, headers: headers() });
-  if (!res.ok) return [];
+  if (!res.ok) {
+    // Bewust géén lege lijst: dan lijkt een kapotte zoekopdracht op "niet
+    // gevonden" en denk je onterecht dat de serie niet bestaat.
+    const melding = (await res.json().catch(() => ({}))).error;
+    throw new Error(melding || `zoeken mislukte (${res.status})`);
+  }
   return res.json();
 }
 
