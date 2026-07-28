@@ -230,6 +230,13 @@ export default function App() {
     if (status === 'dropped' || status === 'notdone') setStatus('all');
   };
 
+  // Vanuit de lijst-zoekbalk doorschakelen naar toevoegen: dezelfde zoekterm
+  // gaat mee naar het +-scherm, dat bij TMDb zoekt.
+  const zoekTermToevoegen = () => {
+    setShowAddHint(false);
+    setSearchOpen(true);
+    scroller()?.scrollTo({ top: 0 });
+  };
   // Naam van de actieve statustab voor de zoek-placeholder ("Zoek in Gezien").
   const statusLabel = statusTabLabel(status);
 
@@ -400,6 +407,11 @@ export default function App() {
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snap, status, friend, services, genres, nameFilter, actorFilter, creatorFilter, noScore, sortKey, sortDir, userId]);
+
+  // Staat er al een serie met exact deze naam in de getoonde lijst?
+  const exacteTreffer = visibleTitles.some(
+    (t) => t.name.trim().toLowerCase() === nameFilter.trim().toLowerCase(),
+  );
 
   // Kaarten die open staan om te bewerken. Zolang er één open is, bevriezen we
   // de lijstvolgorde en -selectie: een statuswijziging laat de kaart dan niet
@@ -672,6 +684,11 @@ export default function App() {
               <div className="empty">
                 <div className="big">🔍</div>
                 <p>Geen series met deze filters.</p>
+                {nameFilter.trim().length >= 2 && (
+                  <button className="btn primary" style={{ marginTop: 10 }} onClick={zoekTermToevoegen}>
+                    ➕ Voeg "{nameFilter.trim()}" toe
+                  </button>
+                )}
                 <button
                   className="btn"
                   style={{ marginTop: 10 }}
@@ -715,6 +732,11 @@ export default function App() {
                 <div ref={loadMoreRef} className="load-more">
                   Nog {listTitles.length - listPage * PAGE_SIZE} series — scroll om te laden…
                 </div>
+              )}
+              {nameFilter.trim().length >= 2 && !exacteTreffer && (
+                <button className="lijst-toevoegen" onClick={zoekTermToevoegen}>
+                  Staat "{nameFilter.trim()}" er niet bij? <b>➕ Voeg deze serie toe</b>
+                </button>
               )}
             </>
           )}

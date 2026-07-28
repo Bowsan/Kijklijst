@@ -75,3 +75,17 @@
   padding: 10px 12px;
 }
 .enrich-zoek .suggestion { background: transparent; }
+
+/* Onder een gefilterde lijst: alsnog toevoegen als de gezochte serie er niet
+   tussen staat. Rustig, want het is een uitzondering. */
+.lijst-toevoegen {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 12px 10px;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  background: transparent;
+}
+.lijst-toevoegen b { color: var(--accent); white-space: nowrap; }
