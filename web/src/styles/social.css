@@ -66,3 +66,19 @@
 .btn.ghost { background: transparent; }
 .btn:active { transform: scale(0.97); }
 .btn.full { width: 100%; justify-content: center; }
+
+/* Keuzelijstje bij het typen van "@" in een prikbordbericht. */
+.mention-keuzes {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin: 0 0 8px;
+}
+.mention-keuze {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+  font-size: 13px; font-weight: 600;
+}
+.mention-keuze:active { opacity: 0.7; }
