@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
@@ -14,6 +14,7 @@ import ScoreSlider from './ScoreSlider';
 import EnrichSheet from './EnrichSheet';
 import Poster from './Poster';
 import RichText from './RichText';
+import { mentionBezig } from '../lib/mentions';
 import { imdbUrlFor } from '../lib/links';
 import ImdbChip from './ImdbChip';
 
@@ -148,6 +149,25 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
   const [serviceInput, setServiceInput] = useState(initService);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [commentText, setCommentText] = useState('');
+  // "@" typen opent een keuzelijstje met vrienden, zodat de naam precies klopt.
+  const commentRef = useRef<HTMLInputElement>(null);
+  const [mentionTerm, setMentionTerm] = useState<{ start: number; term: string } | null>(null);
+  const mentionKeuzes = mentionTerm
+    ? followingProfiles(snap, userId)
+        .filter((p) => p.name.toLowerCase().includes(mentionTerm.term.trim().toLowerCase()))
+        .slice(0, 5)
+    : [];
+
+  /** Naam invullen op de plek van de half getypte "@naam". */
+  const kiesMention = (naam: string) => {
+    if (!mentionTerm) return;
+    const voor = commentText.slice(0, mentionTerm.start);
+    const na = commentText.slice(mentionTerm.start + 1 + mentionTerm.term.length);
+    const nieuw = `${voor}@${naam}${na.startsWith(' ') ? '' : ' '}${na}`;
+    setCommentText(nieuw);
+    setMentionTerm(null);
+    commentRef.current?.focus();
+  };
   const [showEnrich, setShowEnrich] = useState(false);
 
   // Berichten op het prikbord: alleen van jou + de vrienden die je volgt.
@@ -566,7 +586,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                         {c.user_id === userId ? 'Jij' : (p?.name || 'Onbekend')}
                         <span style={{ fontWeight: 400, marginLeft: 6, opacity: 0.6 }}>{fmtDateTime(c.created_at)}</span>
                       </div>
-                      <div className="comment-text"><RichText text={c.text} snap={snap} onOpenTitle={onOpenTitle} /></div>
+                      <div className="comment-text"><RichText text={c.text} snap={snap} onOpenTitle={onOpenTitle} onOpenProfile={onOpenProfile} /></div>
                       {/* Emoji-reacties: tik om aan/uit te zetten. */}
                       <div className="comment-reactions">
                         {COMMENT_EMOJI.map((emoji) => {
@@ -592,12 +612,33 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
                   </div>
                 );
               })}
+              {mentionKeuzes.length > 0 && (
+                <div className="mention-keuzes">
+                  {mentionKeuzes.map((p) => (
+                    <button key={p.id} className="mention-keuze" onClick={() => kiesMention(p.name)}>
+                      <Avatar profile={p} id={p.id} size="xs" />{p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="comment-form">
                 <input
-                  placeholder="Schrijf een bericht…"
+                  ref={commentRef}
+                  placeholder="Schrijf een bericht… (@ voor een vriend)"
                   value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && postComment()}
+                  onChange={(e) => {
+                    setCommentText(e.target.value);
+                    setMentionTerm(mentionBezig(e.target.value, e.target.selectionStart ?? e.target.value.length));
+                  }}
+                  onBlur={() => setTimeout(() => setMentionTerm(null), 150)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') { setMentionTerm(null); return; }
+                    if (e.key === 'Enter') {
+                      // Staat er een keuzelijstje open? Dan vult Enter de eerste naam in.
+                      if (mentionKeuzes.length > 0) { e.preventDefault(); kiesMention(mentionKeuzes[0].name); return; }
+                      postComment();
+                    }
+                  }}
                 />
                 <button className="btn" disabled={!commentText.trim()} onClick={postComment}>Plaats</button>
               </div>

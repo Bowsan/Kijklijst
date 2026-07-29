@@ -9,6 +9,7 @@ import { pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from 
 import { logActivity, nameOf, titleNameOf, listersOf } from '../helpers.js';
 import { ensureTitle, refreshTitle, refreshTitles, attachImdbRatings } from '../titles.js';
 import { userId } from '../http.js';
+import { mentionedUserIds } from '../mentions.js';
 
 const router = express.Router();
 
@@ -22,15 +23,39 @@ router.post('/api/comment', (req, res) => {
     return res.status(400).json({ error: 'tmdb_id en tekst vereist' });
   }
   const id = randomUUID();
+  const schoon = text.trim().slice(0, 1000);
+  const nu = Date.now();
+  const titelId = Number(tmdb_id);
   db.prepare('INSERT INTO comments (id, title_id, user_id, text, created_at) VALUES (?, ?, ?, ?, ?)')
-    .run(id, Number(tmdb_id), uid, text.trim().slice(0, 1000), Date.now());
+    .run(id, titelId, uid, schoon, nu);
+
+  // "@naam" in de tekst: die vriend krijgt een bericht in zijn Berichten, zodat
+  // het niet verdwijnt tussen de meldingen van series die hij toch al volgt.
+  const profielen = db.prepare('SELECT id, name FROM profiles').all() as { id: string; name: string }[];
+  const genoemd = mentionedUserIds(schoon, profielen, uid);
+  const serieNaam = titleNameOf(titelId);
+  if (genoemd.length > 0) {
+    const zetBericht = db.prepare(
+      'INSERT INTO messages (id, from_user, to_user, text, created_at) VALUES (?, ?, ?, ?, ?)',
+    );
+    for (const naar of genoemd) {
+      zetBericht.run(randomUUID(), uid, naar, `💬 Ik noemde je bij ${serieNaam}: "${schoon}"`, nu);
+    }
+    sendPushTo(genoemd, {
+      title: 'Op de Bank',
+      body: `💬 ${nameOf(uid)} zegt iets over ${serieNaam} tegen je`,
+    });
+  }
+
   broadcast('state', 1);
-  // Pushmelding voor iedereen (behalve de schrijver) die deze serie op de lijst heeft.
-  sendPushTo(
-    listersOf(Number(tmdb_id)).filter((u) => u !== uid),
-    { title: 'Op de Bank', body: `💬 Bericht van ${nameOf(uid)} bij ${titleNameOf(Number(tmdb_id))}` },
-  );
-  res.json({ ok: true, id });
+  // Pushmelding voor de overige kijkers van deze serie (niet dubbel naar wie
+  // al een mention-melding kreeg).
+  const rest = listersOf(titelId).filter((u) => u !== uid && !genoemd.includes(u));
+  sendPushTo(rest, {
+    title: 'Op de Bank',
+    body: `💬 Bericht van ${nameOf(uid)} bij ${serieNaam}`,
+  });
+  res.json({ ok: true, id, mentions: genoemd.length });
 });
 
 router.delete('/api/comment/:id', (req, res) => {
