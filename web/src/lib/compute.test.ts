@@ -161,6 +161,29 @@ describe('nieuw seizoen', () => {
     const s = snap({ titles: [fresh], ratings: [] });
     expect(hasUnseenNewSeason(s, fresh, 'me')).toBe(false);
   });
+
+  it('meldt niets voor een seizoen dat alleen is aangekondigd', () => {
+    // TMDb zet een verlengd seizoen al in de lijst voordat het te zien is;
+    // wie alles gezien heeft mag daar geen "nieuw seizoen" van krijgen.
+    const jaar = new Date().getFullYear();
+    const aangekondigd = title(3, {
+      seasons: [
+        { season_number: 1, episode_count: 8, name: 'S1', air_year: jaar - 2, air_date: `${jaar - 2}-03-01` },
+        { season_number: 2, episode_count: 8, name: 'S2', air_year: jaar - 1, air_date: `${jaar - 1}-03-01` },
+        { season_number: 3, episode_count: 0, name: 'S3', air_year: null, air_date: null },
+      ],
+      new_season_at: now - 1000,
+    });
+    const s = snap({ titles: [aangekondigd], ratings: [rating(3, 'me', { seasons: [1, 2] })] });
+    expect(hasUnseenNewSeason(s, aangekondigd, 'me')).toBe(false);
+  });
+
+  it('meldt niets als je het nieuwste seizoen zag, ook al staat een oud seizoen niet aan', () => {
+    // Je bent pas bij seizoen 2 ingestapt: seizoen 1 blijft uit, maar het
+    // nieuwste seizoen heb je gezien — dat is geen gemist nieuw seizoen.
+    const s = snap({ titles: [fresh], ratings: [rating(1, 'me', { seasons: [2, 3] })] });
+    expect(hasUnseenNewSeason(s, fresh, 'me')).toBe(false);
+  });
 });
 
 // ---- vriendenlijsten ----

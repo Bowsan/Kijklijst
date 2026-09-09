@@ -1,5 +1,6 @@
 import type { Snapshot, Title, Rating, Profile } from './types';
 import { NL_SERVICES } from './services';
+import { airedSeasons, latestAiredSeason } from './seasons';
 
 export const MIN_RATINGS_FOR_PROFILE = 5;
 
@@ -150,10 +151,9 @@ function matchesStatus(r: Rating, t: Title, status: StatusValue): boolean {
   if (status === 'all') return true;
   if (status === 'notdone') {
     if (r.status !== 'finished') return false;
-    const total = t.seasons.length;
+    const total = airedSeasons(t).length;
     if (total === 0) return false;
-    const watched = (r.seasons || []).filter((n) => t.seasons.some((s) => s.season_number === n)).length;
-    return watched < total;
+    return watchedSeasonCount(t, r) < total;
   }
   return r.status === status;
 }
@@ -208,17 +208,24 @@ export function selectTitles(snap: Snapshot, userId: string, f: ListFilters): Ti
 // Hoe lang een pas-verschenen seizoen als "nieuw" telt (voor badge & Voor jou).
 export const NEW_SEASON_WINDOW = 90 * 24 * 3600 * 1000;
 
-/** Hoeveel van de seizoenen van deze titel heeft de gebruiker afgevinkt. */
+/** Hoeveel van de uitgezonden seizoenen van deze titel heeft de gebruiker afgevinkt. */
 export function watchedSeasonCount(title: Title, rating: Rating | undefined): number {
-  return (rating?.seasons || []).filter((n) => title.seasons.some((s) => s.season_number === n)).length;
+  const uit = airedSeasons(title);
+  return (rating?.seasons || []).filter((n) => uit.some((s) => s.season_number === n)).length;
 }
 
-/** Kwam er recent een nieuw seizoen bij dat de gebruiker nog niet zag? */
+/** Kwam er recent een nieuw seizoen bij dat de gebruiker nog niet zag?
+ *
+ *  We kijken alleen naar het nieuwste seizoen dat ook echt is uitgezonden:
+ *  een aangekondigd seizoen kan niemand gezien hebben, en een oud seizoen dat
+ *  je nooit hebt aangevinkt maakt een serie niet ineens "nieuw". */
 export function hasUnseenNewSeason(snap: Snapshot, title: Title, userId: string): boolean {
   if (!title.new_season_at || Date.now() - title.new_season_at > NEW_SEASON_WINDOW) return false;
   const r = myRating(snap, title.tmdb_id, userId);
   if (!r) return false;
-  return watchedSeasonCount(title, r) < title.seasons.length;
+  const nieuwste = latestAiredSeason(title);
+  if (nieuwste == null) return false;
+  return !(r.seasons || []).includes(nieuwste);
 }
 
 /** Series op jouw lijst met een recent nieuw seizoen dat je nog niet zag —

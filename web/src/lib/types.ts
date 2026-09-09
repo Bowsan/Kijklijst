@@ -15,6 +15,8 @@ export interface Season {
   episode_count: number;
   name: string;
   air_year?: number | null;
+  /** Eerste uitzenddatum ("YYYY-MM-DD"); ontbreekt bij aangekondigde seizoenen. */
+  air_date?: string | null;
 }
 
 export interface Title {
