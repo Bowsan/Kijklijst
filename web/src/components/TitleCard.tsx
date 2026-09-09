@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import type { Snapshot, Title, Status } from '../lib/types';
 import { STATUS_ORDER, STATUS_LABELS } from '../lib/types';
 import { saveRating, removeRating, addComment, removeComment, clearRatingScore, toggleCommentReaction, type RatingUpdate } from '../lib/api';
 import { groupAverage, myRating, profileById, guessService, visibleUserIds, followingProfiles, hasUnseenNewSeason, friendScoresFor } from '../lib/compute';
 import { NL_SERVICES } from '../lib/services';
+import { airedSeasons } from '../lib/seasons';
 import { scoreColor, isGoldScore } from '../lib/score';
 import { fmt1, fmtDate, fmtDateTime, fmtISODate } from '../lib/format';
 import ServiceLogo from './ServiceLogo';
@@ -124,9 +125,13 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mine?.seasons]);
 
+  // Alleen seizoenen die al zijn uitgezonden; een aangekondigd seizoen kun je
+  // nog niet gekeken hebben, dus dat hoort niet in de teller of de knopjes.
+  const uitgezonden = useMemo(() => airedSeasons(title), [title]);
+
   // Seizoen-voortgang voor de ingeklapte kaart: hoeveel van de N seizoenen zag je?
-  const totalSeasons = title.seasons.length;
-  const watchedSeasonCount = watchedSeasons.filter((n) => title.seasons.some((s) => s.season_number === n)).length;
+  const totalSeasons = uitgezonden.length;
+  const watchedSeasonCount = watchedSeasons.filter((n) => uitgezonden.some((s) => s.season_number === n)).length;
   const seasonsChip = !!mine && totalSeasons > 1;
   const newSeason = hasUnseenNewSeason(snap, title, userId);
 
@@ -240,7 +245,7 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
       : [...watchedSeasons, n].sort((a, b) => a - b));
   };
   const toggleAllSeasons = () => {
-    const all = title.seasons.map((s) => s.season_number);
+    const all = uitgezonden.map((s) => s.season_number);
     const allOn = all.every((n) => watchedSeasons.includes(n));
     commitSeasons(allOn ? [] : all);
   };
@@ -409,18 +414,18 @@ export default function TitleCard({ snap, title, userId, blind, showGroupScore =
               })}
             </div>
 
-            {title.seasons.length > 0 && (
+            {uitgezonden.length > 0 && (
               <div className="tc-field">
                 <div className="tc-sublabel">Seizoenen gezien</div>
                 <div className="seasons">
                   <button
-                    className={title.seasons.every((s) => watchedSeasons.includes(s.season_number)) ? 'on' : ''}
+                    className={uitgezonden.every((s) => watchedSeasons.includes(s.season_number)) ? 'on' : ''}
                     onClick={toggleAllSeasons}
                     style={{ fontWeight: 700 }}
                   >
                     Alles
                   </button>
-                  {title.seasons.map((s) => (
+                  {uitgezonden.map((s) => (
                     <button
                       key={s.season_number}
                       className={watchedSeasons.includes(s.season_number) ? 'on' : ''}

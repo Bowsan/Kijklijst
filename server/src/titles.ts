@@ -4,6 +4,7 @@ import { getTvDetails, getImdbId } from './tmdb.js';
 import { broadcast } from './events.js';
 import { sendPushTo } from './push.js';
 import { logActivity, listersOf } from './helpers.js';
+import { uitgezondenSeizoenen } from './seasons.js';
 
 // Zorg dat een titel in de database staat (haalt details bij TMDb indien nodig).
 export async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any> {
@@ -69,9 +70,13 @@ export async function refreshTitle(tmdbId: number): Promise<boolean> {
   if (!existing) return false;
 
   const d = await getTvDetails(tmdbId);
-  const oldSeasons = parseJson<any[]>(existing.seasons, []);
-  const gainedSeason = d.seasons.length > oldSeasons.length;
   const now = Date.now();
+  // Alleen seizoenen die echt zijn begonnen tellen mee: TMDb voegt een verlengd
+  // seizoen vaak al maanden vooraf toe. Zou dat al een melding geven, dan blijft
+  // de "nieuw seizoen"-markering hangen bij iedereen die alles al gezien heeft.
+  const oldSeasons = uitgezondenSeizoenen(parseJson<any[]>(existing.seasons, []), now);
+  const newSeasons = uitgezondenSeizoenen(d.seasons, now);
+  const gainedSeason = newSeasons.length > oldSeasons.length;
 
   db.prepare(
     `UPDATE titles SET
@@ -90,10 +95,11 @@ export async function refreshTitle(tmdbId: number): Promise<boolean> {
 
   if (gainedSeason) {
     // Systeem-event (geen gebruiker) — verschijnt in de activiteitenlog.
-    logActivity('new_season', '', tmdbId, { from: oldSeasons.length, to: d.seasons.length });
+    const nieuwste = Math.max(...newSeasons.map((s) => s.season_number));
+    logActivity('new_season', '', tmdbId, { from: oldSeasons.length, to: newSeasons.length });
     sendPushTo(listersOf(tmdbId), {
       title: 'Op de Bank',
-      body: `🎉 ${d.name} heeft een nieuw seizoen (seizoen ${d.seasons.length})`,
+      body: `🎉 ${d.name} heeft een nieuw seizoen (seizoen ${nieuwste})`,
     });
   }
   return gainedSeason;

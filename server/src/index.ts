@@ -14,6 +14,7 @@ import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 import { logActivity, nameOf, titleNameOf, listersOf } from './helpers.js';
+import { opschonenValseNieuweSeizoenen } from './cleanup.js';
 import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, backfillFirstAirDates, refreshOngoingTitles, refreshImdbRatings, attachImdbRatings } from './titles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -88,6 +89,9 @@ app.listen(PORT, () => {
   initPush();
   // Bestaande base64-afbeeldingen eenmalig naar bestanden verplaatsen.
   try { migrateDataUrisToFiles(); } catch (e: any) { console.warn('Uploads-migratie mislukt:', e?.message || e); }
+  // Markeringen weghalen die zijn gezet voor een seizoen dat alleen was
+  // aangekondigd; die bleven anders in "Voor jou" hangen.
+  try { opschonenValseNieuweSeizoenen(); } catch (e: any) { console.warn('Opschonen nieuwe seizoenen mislukt:', e?.message || e); }
   // Niet awaiten: op de achtergrond laten lopen (na elkaar, rustig getimed).
   // IMDb-cijfers meteen ophalen voor titels die al een imdb_id hebben…
   refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));

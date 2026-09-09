@@ -8,7 +8,7 @@ export interface EnrichData {
   year: number | null;
   poster_path: string | null; // volledige URL bij TVmaze
   genres: string[];
-  seasons: { season_number: number; episode_count: number; name: string; air_year: number | null }[];
+  seasons: { season_number: number; episode_count: number; name: string; air_year: number | null; air_date: string | null }[];
   episode_count: number | null;
   overview: string;
 }
@@ -41,6 +41,7 @@ export async function tvmazeByImdb(imdbId: string): Promise<EnrichData | null> {
           episode_count: s.episodeOrder || 0,
           name: s.name || `Seizoen ${s.number}`,
           air_year: s.premiereDate ? Number(s.premiereDate.slice(0, 4)) : null,
+          air_date: s.premiereDate || null,
         }));
     }
   } catch {
