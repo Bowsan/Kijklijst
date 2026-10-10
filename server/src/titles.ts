@@ -1,10 +1,10 @@
 // Titelbeheer: aanmaken vanuit TMDb, verversen, en de achtergrond-backfills.
-import { db, parseJson } from './db.js';
+import { db, parseJson, metaGetNumber, metaSetNumber } from './db.js';
 import { getTvDetails, getImdbId } from './tmdb.js';
 import { broadcast } from './events.js';
 import { sendPushTo } from './push.js';
 import { logActivity, listersOf } from './helpers.js';
-import { uitgezondenSeizoenen } from './seasons.js';
+import { nieuwsteUitgezondenSeizoen, seizoenMelding } from './seasons.js';
 
 // Zorg dat een titel in de database staat (haalt details bij TMDb indien nodig).
 export async function ensureTitle(tmdbId: number, addedBy: string | null): Promise<any> {
@@ -14,12 +14,16 @@ export async function ensureTitle(tmdbId: number, addedBy: string | null): Promi
   const d = await getTvDetails(tmdbId);
   db.prepare(
     `INSERT INTO titles
-      (tmdb_id, name, year, first_air_date, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, cast_meta, creators, imdb_id, tmdb_status, refreshed_at, added_by, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (tmdb_id, name, year, first_air_date, poster_path, genres, seasons, episode_count, runtime, providers, overview, cast, cast_meta, creators, imdb_id, tmdb_status, refreshed_at, announced_season, added_by, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     d.tmdb_id, d.name, d.year, d.first_air_date, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
-    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), JSON.stringify(d.creators), d.imdb_id, d.status, Date.now(), addedBy, Date.now()
+    JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), JSON.stringify(d.creators), d.imdb_id, d.status, Date.now(),
+    // De stand meteen vastleggen: een serie die je nu toevoegt heeft geen
+    // "nieuw seizoen", ook niet als er net een seizoen uit is.
+    nieuwsteUitgezondenSeizoen(d.seasons),
+    addedBy, Date.now()
   );
   storeServiceLogos(d.provider_logos);
   return db.prepare('SELECT * FROM titles WHERE tmdb_id = ?').get(tmdbId);
@@ -71,35 +75,34 @@ export async function refreshTitle(tmdbId: number): Promise<boolean> {
 
   const d = await getTvDetails(tmdbId);
   const now = Date.now();
-  // Alleen seizoenen die echt zijn begonnen tellen mee: TMDb voegt een verlengd
-  // seizoen vaak al maanden vooraf toe. Zou dat al een melding geven, dan blijft
-  // de "nieuw seizoen"-markering hangen bij iedereen die alles al gezien heeft.
-  const oldSeasons = uitgezondenSeizoenen(parseJson<any[]>(existing.seasons, []), now);
-  const newSeasons = uitgezondenSeizoenen(d.seasons, now);
-  const gainedSeason = newSeasons.length > oldSeasons.length;
+  // Alleen seizoenen die echt zijn begonnen tellen mee, en we vergelijken met
+  // wat we al gemeld hebben — niet met de vorige momentopname. Zie seasons.ts.
+  const { melden, gemeldNu } = seizoenMelding(
+    existing.announced_season, parseJson<any[]>(existing.seasons, []), d.seasons, now,
+  );
+  const gainedSeason = melden != null;
 
   db.prepare(
     `UPDATE titles SET
        name=?, year=?, first_air_date=COALESCE(?, first_air_date), poster_path=?, genres=?, seasons=?, episode_count=?, runtime=?,
        providers=?, overview=?, cast=?, cast_meta=?, creators=?, imdb_id=COALESCE(?, imdb_id), tmdb_status=?,
-       refreshed_at=?, new_season_at=?
+       refreshed_at=?, new_season_at=?, announced_season=?
      WHERE tmdb_id=?`
   ).run(
     d.name, d.year, d.first_air_date, d.poster_path,
     JSON.stringify(d.genres), JSON.stringify(d.seasons), d.episode_count, d.runtime,
     JSON.stringify(d.providers), d.overview, JSON.stringify(d.cast), JSON.stringify(d.cast_meta), JSON.stringify(d.creators), d.imdb_id, d.status,
-    now, gainedSeason ? now : existing.new_season_at ?? null,
+    now, gainedSeason ? now : existing.new_season_at ?? null, gemeldNu,
     tmdbId,
   );
   storeServiceLogos(d.provider_logos);
 
-  if (gainedSeason) {
+  if (melden != null) {
     // Systeem-event (geen gebruiker) — verschijnt in de activiteitenlog.
-    const nieuwste = Math.max(...newSeasons.map((s) => s.season_number));
-    logActivity('new_season', '', tmdbId, { from: oldSeasons.length, to: newSeasons.length });
+    logActivity('new_season', '', tmdbId, { to: melden });
     sendPushTo(listersOf(tmdbId), {
       title: 'Op de Bank',
-      body: `🎉 ${d.name} heeft een nieuw seizoen (seizoen ${nieuwste})`,
+      body: `🎉 ${d.name} heeft een nieuw seizoen (seizoen ${melden})`,
     });
   }
   return gainedSeason;
@@ -224,16 +227,71 @@ export async function backfillFirstAirDates(): Promise<void> {
   if (rows.length) await refreshTitles(rows, 'Uitgavedatum-backfill');
 }
 
-// Automatisch: alleen nog-lopende (of nog onbekende) series, hooguit 1×/dag.
-export async function refreshOngoingTitles(): Promise<void> {
-  if (!process.env.TMDB_API_KEY) return;
-  const dayAgo = Date.now() - 24 * 3600 * 1000;
-  const rows = (db.prepare('SELECT tmdb_id, tmdb_status, refreshed_at FROM titles WHERE tmdb_id > 0').all() as any[])
+// ---------- De seizoenronde ----------
+//
+// Nieuwe seizoenen komen alleen in de app als we TMDb blijven navragen. Drie
+// dingen houden dat op de rails:
+//  1. Lopende series gaan dagelijks langs.
+//  2. Élke serie komt minstens eens per twee weken aan de beurt, ook een
+//     "Ended" of "Canceled". Dat is bewust: die status klopt niet altijd en
+//     series worden verlengd. Zonder deze trage baan zou zo'n serie nooit meer
+//     bekeken worden en een nieuw seizoen dus nooit opvallen.
+//  3. De ronde hangt niet aan de looptijd van het proces: hij wordt ook
+//     gestart als iemand de app opent en de vorige ronde te lang geleden is.
+//     Na een herstart of een periode zonder verkeer loopt hij dus gewoon bij.
+
+/** Lopende series: dagelijks. */
+const VERS_LOPEND = 24 * 3600 * 1000;
+/** Alle series, wat de status ook is: minstens eens per twee weken. */
+const VERS_ALLES = 14 * 24 * 3600 * 1000;
+/** Hooguit zoveel titels per ronde — rustig aan tegenover TMDb. */
+export const MAX_PER_RONDE = 60;
+/** Hoe vaak de ronde hoort te lopen. */
+export const RONDE_INTERVAL = 6 * 3600 * 1000;
+const RONDE_SLEUTEL = 'season_sweep_at';
+
+/** Welke titels zijn nu aan de beurt? Langst niet nagekeken eerst. */
+export function teVerversenTitels(nu = Date.now()): number[] {
+  return (db.prepare('SELECT tmdb_id, tmdb_status, refreshed_at FROM titles WHERE tmdb_id > 0').all() as any[])
     .filter((t) => {
       if (t.refreshed_at == null) return true; // nog nooit ververst
-      if (t.refreshed_at > dayAgo) return false; // recent genoeg
-      return t.tmdb_status == null || ONGOING.has(t.tmdb_status); // alleen lopende
+      const geleden = nu - t.refreshed_at;
+      if (geleden >= VERS_ALLES) return true; // niets blijft eeuwig liggen
+      if (geleden < VERS_LOPEND) return false; // recent genoeg
+      return t.tmdb_status == null || ONGOING.has(t.tmdb_status);
     })
-    .map((t) => ({ tmdb_id: t.tmdb_id }));
-  await refreshTitles(rows, 'Auto-refresh lopende series');
+    .sort((a, b) => (a.refreshed_at ?? 0) - (b.refreshed_at ?? 0))
+    .slice(0, MAX_PER_RONDE)
+    .map((t) => t.tmdb_id);
+}
+
+/** Wanneer liep de laatste ronde? (null = nog nooit) */
+export function laatsteRonde(): number | null {
+  return metaGetNumber(RONDE_SLEUTEL);
+}
+
+/** Is de ronde alweer aan de beurt? */
+export function rondeNodig(nu = Date.now()): boolean {
+  return nu - (laatsteRonde() ?? 0) >= RONDE_INTERVAL;
+}
+
+let rondeBezig = false;
+
+/** Eén ronde lopen. Overlapt nooit met zichzelf. */
+export async function seizoenRonde(reden: string): Promise<void> {
+  if (!process.env.TMDB_API_KEY || rondeBezig) return;
+  rondeBezig = true;
+  // Meteen afstempelen, zodat een tweede aanleiding niet dezelfde ronde herhaalt.
+  metaSetNumber(RONDE_SLEUTEL, Date.now());
+  try {
+    await refreshTitles(teVerversenTitels().map((tmdb_id) => ({ tmdb_id })), `Seizoenronde (${reden})`);
+  } finally {
+    rondeBezig = false;
+  }
+}
+
+/** Start de ronde alleen als hij aan de beurt is. Bedoeld voor als de app opent. */
+export function rondeIndienNodig(reden: string): void {
+  if (!rondeNodig()) return;
+  void seizoenRonde(reden).catch((e: any) => console.warn('Seizoenronde mislukt:', e?.message || e));
 }

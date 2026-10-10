@@ -134,6 +134,13 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
 
+  -- Losse sleutel/waarde-regels voor de server zelf (bijv. wanneer de
+  -- seizoenronde voor het laatst liep). Geen gebruikersgegevens.
+  CREATE TABLE IF NOT EXISTS app_meta (
+    key         TEXT PRIMARY KEY,
+    value       TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS messages (
     id          TEXT PRIMARY KEY,
     from_user   TEXT NOT NULL,
@@ -162,6 +169,9 @@ function addTitleColumns(): void {
   add('imdb_votes', 'INTEGER');
   add('imdb_rating_at', 'INTEGER'); // wanneer voor het laatst ververst
   add('first_air_date', 'TEXT'); // uitgavedatum (TMDb first_air_date, "YYYY-MM-DD")
+  // Hoogste seizoen waarvoor we al een "nieuw seizoen"-melding stuurden. Hiermee
+  // hangt de melding niet meer aan het verschil tussen twee momentopnamen.
+  add('announced_season', 'INTEGER');
 }
 addTitleColumns();
 
@@ -308,6 +318,19 @@ function parseJson<T>(value: string | null | undefined, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** Een getal uit app_meta (null als het er niet staat of geen getal is). */
+export function metaGetNumber(key: string): number | null {
+  const row = db.prepare('SELECT value FROM app_meta WHERE key = ?').get(key) as { value: string } | undefined;
+  const n = row ? Number(row.value) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Een getal in app_meta zetten. */
+export function metaSetNumber(key: string, value: number): void {
+  db.prepare('INSERT INTO app_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    .run(key, String(value));
 }
 
 export function getSnapshot(): Snapshot {
