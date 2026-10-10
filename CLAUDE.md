@@ -28,15 +28,20 @@ code-commentaar ook in het Nederlands.
   montage van de routers en de opstarttaken; de routes staan in
   `src/routes/*.ts` (elke router draagt zijn eigen volledige paden).
   Verder `src/db.ts` (schema + **additieve** migraties), `src/tmdb.ts`,
-  `src/titles.ts`, `src/http.ts` (`userId()`).
+  `src/titles.ts` (verversen + de seizoenronde), `src/seasons.ts` (welke
+  seizoenen zijn al uitgezonden + wanneer melden we een nieuw seizoen),
+  `src/cleanup.ts` (opstart-opruiming), `src/http.ts` (`userId()`).
 - **e2e/smoke.mjs** — Playwright-rooktest die de gebouwde server doorloopt.
 - PWA: `#root` is de scroll-container; safe-area via `--safe-top`/`--safe-bottom`.
 
 ## Ship-pipeline (elke wijziging)
 1. `cd web && npm run build`
-2. `npm run test` (vitest, 51 tests)
+2. `npm run test` (vitest, 89 tests) + `cd server && npm test` (49 tests)
 3. `rm -rf server/public && cp -r web/dist server/public`
-4. Playwright-verificatie + `node e2e/smoke.mjs`
+4. Playwright-verificatie + `node e2e/smoke.mjs` (13 checks). Chromium staat
+   in de container klaar, maar niet op het pad dat Playwright verwacht:
+   `export SMOKE_CHROMIUM=$(ls -d /opt/pw-browsers/chromium-*/chrome-linux/chrome | head -1)`.
+   Na een containerherstart zijn `node_modules` vaak leeg → `npm ci` in web/ én server/.
 5. commit → push naar de branch → PR → squash-merge
 6. Deploy verifiëren via `mcp__github__actions_list` (workflow `deploy.yml`,
    branch `main`); controleer laatste `head_sha` = merge-sha, conclusion `success`.
@@ -74,12 +79,29 @@ code-commentaar ook in het Nederlands.
   (`getSimpleMode`/`setSimpleMode`, key `opdebank.simpleMode`). Alleen kijk/gezien,
   "De rest" = alleen vrienden, één regel notitie per serie.
 
+## Nieuwe seizoenen (let op bij wijzigingen)
+- **Wat telt als een seizoen:** `seasons.ts` bestaat in web én server met
+  dezelfde regels. Alleen seizoenen die al zijn *uitgezonden* tellen mee; TMDb
+  zet een verlengd seizoen vaak maanden vooraf in de lijst. Kent een serie geen
+  enkele datum (handmatig toegevoegd), dan tellen ze allemaal.
+- **Wanneer melden:** `seizoenMelding()` vergelijkt met de kolom
+  `announced_season` (hoogste al gemelde seizoen), **niet** met de vorige
+  momentopname. Dat laatste miste precies het geval van een vooraf
+  aangekondigd seizoen: op de dag dat het begint verandert de lijst niet meer.
+  Houd deze functie puur — de servertests hangen eraan.
+- **De seizoenronde** (`titles.ts`): lopende series dagelijks, élke serie
+  minstens eens per 14 dagen (ook "Ended" — die status klopt niet altijd),
+  max 60 per ronde, interval 6 uur. Draait bij opstarten, op de timer én via
+  `/api/state` als de vorige ronde te lang geleden is, zodat downtime wordt
+  ingehaald. Stand te zien op `/api/health` → `seizoenronde`.
+
 ## Huidige staat
-- Laatste gemergede werk: PR #164 — technische opschoning (dedupliceren +
-  opsplitsen in kleine modules), zonder zichtbare wijziging voor de gebruiker.
-- Daarvoor: filterchips wrappen (#159), plus-knop met gradient + shimmer (#160),
-  simpele-modus footer-pil gefixt (#161), minder ruimte tussen sorteerregel en
-  lijst (#162), filter "Zonder cijfer" (#163).
+- Laatste gemergede werk: PR #177 — nieuwe-seizoenmeldingen betrouwbaar maken
+  (melden op basis van `announced_season`, seizoenronde die niets laat liggen).
+- Daarvoor: #176 (geen melding voor een alleen-aangekondigd seizoen + opruiming
+  van onterechte markeringen), #175 (geen onderstreping bij klikbare tekst),
+  #174 (@-vermeldingen in prikbordberichten), #173 (serie toevoegen vanuit de
+  zoekbalk), #172 (klikbare serietitels), #171 (TMDb-bronvermelding).
 - Verificatie-truc die goed werkte bij refactors: bouw voor én na, vergelijk de
   **gebouwde CSS-bundel** (md5) en dump de **DOM** van herbouwde onderdelen om
   te bewijzen dat er niets verandert. Let bij screenshotvergelijking op lopende

@@ -14,8 +14,8 @@ import { scheduleBackups } from './backup.js';
 import { uploadsDir, storeDataUri, migrateDataUrisToFiles } from './uploads.js';
 import { initPush, pushPublicKey, saveSubscription, removeSubscription, sendPushTo } from './push.js';
 import { logActivity, nameOf, titleNameOf, listersOf } from './helpers.js';
-import { opschonenValseNieuweSeizoenen } from './cleanup.js';
-import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, backfillFirstAirDates, refreshOngoingTitles, refreshImdbRatings, attachImdbRatings } from './titles.js';
+import { opschonenValseNieuweSeizoenen, vulGemeldeSeizoenen } from './cleanup.js';
+import { ensureTitle, refreshTitle, refreshTitles, backfillImdbIds, backfillCastMeta, backfillFirstAirDates, seizoenRonde, RONDE_INTERVAL, refreshImdbRatings, attachImdbRatings } from './titles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8080);
@@ -92,6 +92,8 @@ app.listen(PORT, () => {
   // Markeringen weghalen die zijn gezet voor een seizoen dat alleen was
   // aangekondigd; die bleven anders in "Voor jou" hangen.
   try { opschonenValseNieuweSeizoenen(); } catch (e: any) { console.warn('Opschonen nieuwe seizoenen mislukt:', e?.message || e); }
+  // Beginpunt vastleggen voor series die nog geen gemelde seizoenstand hebben.
+  try { vulGemeldeSeizoenen(); } catch (e: any) { console.warn('Seizoenstand vastleggen mislukt:', e?.message || e); }
   // Niet awaiten: op de achtergrond laten lopen (na elkaar, rustig getimed).
   // IMDb-cijfers meteen ophalen voor titels die al een imdb_id hebben…
   refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));
@@ -102,10 +104,11 @@ app.listen(PORT, () => {
     .finally(() => backfillFirstAirDates().catch((e) => console.warn('Uitgavedatum-backfill mislukt:', e?.message || e)))
     // …en nogmaals na de id-backfill, voor titels die net een imdb_id kregen.
     .finally(() => refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e)));
-  refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
-  // Daarna elke 12 uur opnieuw de lopende series en IMDb-cijfers checken.
+  seizoenRonde('opstarten').catch((e) => console.warn('Seizoenronde mislukt:', e?.message || e));
+  // Daarna op eigen ritme. Mist de timer een slag (herstart, container in
+  // slaap), dan haalt /api/state de ronde alsnog op gang — zie routes/system.ts.
   setInterval(() => {
-    refreshOngoingTitles().catch((e) => console.warn('Auto-refresh mislukt:', e?.message || e));
+    seizoenRonde('tijdschema').catch((e) => console.warn('Seizoenronde mislukt:', e?.message || e));
     refreshImdbRatings().catch((e) => console.warn('IMDb-cijfers mislukt:', e?.message || e));
-  }, 12 * 3600 * 1000);
+  }, RONDE_INTERVAL);
 });

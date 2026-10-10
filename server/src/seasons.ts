@@ -38,6 +38,35 @@ export function uitgezondenSeizoenen<T extends SeizoenInfo>(seasons: T[], nu = D
 /** Zo lang telt een nieuw seizoen als "nieuw" (gelijk aan NEW_SEASON_WINDOW in de app). */
 export const NIEUW_SEIZOEN_VENSTER = 90 * 24 * 3600 * 1000;
 
+/** Het hoogste seizoensnummer dat al is uitgezonden (0 als er nog niets loopt). */
+export function nieuwsteUitgezondenSeizoen(seasons: SeizoenInfo[], nu = Date.now()): number {
+  return uitgezondenSeizoenen(seasons, nu).reduce((max, s) => Math.max(max, s.season_number), 0);
+}
+
+/**
+ * Moeten we nu een nieuw seizoen melden?
+ *
+ * Bewust gebaseerd op wat we al gemeld hébben (`gemeld`, uit de database) en
+ * niet op het verschil tussen twee momentopnamen. Dat laatste gaat namelijk
+ * mis bij een seizoen dat TMDb al maanden vooraf in de lijst zet: op het moment
+ * dat zo'n seizoen begint, verandert de lijst niet meer — en dan zou er nooit
+ * een melding komen. Zo kan de melding ook niet dubbel, en overleeft hij een
+ * herstart van de server.
+ *
+ * Staat er nog niets vastgelegd (eerste keer na de migratie), dan nemen we de
+ * huidige stand als beginpunt: geen stortvloed aan oude meldingen.
+ */
+export function seizoenMelding(
+  gemeld: number | null | undefined,
+  opgeslagen: SeizoenInfo[],
+  vers: SeizoenInfo[],
+  nu = Date.now(),
+): { melden: number | null; gemeldNu: number } {
+  const basis = gemeld ?? nieuwsteUitgezondenSeizoen(opgeslagen, nu);
+  const nieuwste = nieuwsteUitgezondenSeizoen(vers, nu);
+  return { melden: nieuwste > basis ? nieuwste : null, gemeldNu: Math.max(basis, nieuwste) };
+}
+
 /**
  * Is deze "nieuw seizoen"-markering achteraf onterecht?
  *
